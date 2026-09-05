@@ -94,6 +94,15 @@ struct RootView: View {
     /// every source starts collapsed.
     @State private var expandedSources: Set<String> = []
 
+    /// Which icon the expand-all/collapse-all button shows. Deliberately a
+    /// separate stored flag rather than a value derived from `groups` +
+    /// `expandedSources`: it should flip only when the user taps that
+    /// button, or when individually expanding/collapsing sources happens to
+    /// land on "every source expanded" or "every source collapsed" — not on
+    /// every unrelated change to `groups` (e.g. a source emptying out after
+    /// its links are marked read).
+    @State private var allSourcesExpandedIcon = false
+
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
     }
@@ -134,12 +143,6 @@ struct RootView: View {
         }
     }
 
-    /// True once every source group is expanded — drives which icon the
-    /// expand-all/collapse-all button shows.
-    private var allSourcesExpanded: Bool {
-        !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.label) }
-    }
-
     private func toggleSource(_ label: String) {
         withAnimation(.easeInOut(duration: 0.25)) {
             if expandedSources.contains(label) {
@@ -147,12 +150,20 @@ struct RootView: View {
             } else {
                 expandedSources.insert(label)
             }
+            // Only the two "every source" extremes move the icon; anything
+            // in between leaves it as it was.
+            if !groups.isEmpty && groups.allSatisfy({ expandedSources.contains($0.label) }) {
+                allSourcesExpandedIcon = true
+            } else if expandedSources.isEmpty {
+                allSourcesExpandedIcon = false
+            }
         }
     }
 
     private func toggleAllSources() {
         withAnimation(.easeInOut(duration: 0.25)) {
-            expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
+            allSourcesExpandedIcon.toggle()
+            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.label)) : []
         }
     }
 
@@ -383,8 +394,8 @@ struct RootView: View {
 
     private var toggleAllSourcesButton: some View {
         floatingButton(
-            icon: allSourcesExpanded ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
-            flipped: !allSourcesExpanded
+            icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+            flipped: !allSourcesExpandedIcon
         ) {
             toggleAllSources()
         }
