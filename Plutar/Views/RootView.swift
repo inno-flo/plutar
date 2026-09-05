@@ -174,14 +174,17 @@ struct RootView: View {
                 }
             }
             // Not a real destination — see `RootTab.settings` and the
-            // `onChange(of: selectedTab)` handler below.
+            // `onChange(of: selectedTab)` handler below. Its content mirrors
+            // the feed (instead of e.g. `Color.clear`) so the instant that
+            // TabView actually switches to it — before we bounce the
+            // selection back — there's nothing visually different to flash.
             Tab("Affichage", systemImage: "gear", value: RootTab.settings) {
-                Color.clear
+                feedScreen
             }
         }
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .tabBarMinimizeBehavior(.automatic)
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
                 showSettings = true
@@ -269,11 +272,13 @@ struct RootView: View {
                                                 .tint(.gray)
                                             }
                                         }
-                                        // Explicit, symmetric transition — without it, a
-                                        // newly-inserted row can pop in at full height as
-                                        // soon as List measures it, instead of animating
-                                        // in like a removed row animates out.
-                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                        // Plain opacity — without it, a newly-inserted row
+                                        // can pop in at full height as soon as List
+                                        // measures it, instead of fading in like a removed
+                                        // row fades out. A directional `.move` transition
+                                        // was tried here but made the last row in a
+                                        // source's list animate differently from the rest.
+                                        .transition(.opacity)
                                 }
                             }
                         } header: {
