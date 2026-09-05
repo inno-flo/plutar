@@ -59,7 +59,7 @@ struct SettingsSheet: View {
                         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
 
-                    section("Présentation de la timeline") {
+                    section("Présentation du fil") {
                         HStack(spacing: 8) {
                             ForEach(LinkLayout.allCases) { l in
                                 pill(l.label, isActive: layout == l) { layout = l }

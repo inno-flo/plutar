@@ -11,6 +11,14 @@ private enum FeedMode: String, CaseIterable {
         case .read: return "Lus"
         }
     }
+
+    var icon: String {
+        switch self {
+        case .chrono: return "calendar"
+        case .source: return "globe"
+        case .read: return "checkmark.circle"
+        }
+    }
 }
 
 private struct DeletedSnapshot {
@@ -200,6 +208,11 @@ struct RootView: View {
                             .background(.ultraThinMaterial)
                     )
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Alternate navigation, tried alongside the top tab row and
+                // the floating gear button — nothing removed yet, per request.
+                bottomTabBar
+            }
         }
         .tint(theme.accent)
         .sheet(isPresented: $showSettings) {
@@ -263,6 +276,41 @@ struct RootView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+        }
+    }
+
+    /// Alternate navigation being tried alongside the top tab row and the
+    /// floating gear button (Affichage opens the same settings sheet as
+    /// that gear button, rather than switching `mode`).
+    private var bottomTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(FeedMode.allCases, id: \.self) { m in
+                tabBarItem(label: m.label, icon: m.icon, isActive: mode == m) {
+                    mode = m
+                }
+            }
+            tabBarItem(label: "Affichage", icon: "gear", isActive: false) {
+                showSettings = true
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+        .background(
+            theme.background.opacity(0.75)
+                .background(.ultraThinMaterial)
+        )
+    }
+
+    private func tabBarItem(label: String, icon: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(isActive ? theme.accent : theme.ink(0.5))
+            .frame(maxWidth: .infinity)
         }
     }
 
