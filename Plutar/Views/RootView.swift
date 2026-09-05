@@ -21,6 +21,31 @@ private enum FeedMode: String, CaseIterable {
     }
 }
 
+/// Selection value for the floating bottom `TabView`. Mirrors `FeedMode`
+/// plus a fourth "Affichage" case that isn't a real destination — selecting
+/// it just presents the settings sheet and bounces the selection back (see
+/// the `onChange(of: selectedTab)` handler in `RootView.body`).
+private enum RootTab: Hashable {
+    case chrono, source, read, settings
+
+    init(_ mode: FeedMode) {
+        switch mode {
+        case .chrono: self = .chrono
+        case .source: self = .source
+        case .read: self = .read
+        }
+    }
+
+    var feedMode: FeedMode? {
+        switch self {
+        case .chrono: return .chrono
+        case .source: return .source
+        case .read: return .read
+        case .settings: return nil
+        }
+    }
+}
+
 private struct DeletedSnapshot {
     let title: String
     let urlString: String
@@ -56,6 +81,7 @@ struct RootView: View {
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
 
     @State private var mode: FeedMode = .chrono
+    @State private var selectedTab: RootTab = .chrono
     @State private var showSettings = false
     @State private var pendingShare: SeedData.PoolEntry?
 
@@ -115,15 +141,19 @@ struct RootView: View {
     }
 
     private func toggleSource(_ label: String) {
-        if expandedSources.contains(label) {
-            expandedSources.remove(label)
-        } else {
-            expandedSources.insert(label)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if expandedSources.contains(label) {
+                expandedSources.remove(label)
+            } else {
+                expandedSources.insert(label)
+            }
         }
     }
 
     private func toggleAllSources() {
-        expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
+        withAnimation(.easeInOut(duration: 0.25)) {
+            expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
+        }
     }
 
     private func dayLabel(_ day: Date) -> String {
@@ -137,6 +167,80 @@ struct RootView: View {
     }
 
     var body: some View {
+        TabView(selection: $selectedTab) {
+            ForEach(FeedMode.allCases, id: \.self) { m in
+                Tab(m.label, systemImage: m.icon, value: RootTab(m)) {
+                    feedScreen
+                }
+            }
+            // Not a real destination — see `RootTab.settings` and the
+            // `onChange(of: selectedTab)` handler below. Its content mirrors
+            // the feed (instead of e.g. `Color.clear`) so the instant that
+            // TabView actually switches to it — before we bounce the
+            // selection back — there's nothing visually different to flash.
+            Tab("Affichage", systemImage: "gear", value: RootTab.settings) {
+                feedScreen
+            }
+        }
+        // Native iOS 26 floating tab bar: not full width, and shrinks while
+        // scrolling the feed then restores once scrolling stops.
+        .tabBarMinimizeBehavior(.automatic)
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == .settings {
+                showSettings = true
+                // Reverting the selection in the same tick can make the tab
+                // bar's highlight snap to the first tab instead of back to
+                // the current one — defer it to the next run loop turn.
+                Task { @MainActor in
+                    selectedTab = RootTab(mode)
+                }
+            } else if let newMode = newValue.feedMode {
+                mode = newMode
+            }
+        }
+        .onChange(of: mode) { _, newMode in
+            selectedTab = RootTab(newMode)
+        }
+        .tint(theme.accent)
+        // Native chrome (the floating tab bar, sheets, alerts) picks its own
+        // label/material colors from light vs. dark mode. Without this, a
+        // dark theme (e.g. Crépuscule) still gets light-mode system chrome,
+        // and its unselected tab icons/text can end up nearly invisible
+        // against the floating tab bar's own background.
+        .preferredColorScheme(theme.isDark ? .dark : .light)
+        .sheet(isPresented: $showSettings) {
+            SettingsSheet(
+                theme: Binding(get: { theme }, set: { themeRaw = $0.rawValue }),
+                appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
+                showThumbnails: $showThumbnails,
+                layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
+                onClearAll: { clearAll(); showSettings = false },
+                onRegenerate: { regenerateLinks(); showSettings = false },
+                onClose: { showSettings = false }
+            )
+        }
+        .sheet(item: $pendingShare) { entry in
+            ShareSimulationSheet(
+                entry: entry,
+                onOther: { pendingShare = SeedData.pool.filter { $0.id != entry.id }.randomElement() ?? entry },
+                onSave: { save(entry); pendingShare = nil },
+                onCancel: { pendingShare = nil }
+            )
+            .presentationDetents([.height(220)])
+        }
+        .alert(
+            "Supprimer tous les liens lus ?",
+            isPresented: $showClearReadConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) { clearRead() }
+        }
+    }
+
+    /// The actual feed screen — identical content shown under all three feed
+    /// tabs; which links it shows is driven by the shared `mode` state, not
+    /// by which tab is selected.
+    private var feedScreen: some View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 theme.background.ignoresSafeArea()
@@ -158,15 +262,29 @@ struct RootView: View {
                                             }
                                         }
                                         .swipeActions(edge: .leading) {
-                                            if mode != .read {
+                                            if mode == .read {
+                                                Button {
+                                                    markAsUnread(item)
+                                                } label: {
+                                                    Label("Non lu", systemImage: "checkmark.circle")
+                                                }
+                                                .tint(.green)
+                                            } else {
                                                 Button {
                                                     markAsRead(item)
                                                 } label: {
-                                                    Label("Lu", systemImage: "checkmark.square")
+                                                    Label("Lu", systemImage: "checkmark.circle.fill")
                                                 }
                                                 .tint(.gray)
                                             }
                                         }
+                                        // Plain opacity — without it, a newly-inserted row
+                                        // can pop in at full height as soon as List
+                                        // measures it, instead of fading in like a removed
+                                        // row fades out. A directional `.move` transition
+                                        // was tried here but made the last row in a
+                                        // source's list animate differently from the rest.
+                                        .transition(.opacity)
                                 }
                             }
                         } header: {
@@ -177,6 +295,7 @@ struct RootView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .animation(.easeInOut(duration: 0.25), value: expandedSources)
                 .overlay {
                     if groups.isEmpty {
                         EmptyStateView(
@@ -191,127 +310,48 @@ struct RootView: View {
                     }
                 }
 
-                settingsButton
                 if mode == .read && !groups.isEmpty {
                     clearReadButton
                 } else if mode == .source && !groups.isEmpty {
                     toggleAllSourcesButton
+                } else if mode == .chrono && !groups.isEmpty {
+                    markAllReadButton
                 }
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
             .safeAreaInset(edge: .top, spacing: 0) {
+                // Flat, fully opaque theme background — not a translucent
+                // material. A material's own light/dark tint doesn't match
+                // an arbitrary theme color, so layering it here produced a
+                // visibly different band behind the status bar and behind
+                // the title than the plain `theme.background` used for the
+                // content below; one solid color now covers all three.
                 header
-                    .background(
-                        theme.background.opacity(0.75)
-                            .background(.ultraThinMaterial)
-                    )
+                    .background(theme.background)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                // Alternate navigation, tried alongside the top tab row and
-                // the floating gear button — nothing removed yet, per request.
-                bottomTabBar
-            }
-        }
-        .tint(theme.accent)
-        .sheet(isPresented: $showSettings) {
-            SettingsSheet(
-                theme: Binding(get: { theme }, set: { themeRaw = $0.rawValue }),
-                appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
-                showThumbnails: $showThumbnails,
-                layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
-                onClearAll: { clearAll(); showSettings = false },
-                onRegenerate: { regenerateLinks(); showSettings = false },
-                onClose: { showSettings = false }
-            )
-        }
-        .sheet(item: $pendingShare) { entry in
-            ShareSimulationSheet(
-                entry: entry,
-                onOther: { pendingShare = SeedData.pool.filter { $0.id != entry.id }.randomElement() ?? entry },
-                onSave: { save(entry); pendingShare = nil },
-                onCancel: { pendingShare = nil }
-            )
-            .presentationDetents([.height(220)])
-        }
-        .confirmationDialog(
-            "Supprimer tous les liens lus ?",
-            isPresented: $showClearReadConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Supprimer", role: .destructive) { clearRead() }
-            Button("Annuler", role: .cancel) {}
         }
     }
 
     private var header: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("plutar")
-                    .font(.system(size: 34, weight: .heavy, design: .default))
-                    .italic()
-                    .foregroundStyle(theme.accent)
-                Spacer()
-                Text("\(min(currentCount, 99))")
-                    .font(.system(size: 22, weight: .heavy))
-                    .frame(minWidth: 40, minHeight: 36)
-                    .padding(.horizontal, 8)
-                    .background(theme.accent)
-                    .foregroundStyle(theme.countForeground)
-                    .clipShape(Capsule())
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 14)
-
-            HStack(spacing: 6) {
-                ForEach(FeedMode.allCases, id: \.self) { m in
-                    Button {
-                        mode = m
-                    } label: {
-                        Text(m.label)
-                    }
-                    .buttonStyle(TabButtonStyle(isActive: mode == m, theme: theme))
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+        HStack {
+            Text("plutar")
+                .font(.system(size: 34, weight: .heavy, design: .default))
+                .italic()
+                .foregroundStyle(theme.accent)
+            Spacer()
+            Text("\(min(currentCount, 99))")
+                .font(.system(size: 22, weight: .heavy))
+                .frame(minWidth: 40, minHeight: 36)
+                .padding(.horizontal, 8)
+                .background(theme.accent)
+                .foregroundStyle(theme.countForeground)
+                .clipShape(Capsule())
         }
-    }
-
-    /// Alternate navigation being tried alongside the top tab row and the
-    /// floating gear button (Affichage opens the same settings sheet as
-    /// that gear button, rather than switching `mode`).
-    private var bottomTabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(FeedMode.allCases, id: \.self) { m in
-                tabBarItem(label: m.label, icon: m.icon, isActive: mode == m) {
-                    mode = m
-                }
-            }
-            tabBarItem(label: "Affichage", icon: "gear", isActive: false) {
-                showSettings = true
-            }
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-        .background(
-            theme.background.opacity(0.75)
-                .background(.ultraThinMaterial)
-        )
-    }
-
-    private func tabBarItem(label: String, icon: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                Text(label)
-                    .font(.system(size: 10, weight: .medium))
-            }
-            .foregroundStyle(isActive ? theme.accent : theme.ink(0.5))
-            .frame(maxWidth: .infinity)
-        }
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 14)
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
@@ -335,14 +375,15 @@ struct RootView: View {
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
     }
 
-    private var settingsButton: some View {
-        floatingButton(icon: "gear") { showSettings = true }
-            .padding(.leading, 18)
-            .padding(.bottom, 30)
-    }
-
     private var clearReadButton: some View {
         floatingButton(icon: "trash") { showClearReadConfirm = true }
+            .padding(.trailing, 18)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    private var markAllReadButton: some View {
+        floatingButton(icon: "checkmark.circle.fill") { markAllAsRead() }
             .padding(.trailing, 18)
             .padding(.bottom, 30)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -366,21 +407,41 @@ struct RootView: View {
     @ViewBuilder
     private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
         if mode == .source {
-            Button {
-                toggleSource(group.label)
-            } label: {
-                sourceChipLabel(group)
+            // Centered alignment keeps the mark-all-read icon on the same
+            // vertical line as the count badge and chevron inside the chip.
+            HStack(alignment: .center, spacing: 10) {
+                Button {
+                    toggleSource(group.label)
+                } label: {
+                    sourceChipLabel(group)
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
+
+                // Only while expanded — marks every link from this source as
+                // read, which empties it out of the (unread-only) Sources
+                // view, so the source disappears from the list.
+                if expandedSources.contains(group.label) {
+                    Button {
+                        markSourceAsRead(group.items)
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets())
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
         } else {
             Text(group.label)
-                .font(.system(size: 12.5, weight: .bold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .font(.system(size: 14.5, weight: .bold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
                 .background(theme.chip)
                 .foregroundStyle(theme.chipText)
                 .clipShape(Capsule())
@@ -394,9 +455,10 @@ struct RootView: View {
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(.system(size: 12.5, weight: .bold))
+                .font(.system(size: 14.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(.system(size: 10, weight: .heavy))
+                .foregroundStyle(theme == .marine ? .white : theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 .background(theme.chipText.opacity(0.22))
@@ -405,8 +467,8 @@ struct RootView: View {
                 .font(.system(size: 10, weight: .bold))
                 .opacity(0.7)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
         .background(theme.chip)
         .foregroundStyle(theme.chipText)
         .clipShape(Capsule())
@@ -414,29 +476,40 @@ struct RootView: View {
 
     @ViewBuilder
     private var undoToast: some View {
-        if let snapshot = undoSnapshot {
+        if undoSnapshot != nil {
             VStack {
                 Spacer()
                 HStack {
-                    Text("Supprimé · \(snapshot.title)")
-                        .font(.system(size: 11.5))
+                    Text("Supprimé")
+                        .font(.system(size: 13.5))
                         .tracking(0.4)
                         .lineLimit(1)
                     Spacer()
-                    Button("Annuler", action: performUndo)
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .tracking(1.2)
-                        .textCase(.uppercase)
-                        .tint(theme.accentSoft)
+                    // Explicit style + contentShape + its own padding: the
+                    // text alone (10.5pt, no frame) was a tiny, easy-to-miss
+                    // tap target that made the button feel unresponsive.
+                    Button(action: performUndo) {
+                        Text("Annuler")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(theme.accentSoft)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+                .padding(.leading, 16)
+                .padding(.trailing, 6)
+                .padding(.vertical, 4)
                 .background(theme.ink(1))
                 .foregroundStyle(theme.background)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .padding(.horizontal, 18)
                 .padding(.bottom, 96)
             }
+            .zIndex(2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .animation(.easeOut(duration: 0.2), value: undoSnapshot != nil)
         }
@@ -445,16 +518,34 @@ struct RootView: View {
     // MARK: Actions
 
     private func open(_ item: LinkItem) {
-        item.isRead = true
-        try? modelContext.save()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = true
+            try? modelContext.save()
+        }
         if let url = URL(string: item.urlString) {
             openURL(url)
         }
     }
 
     private func markAsRead(_ item: LinkItem) {
-        item.isRead = true
-        try? modelContext.save()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = true
+            try? modelContext.save()
+        }
+    }
+
+    private func markAsUnread(_ item: LinkItem) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = false
+            try? modelContext.save()
+        }
+    }
+
+    private func markSourceAsRead(_ items: [LinkItem]) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            for item in items { item.isRead = true }
+            try? modelContext.save()
+        }
     }
 
     private func requestDelete(_ item: LinkItem) {
@@ -487,6 +578,15 @@ struct RootView: View {
         try? modelContext.save()
     }
 
+    /// Marks every link currently shown (Date view: all unread links) as
+    /// read in one go.
+    private func markAllAsRead() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            for item in visibleItems { item.isRead = true }
+            try? modelContext.save()
+        }
+    }
+
     /// Wipes the store and drops the 40 demo links back in, freshly
     /// timestamped — the same seed used on first launch.
     private func regenerateLinks() {
@@ -498,22 +598,6 @@ struct RootView: View {
     private func save(_ entry: SeedData.PoolEntry) {
         modelContext.insert(entry.makeLinkItem())
         try? modelContext.save()
-    }
-}
-
-private struct TabButtonStyle: ButtonStyle {
-    let isActive: Bool
-    let theme: AppTheme
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13.5, weight: .bold))
-            .padding(.horizontal, 15)
-            .frame(height: 34)
-            .background(isActive ? theme.tabActive : theme.ink(0.07))
-            .foregroundStyle(isActive ? theme.background : theme.ink(0.52))
-            .clipShape(Capsule())
-            .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }
 
