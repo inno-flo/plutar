@@ -48,12 +48,13 @@ struct RootView: View {
     @AppStorage("plutar.compact") private var compact = false
 
     @State private var mode: FeedMode = .chrono
-    @State private var query = ""
     @State private var showSettings = false
     @State private var pendingShare: SeedData.PoolEntry?
 
     @State private var undoSnapshot: DeletedSnapshot?
     @State private var undoTask: Task<Void, Never>?
+
+    @State private var showClearReadConfirm = false
 
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
@@ -64,19 +65,15 @@ struct RootView: View {
     }
 
     private var visibleItems: [LinkItem] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        var list = allItems
-        if !q.isEmpty {
-            list = list.filter {
-                $0.title.lowercased().contains(q) || $0.host.lowercased().contains(q) || $0.sourceApp.lowercased().contains(q)
-            }
-        }
-        return mode == .read ? list.filter(\.isRead) : list.filter { !$0.isRead }
+        mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
     }
 
-    private var unreadCount: Int { allItems.filter { !$0.isRead }.count }
+    /// Count shown in the header badge — the number of links in the current view
+    /// (unread links for Date/Sources, read links for Lus), so it grows when a
+    /// link is added and shrinks when one is marked read (leaving Date/Sources).
+    private var currentCount: Int { visibleItems.count }
 
-    private var groups: [(label: String, sub: String, items: [LinkItem])] {
+    private var groups: [(label: String, items: [LinkItem])] {
         let list = visibleItems
         switch mode {
         case .chrono, .read:
@@ -88,20 +85,14 @@ struct RootView: View {
                 if buckets[day] == nil { buckets[day] = []; order.append(day) }
                 buckets[day]!.append(item)
             }
-            return order.map { day in
-                let items = buckets[day]!
-                return (dayLabel(day), "\(items.count) \(items.count > 1 ? "liens" : "lien")", items)
-            }
+            return order.map { day in (dayLabel(day), buckets[day]!) }
         case .source:
             let byHost = Dictionary(grouping: list, by: \.host)
             let hosts = byHost.keys.sorted { a, b in
                 let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
                 return ca != cb ? ca > cb : a < b
             }
-            return hosts.map { host in
-                let items = byHost[host] ?? []
-                return (host, "\(items.count) \(items.count > 1 ? "liens" : "lien")", items)
-            }
+            return hosts.map { host in (host, byHost[host] ?? []) }
         }
     }
 
@@ -135,49 +126,40 @@ struct RootView: View {
                                             Label("Supprimer", systemImage: "trash")
                                         }
                                     }
+                                    .swipeActions(edge: .leading) {
+                                        if mode != .read {
+                                            Button {
+                                                markAsRead(item)
+                                            } label: {
+                                                Label("Lu", systemImage: "checkmark.square")
+                                            }
+                                            .tint(.gray)
+                                        }
+                                    }
                             }
                         } header: {
-                            HStack {
-                                Text(group.label)
-                                    .font(.system(size: 12.5, weight: .bold))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 5)
-                                    .background(theme.chip)
-                                    .foregroundStyle(theme.background)
-                                    .clipShape(Capsule())
-                                Spacer()
-                                Text(group.sub)
-                                    .font(.system(size: 11.5, weight: .medium))
-                                    .foregroundStyle(theme.ink(0.42))
-                            }
-                            .listRowInsets(EdgeInsets())
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 4)
+                            Text(group.label)
+                                .font(.system(size: 12.5, weight: .bold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(theme.chip)
+                                .foregroundStyle(theme.chipText)
+                                .clipShape(Capsule())
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .listRowInsets(EdgeInsets())
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 4)
                         }
                     }
 
-                    if mode == .read && !groups.isEmpty {
-                        Button(role: .destructive) {
-                            clearRead()
-                        } label: {
-                            Text("Supprimer les liens lus")
-                                .font(.system(size: 10.5, weight: .semibold))
-                                .tracking(1.2)
-                                .textCase(.uppercase)
-                        }
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .searchable(text: $query, prompt: "Rechercher un lien, un site…")
                 .overlay {
                     if groups.isEmpty {
                         EmptyStateView(
                             theme: theme,
-                            title: mode == .read ? "Aucun lien lu" : query.isEmpty ? "Fil vide" : "Aucun résultat",
+                            title: mode == .read ? "Aucun lien lu" : "Fil vide",
                             text: mode == .read
                                 ? "Les liens ouverts apparaîtront ici, grisés dans le fil."
                                 : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
@@ -188,13 +170,16 @@ struct RootView: View {
                 }
 
                 settingsButton
+                if mode == .read && !groups.isEmpty {
+                    clearReadButton
+                }
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
             .safeAreaInset(edge: .top, spacing: 0) {
                 header
-                    .background(.thinMaterial)
+                    .background(theme.background)
             }
         }
         .tint(theme.accent)
@@ -205,6 +190,7 @@ struct RootView: View {
                 compact: $compact,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
+                onRegenerate: { regenerateLinks(); showSettings = false },
                 onClose: { showSettings = false }
             )
         }
@@ -217,6 +203,14 @@ struct RootView: View {
             )
             .presentationDetents([.height(220)])
         }
+        .confirmationDialog(
+            "Supprimer tous les liens lus ?",
+            isPresented: $showClearReadConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Supprimer", role: .destructive) { clearRead() }
+            Button("Annuler", role: .cancel) {}
+        }
     }
 
     private var header: some View {
@@ -227,7 +221,7 @@ struct RootView: View {
                     .italic()
                     .foregroundStyle(theme.accent)
                 Spacer()
-                Text("\(min(unreadCount, 99))")
+                Text("\(min(currentCount, 99))")
                     .font(.system(size: 22, weight: .heavy))
                     .frame(minWidth: 40, minHeight: 36)
                     .padding(.horizontal, 8)
@@ -248,25 +242,41 @@ struct RootView: View {
                     .buttonStyle(TabButtonStyle(isActive: mode == m, theme: theme))
                 }
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 14)
             .padding(.vertical, 12)
         }
     }
 
-    private var settingsButton: some View {
-        Button {
-            showSettings = true
-        } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(theme.background)
+    /// Shared look for the bottom-corner circular action buttons (settings,
+    /// clear-read) — same size, background material and icon treatment so the
+    /// two line up visually regardless of which corner they sit in.
+    ///
+    /// Uses the real Liquid Glass material (`glassEffect`) rather than a
+    /// plain `Material` background, so it actually follows the system's
+    /// Liquid Glass appearance setting (Settings → Display & Brightness).
+    private func floatingButton(icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(theme.ink(1))
                 .frame(width: 44, height: 44)
-                .background(theme.ink(1))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
         }
-        .padding(.leading, 18)
-        .padding(.bottom, 30)
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: .circle)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+    }
+
+    private var settingsButton: some View {
+        floatingButton(icon: "gear") { showSettings = true }
+            .padding(.leading, 18)
+            .padding(.bottom, 30)
+    }
+
+    private var clearReadButton: some View {
+        floatingButton(icon: "trash") { showClearReadConfirm = true }
+            .padding(.trailing, 18)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     @ViewBuilder
@@ -309,6 +319,11 @@ struct RootView: View {
         }
     }
 
+    private func markAsRead(_ item: LinkItem) {
+        item.isRead = true
+        try? modelContext.save()
+    }
+
     private func requestDelete(_ item: LinkItem) {
         let snapshot = DeletedSnapshot(item)
         modelContext.delete(item)
@@ -336,6 +351,14 @@ struct RootView: View {
 
     private func clearRead() {
         for item in allItems where item.isRead { modelContext.delete(item) }
+        try? modelContext.save()
+    }
+
+    /// Wipes the store and drops the 40 demo links back in, freshly
+    /// timestamped — the same seed used on first launch.
+    private func regenerateLinks() {
+        for item in allItems { modelContext.delete(item) }
+        for item in SeedData.makeLinkItems() { modelContext.insert(item) }
         try? modelContext.save()
     }
 

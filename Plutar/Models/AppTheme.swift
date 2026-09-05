@@ -18,7 +18,7 @@ extension Color {
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case couchant, crepuscule, creme, blanc, marine, astronaute, sang
+    case couchant, crepuscule, creme, blanc, marine, astronaute
 
     var id: String { rawValue }
 
@@ -30,7 +30,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return "Blanc"
         case .marine: return "Marine"
         case .astronaute: return "Astronaute"
-        case .sang: return "Sang"
         }
     }
 
@@ -42,7 +41,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
-        case .sang: return Color(hex: "#9E1B22")
         }
     }
 
@@ -54,7 +52,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
-        case .sang: return Color(hex: "#FFFFFF")
         }
     }
 
@@ -67,7 +64,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return (20, 38, 75)
         case .marine: return (255, 255, 255)
         case .astronaute: return (255, 255, 255)
-        case .sang: return (46, 14, 16)
         }
     }
 
@@ -86,7 +82,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return Color(hex: "#D95204")
         case .crepuscule: return Color(hex: "#F2A626")
         case .creme, .blanc, .marine, .astronaute: return Color(hex: "#FF4F00")
-        case .sang: return Color(hex: "#9E1B22")
         }
     }
 
@@ -95,7 +90,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return Color(hex: "#F2A626")
         case .crepuscule: return Color(hex: "#E07B26")
         case .creme, .blanc, .marine, .astronaute: return Color(hex: "#FFA366")
-        case .sang: return Color(hex: "#D4726E")
         }
     }
 
@@ -108,7 +102,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return (Color(hex: "#E4E9F2"), Color(hex: "#D2DAE8"))
         case .marine: return (Color(hex: "#1F3763"), Color(hex: "#2A4780"))
         case .astronaute: return (Color(hex: "#3A6DA5"), Color(hex: "#27547F"))
-        case .sang: return (Color(hex: "#F0E3E2"), Color(hex: "#DFCBCA"))
         }
     }
 
@@ -120,11 +113,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#F3F6FB")
         case .marine: return Color(hex: "#1C3364")
         case .astronaute: return Color(hex: "#35699F")
-        case .sang: return Color(hex: "#FAF3F2")
         }
     }
 
-    /// Sticky day-group pill background.
+    /// Sticky day-group (or source) pill background.
     var chip: Color {
         switch self {
         case .couchant: return Color(hex: "#8C3F12")
@@ -132,7 +124,16 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .creme: return Color(hex: "#16150F")
         case .blanc: return Color(hex: "#14264B")
         case .marine, .astronaute: return Color(hex: "#FF4F00")
-        case .sang: return Color(hex: "#9E1B22")
+        }
+    }
+
+    /// Text color drawn on top of `chip` — white for Astronaute, whose
+    /// `background` (the default choice) is too close in value to `chip`'s
+    /// orange to read well.
+    var chipText: Color {
+        switch self {
+        case .astronaute: return .white
+        default: return background
         }
     }
 
