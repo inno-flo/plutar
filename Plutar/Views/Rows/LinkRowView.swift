@@ -7,13 +7,7 @@ struct LinkRowView: View {
     let layout: LinkLayout
     let theme: AppTheme
     let appFont: AppFont
-    let compact: Bool
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
+    let showThumbnails: Bool
 
     private static let stampFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -22,10 +16,9 @@ struct LinkRowView: View {
         return f
     }()
 
-    private var timeString: String { Self.timeFormatter.string(from: item.dateAdded) }
-    private var stampString: String { "\(Self.stampFormatter.string(from: item.dateAdded)) · \(timeString)" }
-    private var viaString: String { compact ? "" : "via \(item.sourceApp)" }
-    private var showThumbnail: Bool { item.hasThumbnail && !compact }
+    private var stampString: String { Self.stampFormatter.string(from: item.dateAdded) }
+    private var viaString: String { "via \(item.sourceApp)" }
+    private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
     var body: some View {
         Group {
@@ -35,6 +28,7 @@ struct LinkRowView: View {
             case .editorial: editorialBody
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
         .background(theme.card)
@@ -45,13 +39,11 @@ struct LinkRowView: View {
         .shadow(color: .black.opacity(0.08), radius: 9, y: 4)
     }
 
-    // MARK: Rail (default) — time on the left, title + host, optional thumbnail.
+    // MARK: Rail (default) — favicon on the left, title + host, optional thumbnail.
 
     private var railBody: some View {
         HStack(alignment: .top, spacing: 10) {
-            Text(timeString)
-                .font(appFont.font(size: 14))
-                .foregroundStyle(theme.time)
+            favicon(size: 30)
                 .frame(width: 34, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 7) {
@@ -61,18 +53,23 @@ struct LinkRowView: View {
                 hostRow
             }
 
+            Spacer(minLength: 0)
+
             if showThumbnail {
                 thumbnail(size: 64)
             }
         }
     }
 
-    // MARK: Card — host on top, larger title, timestamp, optional thumbnail on the right.
+    // MARK: Card — favicon + host on top, larger title, date, optional thumbnail on the right.
 
     private var cardBody: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                hostRow
+                HStack(spacing: 7) {
+                    favicon(size: 18)
+                    hostRow
+                }
                 Text(item.title)
                     .font(appFont.font(size: 19, weight: .bold))
                     .lineLimit(3)
@@ -95,9 +92,7 @@ struct LinkRowView: View {
             HStack {
                 hostRow
                 Spacer()
-                Text(timeString)
-                    .font(appFont.font(size: 14))
-                    .foregroundStyle(theme.time)
+                favicon(size: 22)
             }
             if showThumbnail {
                 thumbnail(size: 150, fullWidth: true)
@@ -105,24 +100,27 @@ struct LinkRowView: View {
             Text(item.title)
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
-            if !compact {
-                Text(item.excerpt)
-                    .font(appFont.font(size: 12))
-                    .foregroundStyle(theme.ink(0.5))
-                    .lineLimit(3)
-            }
+            Text(item.excerpt)
+                .font(appFont.font(size: 12))
+                .foregroundStyle(theme.ink(0.5))
+                .lineLimit(3)
         }
     }
 
     // MARK: Shared pieces
 
+    /// Stand-in for the link's site favicon (there is no network fetch — this
+    /// is the same colored initial badge used across the demo data).
+    private func favicon(size: CGFloat) -> some View {
+        Text(item.initial)
+            .font(.system(size: size * 0.42, weight: .heavy))
+            .foregroundStyle(theme.background)
+            .frame(width: size, height: size)
+            .background(Circle().fill(Color(hex: item.colorHex)))
+    }
+
     private var hostRow: some View {
         HStack(spacing: 7) {
-            Text(item.initial)
-                .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(theme.background)
-                .frame(width: 16, height: 16)
-                .background(Circle().fill(Color(hex: item.colorHex)))
             Text(item.host)
                 .font(appFont.font(size: 11, weight: .semibold))
                 .foregroundStyle(theme.ink(0.52))

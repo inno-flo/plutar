@@ -11,6 +11,14 @@ private enum FeedMode: String, CaseIterable {
         case .read: return "Lus"
         }
     }
+
+    var icon: String {
+        switch self {
+        case .chrono: return "calendar"
+        case .source: return "globe"
+        case .read: return "checkmark.circle"
+        }
+    }
 }
 
 private struct DeletedSnapshot {
@@ -45,15 +53,20 @@ struct RootView: View {
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.couchant.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
-    @AppStorage("plutar.compact") private var compact = false
+    @AppStorage("plutar.showThumbnails") private var showThumbnails = true
 
     @State private var mode: FeedMode = .chrono
-    @State private var query = ""
     @State private var showSettings = false
     @State private var pendingShare: SeedData.PoolEntry?
 
     @State private var undoSnapshot: DeletedSnapshot?
     @State private var undoTask: Task<Void, Never>?
+
+    @State private var showClearReadConfirm = false
+
+    /// Hosts currently expanded in the Sources view — empty by default, so
+    /// every source starts collapsed.
+    @State private var expandedSources: Set<String> = []
 
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
@@ -64,19 +77,15 @@ struct RootView: View {
     }
 
     private var visibleItems: [LinkItem] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        var list = allItems
-        if !q.isEmpty {
-            list = list.filter {
-                $0.title.lowercased().contains(q) || $0.host.lowercased().contains(q) || $0.sourceApp.lowercased().contains(q)
-            }
-        }
-        return mode == .read ? list.filter(\.isRead) : list.filter { !$0.isRead }
+        mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
     }
 
-    private var unreadCount: Int { allItems.filter { !$0.isRead }.count }
+    /// Count shown in the header badge — the number of links in the current view
+    /// (unread links for Date/Sources, read links for Lus), so it grows when a
+    /// link is added and shrinks when one is marked read (leaving Date/Sources).
+    private var currentCount: Int { visibleItems.count }
 
-    private var groups: [(label: String, sub: String, items: [LinkItem])] {
+    private var groups: [(label: String, items: [LinkItem])] {
         let list = visibleItems
         switch mode {
         case .chrono, .read:
@@ -88,21 +97,33 @@ struct RootView: View {
                 if buckets[day] == nil { buckets[day] = []; order.append(day) }
                 buckets[day]!.append(item)
             }
-            return order.map { day in
-                let items = buckets[day]!
-                return (dayLabel(day), "\(items.count) \(items.count > 1 ? "liens" : "lien")", items)
-            }
+            return order.map { day in (dayLabel(day), buckets[day]!) }
         case .source:
             let byHost = Dictionary(grouping: list, by: \.host)
             let hosts = byHost.keys.sorted { a, b in
                 let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
                 return ca != cb ? ca > cb : a < b
             }
-            return hosts.map { host in
-                let items = byHost[host] ?? []
-                return (host, "\(items.count) \(items.count > 1 ? "liens" : "lien")", items)
-            }
+            return hosts.map { host in (host, byHost[host] ?? []) }
         }
+    }
+
+    /// True once every source group is expanded — drives which icon the
+    /// expand-all/collapse-all button shows.
+    private var allSourcesExpanded: Bool {
+        !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.label) }
+    }
+
+    private func toggleSource(_ label: String) {
+        if expandedSources.contains(label) {
+            expandedSources.remove(label)
+        } else {
+            expandedSources.insert(label)
+        }
+    }
+
+    private func toggleAllSources() {
+        expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
     }
 
     private func dayLabel(_ day: Date) -> String {
@@ -123,61 +144,44 @@ struct RootView: View {
                 List {
                     ForEach(groups, id: \.label) { group in
                         Section {
-                            ForEach(group.items) { item in
-                                LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, compact: compact)
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { open(item) }
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) { requestDelete(item) } label: {
-                                            Label("Supprimer", systemImage: "trash")
+                            if mode != .source || expandedSources.contains(group.label) {
+                                ForEach(group.items) { item in
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails)
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.clear)
+                                        .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { open(item) }
+                                        .swipeActions(edge: .trailing) {
+                                            Button(role: .destructive) { requestDelete(item) } label: {
+                                                Label("Supprimer", systemImage: "trash")
+                                            }
                                         }
-                                    }
+                                        .swipeActions(edge: .leading) {
+                                            if mode != .read {
+                                                Button {
+                                                    markAsRead(item)
+                                                } label: {
+                                                    Label("Lu", systemImage: "checkmark.square")
+                                                }
+                                                .tint(.gray)
+                                            }
+                                        }
+                                }
                             }
                         } header: {
-                            HStack {
-                                Text(group.label)
-                                    .font(.system(size: 12.5, weight: .bold))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 5)
-                                    .background(theme.chip)
-                                    .foregroundStyle(theme.background)
-                                    .clipShape(Capsule())
-                                Spacer()
-                                Text(group.sub)
-                                    .font(.system(size: 11.5, weight: .medium))
-                                    .foregroundStyle(theme.ink(0.42))
-                            }
-                            .listRowInsets(EdgeInsets())
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 4)
+                            groupHeader(group)
                         }
                     }
 
-                    if mode == .read && !groups.isEmpty {
-                        Button(role: .destructive) {
-                            clearRead()
-                        } label: {
-                            Text("Supprimer les liens lus")
-                                .font(.system(size: 10.5, weight: .semibold))
-                                .tracking(1.2)
-                                .textCase(.uppercase)
-                        }
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .searchable(text: $query, prompt: "Rechercher un lien, un site…")
                 .overlay {
                     if groups.isEmpty {
                         EmptyStateView(
                             theme: theme,
-                            title: mode == .read ? "Aucun lien lu" : query.isEmpty ? "Fil vide" : "Aucun résultat",
+                            title: mode == .read ? "Aucun lien lu" : "Fil vide",
                             text: mode == .read
                                 ? "Les liens ouverts apparaîtront ici, grisés dans le fil."
                                 : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
@@ -188,13 +192,26 @@ struct RootView: View {
                 }
 
                 settingsButton
+                if mode == .read && !groups.isEmpty {
+                    clearReadButton
+                } else if mode == .source && !groups.isEmpty {
+                    toggleAllSourcesButton
+                }
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
             .safeAreaInset(edge: .top, spacing: 0) {
                 header
-                    .background(.thinMaterial)
+                    .background(
+                        theme.background.opacity(0.75)
+                            .background(.ultraThinMaterial)
+                    )
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Alternate navigation, tried alongside the top tab row and
+                // the floating gear button — nothing removed yet, per request.
+                bottomTabBar
             }
         }
         .tint(theme.accent)
@@ -202,9 +219,10 @@ struct RootView: View {
             SettingsSheet(
                 theme: Binding(get: { theme }, set: { themeRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
-                compact: $compact,
+                showThumbnails: $showThumbnails,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
+                onRegenerate: { regenerateLinks(); showSettings = false },
                 onClose: { showSettings = false }
             )
         }
@@ -217,6 +235,14 @@ struct RootView: View {
             )
             .presentationDetents([.height(220)])
         }
+        .confirmationDialog(
+            "Supprimer tous les liens lus ?",
+            isPresented: $showClearReadConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Supprimer", role: .destructive) { clearRead() }
+            Button("Annuler", role: .cancel) {}
+        }
     }
 
     private var header: some View {
@@ -227,7 +253,7 @@ struct RootView: View {
                     .italic()
                     .foregroundStyle(theme.accent)
                 Spacer()
-                Text("\(min(unreadCount, 99))")
+                Text("\(min(currentCount, 99))")
                     .font(.system(size: 22, weight: .heavy))
                     .frame(minWidth: 40, minHeight: 36)
                     .padding(.horizontal, 8)
@@ -248,25 +274,142 @@ struct RootView: View {
                     .buttonStyle(TabButtonStyle(isActive: mode == m, theme: theme))
                 }
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 14)
             .padding(.vertical, 12)
         }
     }
 
-    private var settingsButton: some View {
-        Button {
-            showSettings = true
-        } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(theme.background)
-                .frame(width: 44, height: 44)
-                .background(theme.ink(1))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+    /// Alternate navigation being tried alongside the top tab row and the
+    /// floating gear button (Affichage opens the same settings sheet as
+    /// that gear button, rather than switching `mode`).
+    private var bottomTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(FeedMode.allCases, id: \.self) { m in
+                tabBarItem(label: m.label, icon: m.icon, isActive: mode == m) {
+                    mode = m
+                }
+            }
+            tabBarItem(label: "Affichage", icon: "gear", isActive: false) {
+                showSettings = true
+            }
         }
-        .padding(.leading, 18)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+        .background(
+            theme.background.opacity(0.75)
+                .background(.ultraThinMaterial)
+        )
+    }
+
+    private func tabBarItem(label: String, icon: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(isActive ? theme.accent : theme.ink(0.5))
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Shared look for the bottom-corner circular action buttons (settings,
+    /// clear-read, expand/collapse all) — same size, background material and
+    /// icon treatment so they line up visually regardless of which corner
+    /// they sit in.
+    ///
+    /// Uses the real Liquid Glass material (`glassEffect`) rather than a
+    /// plain `Material` background, so it actually follows the system's
+    /// Liquid Glass appearance setting (Settings → Display & Brightness).
+    private func floatingButton(icon: String, flipped: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .scaleEffect(x: flipped ? -1 : 1, y: 1)
+                .foregroundStyle(theme.ink(1))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: .circle)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+    }
+
+    private var settingsButton: some View {
+        floatingButton(icon: "gear") { showSettings = true }
+            .padding(.leading, 18)
+            .padding(.bottom, 30)
+    }
+
+    private var clearReadButton: some View {
+        floatingButton(icon: "trash") { showClearReadConfirm = true }
+            .padding(.trailing, 18)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    private var toggleAllSourcesButton: some View {
+        floatingButton(
+            icon: allSourcesExpanded ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+            flipped: !allSourcesExpanded
+        ) {
+            toggleAllSources()
+        }
+        .padding(.trailing, 18)
         .padding(.bottom, 30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    /// Chip shown as each Section's header. In Sources it also acts as the
+    /// collapse/expand toggle for that source and carries a link-count badge;
+    /// in Date/Lus it's a plain, non-interactive day label.
+    @ViewBuilder
+    private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
+        if mode == .source {
+            Button {
+                toggleSource(group.label)
+            } label: {
+                sourceChipLabel(group)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 4)
+        } else {
+            Text(group.label)
+                .font(.system(size: 12.5, weight: .bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(theme.chip)
+                .foregroundStyle(theme.chipText)
+                .clipShape(Capsule())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets())
+                .padding(.horizontal, 14)
+                .padding(.vertical, 4)
+        }
+    }
+
+    private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
+        HStack(spacing: 7) {
+            Text(group.label)
+                .font(.system(size: 12.5, weight: .bold))
+            Text("\(group.items.count)")
+                .font(.system(size: 10, weight: .heavy))
+                .frame(minWidth: 17, minHeight: 17)
+                .padding(.horizontal, 4)
+                .background(theme.chipText.opacity(0.22))
+                .clipShape(Capsule())
+            Image(systemName: expandedSources.contains(group.label) ? "chevron.up" : "chevron.down")
+                .font(.system(size: 10, weight: .bold))
+                .opacity(0.7)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(theme.chip)
+        .foregroundStyle(theme.chipText)
+        .clipShape(Capsule())
     }
 
     @ViewBuilder
@@ -309,6 +452,11 @@ struct RootView: View {
         }
     }
 
+    private func markAsRead(_ item: LinkItem) {
+        item.isRead = true
+        try? modelContext.save()
+    }
+
     private func requestDelete(_ item: LinkItem) {
         let snapshot = DeletedSnapshot(item)
         modelContext.delete(item)
@@ -336,6 +484,14 @@ struct RootView: View {
 
     private func clearRead() {
         for item in allItems where item.isRead { modelContext.delete(item) }
+        try? modelContext.save()
+    }
+
+    /// Wipes the store and drops the 40 demo links back in, freshly
+    /// timestamped — the same seed used on first launch.
+    private func regenerateLinks() {
+        for item in allItems { modelContext.delete(item) }
+        for item in SeedData.makeLinkItems() { modelContext.insert(item) }
         try? modelContext.save()
     }
 

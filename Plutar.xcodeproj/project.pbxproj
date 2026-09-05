@@ -142,11 +142,12 @@
 				};
 			};
 			buildConfigurationList = 0C7266CD4BC8BB3113443E56 /* Build configuration list for PBXProject "Plutar" */;
-			developmentRegion = en;
+			developmentRegion = fr;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
+				fr,
 			);
 			mainGroup = 7900E840EE6C285CF583C4FE;
 			minimizedProjectReferenceProxies = 1;
