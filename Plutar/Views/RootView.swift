@@ -228,13 +228,12 @@ struct RootView: View {
             )
             .presentationDetents([.height(220)])
         }
-        .confirmationDialog(
+        .alert(
             "Supprimer tous les liens lus ?",
-            isPresented: $showClearReadConfirm,
-            titleVisibility: .visible
+            isPresented: $showClearReadConfirm
         ) {
-            Button("Supprimer", role: .destructive) { clearRead() }
             Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) { clearRead() }
         }
     }
 
@@ -263,11 +262,18 @@ struct RootView: View {
                                             }
                                         }
                                         .swipeActions(edge: .leading) {
-                                            if mode != .read {
+                                            if mode == .read {
+                                                Button {
+                                                    markAsUnread(item)
+                                                } label: {
+                                                    Label("Non lu", systemImage: "checkmark.circle")
+                                                }
+                                                .tint(.green)
+                                            } else {
                                                 Button {
                                                     markAsRead(item)
                                                 } label: {
-                                                    Label("Lu", systemImage: "checkmark.square")
+                                                    Label("Lu", systemImage: "checkmark.circle.fill")
                                                 }
                                                 .tint(.gray)
                                             }
@@ -308,6 +314,8 @@ struct RootView: View {
                     clearReadButton
                 } else if mode == .source && !groups.isEmpty {
                     toggleAllSourcesButton
+                } else if mode == .chrono && !groups.isEmpty {
+                    markAllReadButton
                 }
                 undoToast
             }
@@ -374,6 +382,13 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
+    private var markAllReadButton: some View {
+        floatingButton(icon: "checkmark.circle.fill") { markAllAsRead() }
+            .padding(.trailing, 18)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
     private var toggleAllSourcesButton: some View {
         floatingButton(
             icon: allSourcesExpanded ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
@@ -392,21 +407,41 @@ struct RootView: View {
     @ViewBuilder
     private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
         if mode == .source {
-            Button {
-                toggleSource(group.label)
-            } label: {
-                sourceChipLabel(group)
+            // Centered alignment keeps the mark-all-read icon on the same
+            // vertical line as the count badge and chevron inside the chip.
+            HStack(alignment: .center, spacing: 10) {
+                Button {
+                    toggleSource(group.label)
+                } label: {
+                    sourceChipLabel(group)
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
+
+                // Only while expanded — marks every link from this source as
+                // read, which empties it out of the (unread-only) Sources
+                // view, so the source disappears from the list.
+                if expandedSources.contains(group.label) {
+                    Button {
+                        markSourceAsRead(group.items)
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets())
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
         } else {
             Text(group.label)
-                .font(.system(size: 12.5, weight: .bold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .font(.system(size: 14.5, weight: .bold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
                 .background(theme.chip)
                 .foregroundStyle(theme.chipText)
                 .clipShape(Capsule())
@@ -420,7 +455,7 @@ struct RootView: View {
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(.system(size: 12.5, weight: .bold))
+                .font(.system(size: 14.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(theme == .marine ? .white : theme.chipText)
@@ -432,8 +467,8 @@ struct RootView: View {
                 .font(.system(size: 10, weight: .bold))
                 .opacity(0.7)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
         .background(theme.chip)
         .foregroundStyle(theme.chipText)
         .clipShape(Capsule())
@@ -441,29 +476,40 @@ struct RootView: View {
 
     @ViewBuilder
     private var undoToast: some View {
-        if let snapshot = undoSnapshot {
+        if undoSnapshot != nil {
             VStack {
                 Spacer()
                 HStack {
-                    Text("Supprimé · \(snapshot.title)")
-                        .font(.system(size: 11.5))
+                    Text("Supprimé")
+                        .font(.system(size: 13.5))
                         .tracking(0.4)
                         .lineLimit(1)
                     Spacer()
-                    Button("Annuler", action: performUndo)
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .tracking(1.2)
-                        .textCase(.uppercase)
-                        .tint(theme.accentSoft)
+                    // Explicit style + contentShape + its own padding: the
+                    // text alone (10.5pt, no frame) was a tiny, easy-to-miss
+                    // tap target that made the button feel unresponsive.
+                    Button(action: performUndo) {
+                        Text("Annuler")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(theme.accentSoft)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+                .padding(.leading, 16)
+                .padding(.trailing, 6)
+                .padding(.vertical, 4)
                 .background(theme.ink(1))
                 .foregroundStyle(theme.background)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .padding(.horizontal, 18)
                 .padding(.bottom, 96)
             }
+            .zIndex(2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .animation(.easeOut(duration: 0.2), value: undoSnapshot != nil)
         }
@@ -472,16 +518,34 @@ struct RootView: View {
     // MARK: Actions
 
     private func open(_ item: LinkItem) {
-        item.isRead = true
-        try? modelContext.save()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = true
+            try? modelContext.save()
+        }
         if let url = URL(string: item.urlString) {
             openURL(url)
         }
     }
 
     private func markAsRead(_ item: LinkItem) {
-        item.isRead = true
-        try? modelContext.save()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = true
+            try? modelContext.save()
+        }
+    }
+
+    private func markAsUnread(_ item: LinkItem) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isRead = false
+            try? modelContext.save()
+        }
+    }
+
+    private func markSourceAsRead(_ items: [LinkItem]) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            for item in items { item.isRead = true }
+            try? modelContext.save()
+        }
     }
 
     private func requestDelete(_ item: LinkItem) {
@@ -512,6 +576,15 @@ struct RootView: View {
     private func clearRead() {
         for item in allItems where item.isRead { modelContext.delete(item) }
         try? modelContext.save()
+    }
+
+    /// Marks every link currently shown (Date view: all unread links) as
+    /// read in one go.
+    private func markAllAsRead() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            for item in visibleItems { item.isRead = true }
+            try? modelContext.save()
+        }
     }
 
     /// Wipes the store and drops the 40 demo links back in, freshly

@@ -155,15 +155,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    var tabActive: Color {
-        switch self {
-        case .couchant: return Color(hex: "#D95204")
-        case .crepuscule: return Color(hex: "#F2A626")
-        case .astronaute: return .white
-        default: return accent
-        }
-    }
-
     var countForeground: Color {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
