@@ -309,11 +309,15 @@ struct RootView: View {
                 .animation(.easeInOut(duration: 0.25), value: expandedSources)
                 .overlay {
                     if groups.isEmpty {
-                        EmptyStateView(
+                        // Sources mirrors Date's empty state exactly (icon,
+                        // title, subtitle) — only Lus differs.
+                        QuietEmptyStateView(
                             theme: theme,
-                            title: mode == .read ? "Aucun lien lu" : "Fil vide",
+                            appFont: appFont,
+                            icon: "moon.stars",
+                            title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
                             text: mode == .read
-                                ? "Les liens ouverts apparaîtront ici, grisés dans le fil."
+                                ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
                                 : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
                             showsSimulateButton: mode != .read,
                             onSimulateShare: { pendingShare = SeedData.pool.randomElement() }
