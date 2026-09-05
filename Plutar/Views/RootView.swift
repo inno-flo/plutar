@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 private enum FeedMode: String, CaseIterable {
     case chrono, source, read
@@ -244,6 +245,14 @@ struct RootView: View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 theme.background.ignoresSafeArea()
+                    .onAppear {
+                        // Test: List section headers pin to the top edge
+                        // while scrolling, and iOS gives that pinned state
+                        // its own translucent backdrop by default (visible
+                        // behind e.g. the "Aujourd'hui" chip). This clears
+                        // it so the header floats with no backdrop at all.
+                        UITableViewHeaderFooterView.appearance().tintColor = .clear
+                    }
 
                 List {
                     ForEach(groups, id: \.label) { group in
@@ -317,41 +326,33 @@ struct RootView: View {
                 } else if mode == .chrono && !groups.isEmpty {
                     markAllReadButton
                 }
+
+                // No title bar in any view. The counter itself only shows
+                // in Date — removed from Sources and Lus.
+                if mode == .chrono {
+                    floatingCounterBadge
+                }
+
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            .safeAreaInset(edge: .top, spacing: 0) {
-                // Flat, fully opaque theme background — not a translucent
-                // material. A material's own light/dark tint doesn't match
-                // an arbitrary theme color, so layering it here produced a
-                // visibly different band behind the status bar and behind
-                // the title than the plain `theme.background` used for the
-                // content below; one solid color now covers all three.
-                header
-                    .background(theme.background)
-            }
         }
     }
 
-    private var header: some View {
-        HStack {
-            Text("plutar")
-                .font(.system(size: 34, weight: .heavy, design: .default))
-                .italic()
-                .foregroundStyle(theme.accent)
-            Spacer()
-            Text("\(min(currentCount, 99))")
-                .font(.system(size: 22, weight: .heavy))
-                .frame(minWidth: 40, minHeight: 36)
-                .padding(.horizontal, 8)
-                .background(theme.accent)
-                .foregroundStyle(theme.countForeground)
-                .clipShape(Capsule())
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 14)
-        .padding(.bottom, 14)
+    /// The link-count pill, floating on its own with no surrounding title
+    /// bar, in the same top-trailing spot a header used to place it.
+    private var floatingCounterBadge: some View {
+        Text("\(min(currentCount, 99))")
+            .font(.system(size: 22, weight: .heavy))
+            .frame(minWidth: 40, minHeight: 36)
+            .padding(.horizontal, 8)
+            .background(theme.accent)
+            .foregroundStyle(theme.countForeground)
+            .clipShape(Capsule())
+            .padding(.top, 14)
+            .padding(.trailing, 18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
