@@ -18,7 +18,7 @@ extension Color {
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case couchant, crepuscule, creme, blanc, marine, astronaute
+    case couchant, crepuscule, blanc, marine, creme, astronaute
 
     var id: String { rawValue }
 

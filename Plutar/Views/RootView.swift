@@ -195,7 +195,7 @@ struct RootView: View {
         }
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
-        .tabBarMinimizeBehavior(.automatic)
+        .tabBarMinimizeBehavior(.onScrollDown)
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
                 showSettings = true
