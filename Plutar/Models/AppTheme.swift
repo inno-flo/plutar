@@ -24,11 +24,11 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .couchant: return "Couchant"
-        case .crepuscule: return "Crépuscule"
-        case .creme: return "Crème"
-        case .blanc: return "Blanc"
-        case .marine: return "Marine"
+        case .couchant: return "70's beach"
+        case .crepuscule: return "70's beach evening"
+        case .creme: return "Scandinave"
+        case .blanc: return "Marine clair"
+        case .marine: return "Marine sombre"
         case .astronaute: return "Astronaute"
         }
     }
