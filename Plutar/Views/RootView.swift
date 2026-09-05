@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UIKit
 
 private enum FeedMode: String, CaseIterable {
     case chrono, source, read
@@ -245,14 +244,6 @@ struct RootView: View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 theme.background.ignoresSafeArea()
-                    .onAppear {
-                        // Test: List section headers pin to the top edge
-                        // while scrolling, and iOS gives that pinned state
-                        // its own translucent backdrop by default (visible
-                        // behind e.g. the "Aujourd'hui" chip). This clears
-                        // it so the header floats with no backdrop at all.
-                        UITableViewHeaderFooterView.appearance().tintColor = .clear
-                    }
 
                 List {
                     ForEach(groups, id: \.label) { group in
