@@ -7,7 +7,7 @@ struct LinkRowView: View {
     let layout: LinkLayout
     let theme: AppTheme
     let appFont: AppFont
-    let compact: Bool
+    let showThumbnails: Bool
 
     private static let stampFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -17,8 +17,8 @@ struct LinkRowView: View {
     }()
 
     private var stampString: String { Self.stampFormatter.string(from: item.dateAdded) }
-    private var viaString: String { compact ? "" : "via \(item.sourceApp)" }
-    private var showThumbnail: Bool { item.hasThumbnail && !compact }
+    private var viaString: String { "via \(item.sourceApp)" }
+    private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
     var body: some View {
         Group {
@@ -100,12 +100,10 @@ struct LinkRowView: View {
             Text(item.title)
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
-            if !compact {
-                Text(item.excerpt)
-                    .font(appFont.font(size: 12))
-                    .foregroundStyle(theme.ink(0.5))
-                    .lineLimit(3)
-            }
+            Text(item.excerpt)
+                .font(appFont.font(size: 12))
+                .foregroundStyle(theme.ink(0.5))
+                .lineLimit(3)
         }
     }
 

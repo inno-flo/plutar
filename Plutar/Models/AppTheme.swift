@@ -203,8 +203,8 @@ enum LinkLayout: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .rail: return "Rail horaire"
-        case .card: return "Fiche"
+        case .rail: return "Simple"
+        case .card: return "Détaillées"
         case .editorial: return "Éditoriale"
         }
     }

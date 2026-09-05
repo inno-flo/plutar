@@ -45,7 +45,7 @@ struct RootView: View {
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.couchant.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
-    @AppStorage("plutar.compact") private var compact = false
+    @AppStorage("plutar.showThumbnails") private var showThumbnails = true
 
     @State private var mode: FeedMode = .chrono
     @State private var showSettings = false
@@ -55,6 +55,10 @@ struct RootView: View {
     @State private var undoTask: Task<Void, Never>?
 
     @State private var showClearReadConfirm = false
+
+    /// Hosts currently expanded in the Sources view — empty by default, so
+    /// every source starts collapsed.
+    @State private var expandedSources: Set<String> = []
 
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
@@ -96,6 +100,24 @@ struct RootView: View {
         }
     }
 
+    /// True once every source group is expanded — drives which icon the
+    /// expand-all/collapse-all button shows.
+    private var allSourcesExpanded: Bool {
+        !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.label) }
+    }
+
+    private func toggleSource(_ label: String) {
+        if expandedSources.contains(label) {
+            expandedSources.remove(label)
+        } else {
+            expandedSources.insert(label)
+        }
+    }
+
+    private func toggleAllSources() {
+        expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
+    }
+
     private func dayLabel(_ day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day) { return "Aujourd'hui" }
@@ -114,41 +136,33 @@ struct RootView: View {
                 List {
                     ForEach(groups, id: \.label) { group in
                         Section {
-                            ForEach(group.items) { item in
-                                LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, compact: compact)
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { open(item) }
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) { requestDelete(item) } label: {
-                                            Label("Supprimer", systemImage: "trash")
-                                        }
-                                    }
-                                    .swipeActions(edge: .leading) {
-                                        if mode != .read {
-                                            Button {
-                                                markAsRead(item)
-                                            } label: {
-                                                Label("Lu", systemImage: "checkmark.square")
+                            if mode != .source || expandedSources.contains(group.label) {
+                                ForEach(group.items) { item in
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails)
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.clear)
+                                        .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { open(item) }
+                                        .swipeActions(edge: .trailing) {
+                                            Button(role: .destructive) { requestDelete(item) } label: {
+                                                Label("Supprimer", systemImage: "trash")
                                             }
-                                            .tint(.gray)
                                         }
-                                    }
+                                        .swipeActions(edge: .leading) {
+                                            if mode != .read {
+                                                Button {
+                                                    markAsRead(item)
+                                                } label: {
+                                                    Label("Lu", systemImage: "checkmark.square")
+                                                }
+                                                .tint(.gray)
+                                            }
+                                        }
+                                }
                             }
                         } header: {
-                            Text(group.label)
-                                .font(.system(size: 12.5, weight: .bold))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 5)
-                                .background(theme.chip)
-                                .foregroundStyle(theme.chipText)
-                                .clipShape(Capsule())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .listRowInsets(EdgeInsets())
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 4)
+                            groupHeader(group)
                         }
                     }
 
@@ -172,6 +186,8 @@ struct RootView: View {
                 settingsButton
                 if mode == .read && !groups.isEmpty {
                     clearReadButton
+                } else if mode == .source && !groups.isEmpty {
+                    toggleAllSourcesButton
                 }
                 undoToast
             }
@@ -179,7 +195,10 @@ struct RootView: View {
             .navigationBarHidden(true)
             .safeAreaInset(edge: .top, spacing: 0) {
                 header
-                    .background(theme.background)
+                    .background(
+                        theme.background.opacity(0.75)
+                            .background(.ultraThinMaterial)
+                    )
             }
         }
         .tint(theme.accent)
@@ -187,7 +206,7 @@ struct RootView: View {
             SettingsSheet(
                 theme: Binding(get: { theme }, set: { themeRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
-                compact: $compact,
+                showThumbnails: $showThumbnails,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onRegenerate: { regenerateLinks(); showSettings = false },
@@ -248,16 +267,18 @@ struct RootView: View {
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
-    /// clear-read) — same size, background material and icon treatment so the
-    /// two line up visually regardless of which corner they sit in.
+    /// clear-read, expand/collapse all) — same size, background material and
+    /// icon treatment so they line up visually regardless of which corner
+    /// they sit in.
     ///
     /// Uses the real Liquid Glass material (`glassEffect`) rather than a
     /// plain `Material` background, so it actually follows the system's
     /// Liquid Glass appearance setting (Settings → Display & Brightness).
-    private func floatingButton(icon: String, action: @escaping () -> Void) -> some View {
+    private func floatingButton(icon: String, flipped: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 20, weight: .semibold))
+                .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
                 .frame(width: 44, height: 44)
         }
@@ -277,6 +298,70 @@ struct RootView: View {
             .padding(.trailing, 18)
             .padding(.bottom, 30)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    private var toggleAllSourcesButton: some View {
+        floatingButton(
+            icon: allSourcesExpanded ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+            flipped: !allSourcesExpanded
+        ) {
+            toggleAllSources()
+        }
+        .padding(.trailing, 18)
+        .padding(.bottom, 30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    /// Chip shown as each Section's header. In Sources it also acts as the
+    /// collapse/expand toggle for that source and carries a link-count badge;
+    /// in Date/Lus it's a plain, non-interactive day label.
+    @ViewBuilder
+    private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
+        if mode == .source {
+            Button {
+                toggleSource(group.label)
+            } label: {
+                sourceChipLabel(group)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 4)
+        } else {
+            Text(group.label)
+                .font(.system(size: 12.5, weight: .bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(theme.chip)
+                .foregroundStyle(theme.chipText)
+                .clipShape(Capsule())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets())
+                .padding(.horizontal, 14)
+                .padding(.vertical, 4)
+        }
+    }
+
+    private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
+        HStack(spacing: 7) {
+            Text(group.label)
+                .font(.system(size: 12.5, weight: .bold))
+            Text("\(group.items.count)")
+                .font(.system(size: 10, weight: .heavy))
+                .frame(minWidth: 17, minHeight: 17)
+                .padding(.horizontal, 4)
+                .background(theme.chipText.opacity(0.22))
+                .clipShape(Capsule())
+            Image(systemName: expandedSources.contains(group.label) ? "chevron.up" : "chevron.down")
+                .font(.system(size: 10, weight: .bold))
+                .opacity(0.7)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(theme.chip)
+        .foregroundStyle(theme.chipText)
+        .clipShape(Capsule())
     }
 
     @ViewBuilder

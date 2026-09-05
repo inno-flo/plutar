@@ -15,7 +15,7 @@ private struct ContentHeightKey: PreferenceKey {
 struct SettingsSheet: View {
     @Binding var theme: AppTheme
     @Binding var appFont: AppFont
-    @Binding var compact: Bool
+    @Binding var showThumbnails: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
     let onRegenerate: () -> Void
@@ -35,7 +35,7 @@ struct SettingsSheet: View {
                     section("Police") {
                         HStack(spacing: 8) {
                             ForEach(AppFont.allCases) { f in
-                                pill(f.label, isActive: appFont == f, font: f.font(size: 13)) {
+                                pill(f.label, isActive: appFont == f, font: f.font(size: 17)) {
                                     appFont = f
                                 }
                             }
@@ -50,14 +50,16 @@ struct SettingsSheet: View {
                         }
                     }
 
-                    section("Densité") {
-                        HStack(spacing: 8) {
-                            pill("Complet", isActive: !compact) { compact = false }
-                            pill("Compact · sans image", isActive: compact) { compact = true }
+                    section("Liens") {
+                        Toggle(isOn: $showThumbnails) {
+                            Text("Afficher les vignettes")
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
 
-                    section("Mise en page de la timeline") {
+                    section("Présentation de la timeline") {
                         HStack(spacing: 8) {
                             ForEach(LinkLayout.allCases) { l in
                                 pill(l.label, isActive: layout == l) { layout = l }
@@ -112,10 +114,9 @@ struct SettingsSheet: View {
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 9) {
-            // Sentence case, iOS's recommended "footnote" size (13pt) for
-            // secondary section headers — no forced all-caps.
+            // Sentence case, no forced all-caps.
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.secondary)
             content()
         }
