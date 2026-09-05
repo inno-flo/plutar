@@ -165,16 +165,17 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-/// Typeface choice from the settings drawer. Both are available on stock iOS.
+/// Typeface choice from the settings drawer. All three are available on stock iOS.
 enum AppFont: String, CaseIterable, Identifiable {
-    case futura, rounded
+    case futura, rounded, avenirNext
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .futura: return "Futura"
-        case .rounded: return "Rounded"
+        case .rounded: return "SF Pro"
+        case .avenirNext: return "Avenir Next"
         }
     }
 
@@ -182,6 +183,10 @@ enum AppFont: String, CaseIterable, Identifiable {
         switch self {
         case .futura: return .custom("Futura", size: size).weight(weight)
         case .rounded: return .system(size: size, weight: weight, design: .rounded)
+        // Fixed to its own named DemiBold variant, ignoring `weight` —
+        // like Futura, ".weight()" doesn't reliably resolve to a real
+        // bold/regular variant for a named custom font.
+        case .avenirNext: return .custom("AvenirNext-DemiBold", size: size)
         }
     }
 }
