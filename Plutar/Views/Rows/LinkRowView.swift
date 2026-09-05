@@ -20,6 +20,11 @@ struct LinkRowView: View {
     private var viaString: String { "via \(item.sourceApp)" }
     private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
+    /// Futura's ".weight()" doesn't reliably resolve to a real bold variant
+    /// for a named custom font, so titles stay regular in that typeface;
+    /// the system Rounded font supports weight variation properly.
+    private var titleWeight: Font.Weight { appFont == .futura ? .regular : .bold }
+
     var body: some View {
         Group {
             switch layout {
@@ -48,7 +53,7 @@ struct LinkRowView: View {
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(item.title)
-                    .font(appFont.font(size: 18, weight: .bold))
+                    .font(appFont.font(size: 18, weight: titleWeight))
                     .lineLimit(3)
                 hostRow
             }
@@ -71,7 +76,7 @@ struct LinkRowView: View {
                     hostRow
                 }
                 Text(item.title)
-                    .font(appFont.font(size: 19, weight: .bold))
+                    .font(appFont.font(size: 19, weight: titleWeight))
                     .lineLimit(3)
                 Text(stampString)
                     .font(appFont.font(size: 11.5))
