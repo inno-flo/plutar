@@ -77,7 +77,7 @@ struct RootView: View {
     @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.scand.rawValue
-    @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
+    @AppStorage("plutar.font") private var fontRaw = AppFont.rounded.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
 
@@ -109,7 +109,7 @@ struct RootView: View {
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .scand }
     }
-    private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .futura }
+    private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout {
         get { LinkLayout(rawValue: layoutRaw) ?? .rail }
     }
@@ -181,13 +181,13 @@ struct RootView: View {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
         f.dateFormat = "EEEE d MMMM"
-        let formatted = f.string(from: day)
+        let formatted = f.string(from: day).capitalized
         // French uses the ordinal "1er" for the first of the month, not "1"
-        // — e.g. "1er avril", not "1 avril".
-        let withOrdinal = calendar.component(.day, from: day) == 1
+        // — e.g. "1er avril", not "1 avril". Applied after `.capitalized` so
+        // it stays "1er", not "1Er".
+        return calendar.component(.day, from: day) == 1
             ? formatted.replacingOccurrences(of: " 1 ", with: " 1er ")
             : formatted
-        return withOrdinal.capitalized
     }
 
     var body: some View {
@@ -316,7 +316,7 @@ struct RootView: View {
                                                 } label: {
                                                     Label("Non lu", systemImage: "checkmark.circle")
                                                 }
-                                                .tint(.green)
+                                                .tint(theme.markUnreadSwipeTint)
                                             } else {
                                                 Button {
                                                     markAsRead(item)

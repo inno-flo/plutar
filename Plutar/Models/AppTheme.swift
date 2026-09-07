@@ -112,7 +112,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .scand: return Color(hex: "#FBF8F3")
         case .scandSoir: return Color(hex: "#2D3138")
-        case .blanc: return Color(hex: "#E7EAEE")
+        case .blanc: return Color(hex: "#FFFFFF")
         case .blancSoir: return Color(hex: "#1A2940")
         case .astronaute: return Color(hex: "#35699F")
         case .astronauteSoir: return Color(hex: "#142942")
@@ -124,7 +124,13 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Cap Canaveral (and its dark variant) use a plain medium gray instead.
     var readCardOverride: Color? {
         switch self {
-        case .astronaute, .astronauteSoir: return Color(hex: "#8E8E93")
+        case .astronaute: return Color(hex: "#8E8E93")
+        // A darker gray than Cap Canaveral's own, for better contrast
+        // against the dark background.
+        case .astronauteSoir: return Color(hex: "#4A4A4E")
+        // Keeps Lus at the slightly-darkened tone from before, now that
+        // `card` itself (Date/Sources' unread background) is plain white.
+        case .blanc: return Color(hex: "#E7EAEE")
         default: return nil
         }
     }
@@ -160,21 +166,38 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     /// Trailing swipe-to-delete tint (Date/Sources/Lus) — nil uses the
     /// system's own destructive red. Kamakura gets its own red, Kamakura
-    /// soir a darker one.
+    /// soir a darker one. Cap Canaveral soir also gets a darker red.
     var deleteSwipeTint: Color? {
         switch self {
         case .blanc: return Color(hex: "#E53935")
         case .blancSoir: return Color(hex: "#7A1F1F")
+        case .astronauteSoir: return Color(hex: "#8C2F2F")
         default: return nil
         }
     }
 
+    /// Leading swipe "Non lu" (mark as unread) tint in Lus — plain system
+    /// green by default; Kamakura soir and Cap Canaveral soir use a darker
+    /// green instead.
+    var markUnreadSwipeTint: Color {
+        switch self {
+        case .blancSoir: return Color(hex: "#1F5C33")
+        case .astronauteSoir: return Color(hex: "#1F5C33")
+        default: return .green
+        }
+    }
+
     /// Leading swipe "Lu" (mark as read) tint in Date/Sources — plain gray
-    /// by default; Kamakura and Kamakura soir use their own `card` color
-    /// (the same background as a link cell in Lus) instead.
+    /// by default. Kamakura uses its own lighter blue; Copenhague uses its
+    /// own link-text color (as seen in Lus); Kamakura soir still uses its
+    /// `card` color (the same background as a link cell in Lus); Cap
+    /// Canaveral soir uses its own darker read-card gray.
     var markReadSwipeTint: Color {
         switch self {
-        case .blanc, .blancSoir: return card
+        case .blanc: return Color(hex: "#72A8F6")
+        case .scand: return title
+        case .blancSoir: return readCardOverride ?? card
+        case .astronauteSoir: return readCardOverride ?? .gray
         default: return .gray
         }
     }
@@ -197,15 +220,14 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-/// Typeface choice from the settings drawer. All three are available on stock iOS.
+/// Typeface choice from the settings drawer. Both are available on stock iOS.
 enum AppFont: String, CaseIterable, Identifiable {
-    case futura, rounded, avenirNext
+    case rounded, avenirNext
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .futura: return "Futura"
         case .rounded: return "SF Pro"
         case .avenirNext: return "Avenir Next"
         }
@@ -213,11 +235,10 @@ enum AppFont: String, CaseIterable, Identifiable {
 
     func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         switch self {
-        case .futura: return .custom("Futura", size: size).weight(weight)
         case .rounded: return .system(size: size, weight: weight, design: .rounded)
         // Fixed to its own named DemiBold variant, ignoring `weight` —
-        // like Futura, ".weight()" doesn't reliably resolve to a real
-        // bold/regular variant for a named custom font.
+        // ".weight()" doesn't reliably resolve to a real bold/regular
+        // variant for a named custom font.
         case .avenirNext: return .custom("AvenirNext-DemiBold", size: size)
         }
     }
