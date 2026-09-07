@@ -36,7 +36,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .couchant: return "70's beach"
+        case .couchant: return "Lacanau"
         case .crepuscule: return "Lacanau soir"
         case .scand: return "Copenhague"
         case .blanc: return "Marine clair"
@@ -157,6 +157,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var chipText: Color {
         switch self {
         case .astronaute, .scand: return .white
+        case .crepuscule: return AppTheme.couchant.title
         default: return background
         }
     }
@@ -182,7 +183,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var countForeground: Color {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
-        case .crepuscule: return Color(hex: "#3C2208")
+        case .crepuscule: return AppTheme.couchant.title
         case .astronaute, .scand: return .white
         default: return background
         }
