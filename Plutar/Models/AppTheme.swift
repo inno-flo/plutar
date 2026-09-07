@@ -112,7 +112,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .scand: return Color(hex: "#FBF8F3")
         case .scandSoir: return Color(hex: "#2D3138")
-        case .blanc: return Color(hex: "#F3F6FB")
+        case .blanc: return Color(hex: "#E7EAEE")
         case .blancSoir: return Color(hex: "#1A2940")
         case .astronaute: return Color(hex: "#35699F")
         case .astronauteSoir: return Color(hex: "#142942")
