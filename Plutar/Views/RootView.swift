@@ -139,9 +139,12 @@ struct RootView: View {
 
     /// The view background actually drawn — pure black instead of the
     /// theme's own background when the "soir" test toggle is on and the
-    /// current theme is a soir variant.
+    /// current theme is a soir variant; pure white for Tokyo, across all
+    /// three views (Date/Sources/Lus).
     private var effectiveBackground: Color {
-        (blackSoirBackground && theme.isSoir) ? Color(hex: "#000000") : theme.background
+        if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
+        if theme == .tokyo { return Color(hex: "#FFFFFF") }
+        return theme.background
     }
 
     private var visibleItems: [LinkItem] {
@@ -210,13 +213,16 @@ struct RootView: View {
         if calendar.isDateInYesterday(day) { return "Hier" }
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "EEEE d MMMM"
-        let formatted = f.string(from: day).capitalized
+        f.dateFormat = "d MMMM"
+        // Only the first letter gets a capital, French-style — "3 mars",
+        // not "3 Mars" (`.capitalized` would capitalize every word).
+        let raw = f.string(from: day)
+        let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
         // French uses the ordinal "1er" for the first of the month, not "1"
-        // — e.g. "1er avril", not "1 avril". Applied after `.capitalized` so
-        // it stays "1er", not "1Er".
+        // — e.g. "1er avril", not "1 avril". Applied after the capitalization
+        // above so it stays "1er", not "1Er".
         return calendar.component(.day, from: day) == 1
-            ? formatted.replacingOccurrences(of: " 1 ", with: " 1er ")
+            ? formatted.replacingOccurrences(of: "1 ", with: "1er ")
             : formatted
     }
 
@@ -276,10 +282,17 @@ struct RootView: View {
         .preferredColorScheme(appearance.colorScheme)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(
-                // The grid picks the theme family (its literal light/soir
-                // form doesn't matter — "Apparence" resolves that), not the
-                // actually-displayed `theme`.
-                theme: Binding(get: { selectedTheme }, set: { themeRaw = $0.rawValue }),
+                // The grid picks the theme family, but tapping a specific
+                // light or soir pill is itself a manual override: it takes
+                // priority over "Apparence" by forcing it to match
+                // (Claire/Sombre) rather than leaving it on Automatique.
+                theme: Binding(
+                    get: { selectedTheme },
+                    set: {
+                        themeRaw = $0.rawValue
+                        appearanceRaw = ($0.isSoir ? AppAppearance.dark : .light).rawValue
+                    }
+                ),
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
                 showThumbnails: $showThumbnails,
