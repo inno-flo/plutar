@@ -89,6 +89,7 @@ struct RootView: View {
     @State private var undoTask: Task<Void, Never>?
 
     @State private var showClearReadConfirm = false
+    @State private var showMarkAllReadConfirm = false
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -102,6 +103,13 @@ struct RootView: View {
     /// every unrelated change to `groups` (e.g. a source emptying out after
     /// its links are marked read).
     @State private var allSourcesExpandedIcon = false
+
+    /// Test, Sources only: true while the feed is actively scrolling.
+    /// Drives a hand-built floating tab bar (see `customTabBar`) that
+    /// shrinks on scroll and — unlike the native one — re-expands the
+    /// instant scrolling actually stops, anywhere in the list, so it can be
+    /// compared against the real `TabView` bar used everywhere else.
+    @State private var isSourceScrolling = false
 
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
@@ -246,6 +254,13 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) { clearRead() }
         }
+        .alert(
+            "Marquer tous les liens comme lus ?",
+            isPresented: $showMarkAllReadConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Marquer comme lus") { markAllAsRead() }
+        }
     }
 
     /// The actual feed screen — identical content shown under all three feed
@@ -307,6 +322,11 @@ struct RootView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .animation(.easeInOut(duration: 0.25), value: expandedSources)
+                .onScrollPhaseChange { _, newPhase in
+                    if mode == .source {
+                        isSourceScrolling = newPhase != .idle
+                    }
+                }
                 .overlay {
                     if groups.isEmpty {
                         // Sources mirrors Date's empty state exactly (icon,
@@ -328,14 +348,29 @@ struct RootView: View {
                 if mode == .read && !groups.isEmpty {
                     clearReadButton
                 } else if mode == .source && !groups.isEmpty {
-                    toggleAllSourcesButton
+                    // Toggle-all above, mark-all-read below — same spot the
+                    // Date mark-all-read button sits in.
+                    VStack(spacing: 14) {
+                        floatingButton(
+                            icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+                            flipped: !allSourcesExpandedIcon
+                        ) {
+                            toggleAllSources()
+                        }
+                        floatingButton(icon: "checkmark.circle.fill") {
+                            showMarkAllReadConfirm = true
+                        }
+                    }
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 } else if mode == .chrono && !groups.isEmpty {
                     markAllReadButton
                 }
 
-                // No title bar in any view. The counter itself only shows
-                // in Date — removed from Sources and Lus.
-                if mode == .chrono {
+                // No title bar in any view. The counter shows in Date and
+                // Sources — removed from Lus.
+                if mode == .chrono || mode == .source {
                     floatingCounterBadge
                 }
 
@@ -343,7 +378,56 @@ struct RootView: View {
             }
             .navigationTitle("")
             .navigationBarHidden(true)
+            // Test: swap the native floating tab bar for a hand-built one
+            // while on Sources, so the two can be compared directly by
+            // switching tabs.
+            .toolbar(mode == .source ? .hidden : .visible, for: .tabBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if mode == .source {
+                    customTabBar
+                }
+            }
         }
+    }
+
+    /// Test, Sources only — see `isSourceScrolling`. Same 4 destinations as
+    /// the native tab bar, styled with the same Liquid Glass material, but
+    /// its shrink/expand is driven entirely by our own scroll-phase
+    /// tracking instead of the system's built-in heuristics.
+    private var customTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(FeedMode.allCases, id: \.self) { m in
+                customTabBarItem(icon: m.icon, label: m.label, isActive: mode == m) {
+                    mode = m
+                }
+            }
+            customTabBarItem(icon: "gear", label: "Affichage", isActive: false) {
+                showSettings = true
+            }
+        }
+        .padding(.horizontal, isSourceScrolling ? 8 : 14)
+        .padding(.vertical, isSourceScrolling ? 6 : 10)
+        .glassEffect(.regular, in: Capsule())
+        .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
+        .padding(.horizontal, isSourceScrolling ? 90 : 24)
+        .padding(.bottom, 8)
+        .animation(.easeInOut(duration: 0.22), value: isSourceScrolling)
+    }
+
+    private func customTabBarItem(icon: String, label: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                if !isSourceScrolling {
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                }
+            }
+            .foregroundStyle(isActive ? theme.accent : theme.ink(0.5))
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
     }
 
     /// The link-count pill, floating on its own with no surrounding title
@@ -390,22 +474,10 @@ struct RootView: View {
     }
 
     private var markAllReadButton: some View {
-        floatingButton(icon: "checkmark.circle.fill") { markAllAsRead() }
+        floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
             .padding(.trailing, 18)
             .padding(.bottom, 30)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-    }
-
-    private var toggleAllSourcesButton: some View {
-        floatingButton(
-            icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
-            flipped: !allSourcesExpandedIcon
-        ) {
-            toggleAllSources()
-        }
-        .padding(.trailing, 18)
-        .padding(.bottom, 30)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     /// Chip shown as each Section's header. In Sources it also acts as the
@@ -446,7 +518,7 @@ struct RootView: View {
             .padding(.vertical, 4)
         } else {
             Text(group.label)
-                .font(.system(size: 14.5, weight: .bold))
+                .font(.system(size: 16.5, weight: .bold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(theme.chip)

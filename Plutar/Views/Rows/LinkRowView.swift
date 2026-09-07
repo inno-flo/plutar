@@ -79,7 +79,7 @@ struct LinkRowView: View {
                     .font(appFont.font(size: 19, weight: titleWeight))
                     .lineLimit(3)
                 Text(stampString)
-                    .font(appFont.font(size: 11.5))
+                    .font(appFont.font(size: 13.5))
                     .foregroundStyle(theme.ink(0.4))
                     .textCase(.uppercase)
             }
