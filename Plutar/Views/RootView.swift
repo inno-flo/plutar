@@ -175,7 +175,13 @@ struct RootView: View {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
         f.dateFormat = "EEEE d MMMM"
-        return f.string(from: day).capitalized
+        let formatted = f.string(from: day)
+        // French uses the ordinal "1er" for the first of the month, not "1"
+        // — e.g. "1er avril", not "1 avril".
+        let withOrdinal = calendar.component(.day, from: day) == 1
+            ? formatted.replacingOccurrences(of: " 1 ", with: " 1er ")
+            : formatted
+        return withOrdinal.capitalized
     }
 
     var body: some View {
@@ -241,14 +247,14 @@ struct RootView: View {
             .presentationDetents([.height(220)])
         }
         .alert(
-            "Supprimer tous les liens lus ?",
+            "Supprimer les liens lus",
             isPresented: $showClearReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) { clearRead() }
         }
         .alert(
-            "Marquer tous les liens comme lus ?",
+            "Marquer les liens comme lus",
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
@@ -406,8 +412,12 @@ struct RootView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
-                .frame(width: 44, height: 44)
         }
+        // The fixed size belongs on the button itself, not just the icon
+        // inside it — sizing only the inner Image left the outer shape
+        // glassEffect/circle actually clips at the mercy of the label's own
+        // reported size, which wasn't reliably a perfect square.
+        .frame(width: 44, height: 44)
         .buttonStyle(.plain)
         .glassEffect(.regular, in: .circle)
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
