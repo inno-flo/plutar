@@ -168,7 +168,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// other theme's own background otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute, .astronauteSoir, .scand, .scandSoir: return .white
+        case .astronaute, .scand, .scandSoir: return .white
+        case .astronauteSoir: return AppTheme.marine.background
         case .crepuscule: return AppTheme.couchant.title
         default: return background
         }
@@ -196,7 +197,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
         case .crepuscule: return AppTheme.couchant.title
-        case .astronaute, .astronauteSoir, .scand, .scandSoir: return .white
+        case .astronaute, .scand, .scandSoir: return .white
+        case .astronauteSoir: return AppTheme.marine.background
         default: return background
         }
     }
