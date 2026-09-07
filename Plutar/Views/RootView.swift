@@ -445,7 +445,7 @@ struct RootView: View {
                 .font(.system(size: 22, weight: .heavy))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
-                .background(theme.accent)
+                .background(theme.chip)
                 .foregroundStyle(theme.countForeground)
                 .clipShape(Capsule())
         }
