@@ -644,14 +644,13 @@ struct RootView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(width: width, alignment: .leading)
-            .background(theme.card)
+            // Filled with the view's own background (not `card`) and outlined
+            // in the theme's chip/counter color, across every theme.
+            .background(effectiveBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            // Tokyo-only: a thin black outline around each ranking gauge.
             .overlay {
-                if theme == .tokyo {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.black, lineWidth: 1)
-                }
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(theme.chip, lineWidth: 1)
             }
         }
         .frame(height: 44)
