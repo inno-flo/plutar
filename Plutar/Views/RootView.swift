@@ -248,7 +248,8 @@ struct RootView: View {
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onRegenerate: { regenerateLinks(); showSettings = false },
-                onClose: { showSettings = false }
+                onClose: { showSettings = false },
+                chipColor: theme.chip
             )
         }
         .sheet(item: $pendingShare) { entry in
