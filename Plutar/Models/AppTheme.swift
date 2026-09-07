@@ -30,7 +30,7 @@ extension Color {
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case couchant, crepuscule, blanc, marine, scand, astronaute
+    case couchant, crepuscule, blanc, marine, scand, scandSoir, astronaute, astronauteSoir
 
     var id: String { rawValue }
 
@@ -39,9 +39,11 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return "Lacanau"
         case .crepuscule: return "Lacanau soir"
         case .scand: return "Copenhague"
+        case .scandSoir: return "Copenhague soir"
         case .blanc: return "Marine clair"
         case .marine: return "Marine sombre"
         case .astronaute: return "Cap Canaveral"
+        case .astronauteSoir: return "Cap Canaveral soir"
         }
     }
 
@@ -50,20 +52,24 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return Color(hex: "#D95204")
         case .crepuscule: return Color(hex: "#3C2208")
         case .scand: return Color(hex: "#F4F1E9")
+        case .scandSoir: return Color(hex: "#23262B")
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
+        case .astronauteSoir: return Color(hex: "#0C1A2E")
         }
     }
 
     var background: Color {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
-        case .crepuscule: return Color(hex: "#9B4923")
+        case .crepuscule: return Color(hex: "#4A2A0C")
         case .scand: return Color(hex: "#E2D7CC")
+        case .scandSoir: return Color(hex: "#23262B")
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
+        case .astronauteSoir: return Color(hex: "#0C1A2E")
         }
     }
 
@@ -73,9 +79,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return (60, 34, 8)
         case .crepuscule: return (245, 198, 0)
         case .scand: return (43, 42, 40)
+        case .scandSoir: return (230, 227, 220)
         case .blanc: return (20, 38, 75)
         case .marine: return (255, 255, 255)
-        case .astronaute: return (255, 255, 255)
+        case .astronaute, .astronauteSoir: return (255, 255, 255)
         }
     }
 
@@ -93,7 +100,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#D95204")
         case .crepuscule: return Color(hex: "#F2A626")
-        case .scand, .blanc, .marine, .astronaute: return Color(hex: "#FF4F00")
+        case .scand, .scandSoir, .blanc, .marine, .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         }
     }
 
@@ -101,7 +108,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#F2A626")
         case .crepuscule: return Color(hex: "#E07B26")
-        case .scand, .blanc, .marine, .astronaute: return Color(hex: "#FFA366")
+        case .scand, .scandSoir, .blanc, .marine, .astronaute, .astronauteSoir: return Color(hex: "#FFA366")
         }
     }
 
@@ -111,52 +118,57 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return (Color(hex: "#F2A626"), Color(hex: "#E07B26"))
         case .crepuscule: return (Color(hex: "#5C3410"), Color(hex: "#4A2A0C"))
         case .scand: return (Color(hex: "#DCD5C6"), Color(hex: "#CFC7B6"))
+        case .scandSoir: return (Color(hex: "#3A3F46"), Color(hex: "#2D3138"))
         case .blanc: return (Color(hex: "#E4E9F2"), Color(hex: "#D2DAE8"))
         case .marine: return (Color(hex: "#1F3763"), Color(hex: "#2A4780"))
         case .astronaute: return (Color(hex: "#3A6DA5"), Color(hex: "#27547F"))
+        case .astronauteSoir: return (Color(hex: "#1B3350"), Color(hex: "#122740"))
         }
     }
 
     var card: Color {
         switch self {
         case .couchant: return Color(hex: "#F5F2E9")
-        case .crepuscule: return Color(hex: "#4A2A0C")
+        case .crepuscule: return Color(hex: "#9B4923")
         case .scand: return Color(hex: "#FBF8F3")
+        case .scandSoir: return Color(hex: "#2D3138")
         case .blanc: return Color(hex: "#F3F6FB")
         case .marine: return Color(hex: "#1C3364")
         case .astronaute: return Color(hex: "#35699F")
+        case .astronauteSoir: return Color(hex: "#142942")
         }
     }
 
     /// Lus-only override for a read link cell's background — nil means use
     /// the default (`card` tinted toward `background`, see LinkRowView).
-    /// Cap Canaveral uses a plain medium gray instead.
+    /// Cap Canaveral (and its dark variant) use a plain medium gray instead.
     var readCardOverride: Color? {
         switch self {
-        case .astronaute: return Color(hex: "#8E8E93")
+        case .astronaute, .astronauteSoir: return Color(hex: "#8E8E93")
         default: return nil
         }
     }
 
     /// Sticky day/source-name pill AND counter badge background — each
-    /// theme's own color, except Copenhague's dedicated "bleu scandinave",
-    /// which isn't shared with any other theme.
+    /// theme's own color, except Copenhague's dedicated "bleu scandinave"
+    /// (shared with its dark variant), which isn't used by any other theme.
     var chip: Color {
         switch self {
         case .couchant: return Color(hex: "#8C3F12")
         case .crepuscule: return Color(hex: "#D8460B")
-        case .scand: return Color(hex: "#6E8CA0")
+        case .scand, .scandSoir: return Color(hex: "#6E8CA0")
         case .blanc: return Color(hex: "#14264B")
-        case .marine, .astronaute: return Color(hex: "#FF4F00")
+        case .marine, .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         }
     }
 
     /// Text color drawn on top of `chip` (and the counter badge) — white for
-    /// Astronaute and Copenhague, whose `background` is too close in value
-    /// to `chip` to read well; each other theme's own background otherwise.
+    /// Cap Canaveral and Copenhague (plus their dark variants), whose
+    /// `background` is too close in value to `chip` to read well; each
+    /// other theme's own background otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute, .scand: return .white
+        case .astronaute, .astronauteSoir, .scand, .scandSoir: return .white
         case .crepuscule: return AppTheme.couchant.title
         default: return background
         }
@@ -166,7 +178,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#B04A12")
         case .crepuscule: return Color(hex: "#F2A626")
-        case .astronaute: return Color(hex: "#FF4F00")
+        case .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         default: return ink(1)
         }
     }
@@ -175,7 +187,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#3C2208")
         case .crepuscule: return Color(hex: "#F5C600")
-        case .astronaute: return .white
+        case .astronaute, .astronauteSoir: return .white
         default: return ink(1)
         }
     }
@@ -184,7 +196,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
         case .crepuscule: return AppTheme.couchant.title
-        case .astronaute, .scand: return .white
+        case .astronaute, .astronauteSoir, .scand, .scandSoir: return .white
         default: return background
         }
     }
