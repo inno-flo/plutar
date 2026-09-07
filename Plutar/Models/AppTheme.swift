@@ -166,38 +166,39 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     /// Trailing swipe-to-delete tint (Date/Sources/Lus) — nil uses the
     /// system's own destructive red. Kamakura gets its own red, Kamakura
-    /// soir a darker one. Cap Canaveral soir also gets a darker red.
+    /// soir a darker one. Cap Canaveral soir and Copenhague soir also get
+    /// that same darker red.
     var deleteSwipeTint: Color? {
         switch self {
         case .blanc: return Color(hex: "#E53935")
         case .blancSoir: return Color(hex: "#7A1F1F")
-        case .astronauteSoir: return Color(hex: "#8C2F2F")
+        case .astronauteSoir, .scandSoir: return Color(hex: "#8C2F2F")
         default: return nil
         }
     }
 
     /// Leading swipe "Non lu" (mark as unread) tint in Lus — plain system
-    /// green by default; Kamakura soir and Cap Canaveral soir use a darker
-    /// green instead.
+    /// green by default; Kamakura soir, Cap Canaveral soir and Copenhague
+    /// soir use a darker green instead.
     var markUnreadSwipeTint: Color {
         switch self {
-        case .blancSoir: return Color(hex: "#1F5C33")
-        case .astronauteSoir: return Color(hex: "#1F5C33")
+        case .blancSoir, .astronauteSoir, .scandSoir: return Color(hex: "#1F5C33")
         default: return .green
         }
     }
 
     /// Leading swipe "Lu" (mark as read) tint in Date/Sources — plain gray
-    /// by default. Kamakura uses its own lighter blue; Copenhague uses its
-    /// own link-text color (as seen in Lus); Kamakura soir still uses its
+    /// by default. Kamakura uses its own lighter blue; Copenhague uses a
+    /// lighter tone of its own ink color; Kamakura soir still uses its
     /// `card` color (the same background as a link cell in Lus); Cap
-    /// Canaveral soir uses its own darker read-card gray.
+    /// Canaveral soir and Copenhague soir use a darker gray.
     var markReadSwipeTint: Color {
         switch self {
         case .blanc: return Color(hex: "#72A8F6")
-        case .scand: return title
+        case .scand: return Color(hex: "#6E6962")
         case .blancSoir: return readCardOverride ?? card
         case .astronauteSoir: return readCardOverride ?? .gray
+        case .scandSoir: return Color(hex: "#4A4A4E")
         default: return .gray
         }
     }
