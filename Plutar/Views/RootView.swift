@@ -99,10 +99,6 @@ struct RootView: View {
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     @State private var showResetRankingConfirm = false
-    @State private var showMarkDayReadConfirm = false
-    /// The specific day's links to mark as read, set right before
-    /// `showMarkDayReadConfirm` is raised.
-    @State private var dayItemsToMarkRead: [LinkItem] = []
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -337,13 +333,6 @@ struct RootView: View {
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
-        }
-        .alert(
-            "Marquer les liens de ce jour comme lus",
-            isPresented: $showMarkDayReadConfirm
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Marquer comme lus") { markSourceAsRead(dayItemsToMarkRead) }
         }
     }
 
@@ -594,45 +583,28 @@ struct RootView: View {
             .listRowInsets(EdgeInsets())
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
-        } else if mode == .chrono {
-            // Same row as the day pill, pill on the left — the mark-all-read
-            // button is pushed to the trailing edge, same as Sources' own.
-            HStack(alignment: .center, spacing: 10) {
-                dayChipLabel(group)
-
-                Spacer(minLength: 0)
-
-                Button {
-                    dayItemsToMarkRead = group.items
-                    showMarkDayReadConfirm = true
-                } label: {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(theme.ink(0.55))
-                }
-                .buttonStyle(.plain)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .listRowInsets(EdgeInsets())
-            .padding(.horizontal, 14)
-            .padding(.vertical, 4)
         } else {
-            dayChipLabel(group)
+            Text(group.label)
+                .font(.system(size: 16.5, weight: .bold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(theme.chip)
+                // An opaque backing sized to the pill itself (not the whole
+                // row), sitting behind `theme.chip` — without it, the pill
+                // relies entirely on the system's own translucent veil
+                // behind a pinned section header, which briefly
+                // flickers/clips on the day boundary as you scroll past it.
+                // Sized only to the capsule so the rest of the row still
+                // shows that veil, matching the floating header's
+                // transparency everywhere else.
+                .background(effectiveBackground, in: Capsule())
+                .foregroundStyle(theme.chipText)
+                .clipShape(Capsule())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .listRowInsets(EdgeInsets())
                 .padding(.horizontal, 14)
                 .padding(.vertical, 4)
         }
-    }
-
-    private func dayChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
-        Text(group.label)
-            .font(.system(size: 16.5, weight: .bold))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(theme.chip)
-            .foregroundStyle(theme.chipText)
-            .clipShape(Capsule())
     }
 
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
