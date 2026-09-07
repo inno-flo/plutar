@@ -175,9 +175,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .leMans: return Color(hex: "#D17132")
         case .leMansSoir: return Color(hex: "#96481E")
         case .tokyo: return Color(hex: "#E1000F")
-        // Charcoal, not pure black — Tokyo soir's own background is pure
-        // black, so the chip needs some contrast to stand out.
-        case .tokyoSoir: return Color(hex: "#1C1C1E")
+        case .tokyoSoir: return Color(hex: "#BC002D")
         }
     }
 
@@ -187,7 +185,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute, .scand, .leMans, .tokyo, .tokyoSoir: return .white
+        case .astronaute, .scand, .leMans, .tokyo: return .white
         // Cap Canaveral soir's own chip/counter text, matching what the
         // (now-removed) Marine sombre theme used to use.
         case .astronauteSoir: return Color(hex: "#14264B")
@@ -195,6 +193,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         // Le Mans soir's chip is the same dark brown as `card`, too close in
         // value to fall through to `background` like the other soir themes.
         case .leMansSoir: return ink(1)
+        case .tokyoSoir: return Color(hex: "#000000")
         // Copenhague soir and Kamakura soir: each falls through to its own
         // (dark) background — darker than the light variant's pale text,
         // but still readable on the shared chip color.
@@ -251,11 +250,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var countForeground: Color {
         switch self {
-        case .astronaute, .scand, .leMans, .tokyo, .tokyoSoir: return .white
+        case .astronaute, .scand, .leMans, .tokyo: return .white
         case .astronauteSoir: return Color(hex: "#14264B")
         case .blanc: return Color(hex: "#E1F3FC")
         // Le Mans soir — see chipText.
         case .leMansSoir: return ink(1)
+        case .tokyoSoir: return Color(hex: "#000000")
         // Copenhague soir falls through to `background` too — see chipText.
         default: return background
         }
