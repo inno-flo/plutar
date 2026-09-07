@@ -104,13 +104,6 @@ struct RootView: View {
     /// its links are marked read).
     @State private var allSourcesExpandedIcon = false
 
-    /// Test, Sources only: true while the feed is actively scrolling.
-    /// Drives a hand-built floating tab bar (see `customTabBar`) that
-    /// shrinks on scroll and — unlike the native one — re-expands the
-    /// instant scrolling actually stops, anywhere in the list, so it can be
-    /// compared against the real `TabView` bar used everywhere else.
-    @State private var isSourceScrolling = false
-
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
     }
@@ -322,11 +315,6 @@ struct RootView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .animation(.easeInOut(duration: 0.25), value: expandedSources)
-                .onScrollPhaseChange { _, newPhase in
-                    if mode == .source {
-                        isSourceScrolling = newPhase != .idle
-                    }
-                }
                 .overlay {
                     if groups.isEmpty {
                         // Sources mirrors Date's empty state exactly (icon,
@@ -368,81 +356,40 @@ struct RootView: View {
                     markAllReadButton
                 }
 
-                // No title bar in any view. The counter shows in Date and
-                // Sources — removed from Lus.
-                if mode == .chrono || mode == .source {
-                    floatingCounterBadge
-                }
-
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            // Test: swap the native floating tab bar for a hand-built one
-            // while on Sources, so the two can be compared directly by
-            // switching tabs.
-            .toolbar(mode == .source ? .hidden : .visible, for: .tabBar)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if mode == .source {
-                    customTabBar
+            // No title bar in any view. The counter shows in Date and
+            // Sources — removed from Lus. A reserved safe-area inset
+            // (rather than a ZStack overlay) so it never overlaps the
+            // list's own content — in Sources, the first source's chip can
+            // carry its own mark-as-read button right at the top, and the
+            // two were colliding when the counter merely floated on top.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if mode == .chrono || mode == .source {
+                    floatingCounterBadge
                 }
             }
         }
-    }
-
-    /// Test, Sources only — see `isSourceScrolling`. Same 4 destinations as
-    /// the native tab bar, styled with the same Liquid Glass material, but
-    /// its shrink/expand is driven entirely by our own scroll-phase
-    /// tracking instead of the system's built-in heuristics.
-    private var customTabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(FeedMode.allCases, id: \.self) { m in
-                customTabBarItem(icon: m.icon, label: m.label, isActive: mode == m) {
-                    mode = m
-                }
-            }
-            customTabBarItem(icon: "gear", label: "Affichage", isActive: false) {
-                showSettings = true
-            }
-        }
-        .padding(.horizontal, isSourceScrolling ? 8 : 14)
-        .padding(.vertical, isSourceScrolling ? 6 : 10)
-        .glassEffect(.regular, in: Capsule())
-        .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
-        .padding(.horizontal, isSourceScrolling ? 90 : 24)
-        .padding(.bottom, 8)
-        .animation(.easeInOut(duration: 0.22), value: isSourceScrolling)
-    }
-
-    private func customTabBarItem(icon: String, label: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                if !isSourceScrolling {
-                    Text(label)
-                        .font(.system(size: 9, weight: .medium))
-                }
-            }
-            .foregroundStyle(isActive ? theme.accent : theme.ink(0.5))
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
     }
 
     /// The link-count pill, floating on its own with no surrounding title
     /// bar, in the same top-trailing spot a header used to place it.
     private var floatingCounterBadge: some View {
-        Text("\(min(currentCount, 99))")
-            .font(.system(size: 22, weight: .heavy))
-            .frame(minWidth: 40, minHeight: 36)
-            .padding(.horizontal, 8)
-            .background(theme.accent)
-            .foregroundStyle(theme.countForeground)
-            .clipShape(Capsule())
-            .padding(.top, 14)
-            .padding(.trailing, 18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        HStack {
+            Spacer()
+            Text("\(min(currentCount, 99))")
+                .font(.system(size: 22, weight: .heavy))
+                .frame(minWidth: 40, minHeight: 36)
+                .padding(.horizontal, 8)
+                .background(theme.accent)
+                .foregroundStyle(theme.countForeground)
+                .clipShape(Capsule())
+        }
+        .padding(.top, 14)
+        .padding(.trailing, 18)
+        .padding(.bottom, 10)
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
@@ -534,7 +481,7 @@ struct RootView: View {
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(.system(size: 14.5, weight: .bold))
+                .font(.system(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(theme == .marine ? .white : theme.chipText)
