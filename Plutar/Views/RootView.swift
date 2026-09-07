@@ -646,6 +646,13 @@ struct RootView: View {
             .frame(width: width, alignment: .leading)
             .background(theme.card)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            // Tokyo-only: a thin black outline around each ranking gauge.
+            .overlay {
+                if theme == .tokyo {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black, lineWidth: 1)
+                }
+            }
         }
         .frame(height: 44)
     }
