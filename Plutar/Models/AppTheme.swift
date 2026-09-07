@@ -37,7 +37,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .couchant: return "70's beach"
-        case .crepuscule: return "70's beach evening"
+        case .crepuscule: return "Lacanau soir"
         case .scand: return "Copenhague"
         case .blanc: return "Marine clair"
         case .marine: return "Marine sombre"
@@ -59,7 +59,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var background: Color {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
-        case .crepuscule: return Color(hex: "#3C2208")
+        case .crepuscule: return Color(hex: "#9B4923")
         case .scand: return Color(hex: "#E2D7CC")
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
@@ -71,7 +71,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     private var inkRGB: (Double, Double, Double) {
         switch self {
         case .couchant: return (60, 34, 8)
-        case .crepuscule: return (235, 231, 220)
+        case .crepuscule: return (245, 198, 0)
         case .scand: return (43, 42, 40)
         case .blanc: return (20, 38, 75)
         case .marine: return (255, 255, 255)
@@ -144,7 +144,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var chip: Color {
         switch self {
         case .couchant: return Color(hex: "#8C3F12")
-        case .crepuscule: return Color(hex: "#D95204")
+        case .crepuscule: return Color(hex: "#D8460B")
         case .scand: return Color(hex: "#6E8CA0")
         case .blanc: return Color(hex: "#14264B")
         case .marine, .astronaute: return Color(hex: "#FF4F00")
@@ -173,7 +173,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var title: Color {
         switch self {
         case .couchant: return Color(hex: "#3C2208")
-        case .crepuscule: return Color(hex: "#F5EFE2")
+        case .crepuscule: return Color(hex: "#F5C600")
         case .astronaute: return .white
         default: return ink(1)
         }
