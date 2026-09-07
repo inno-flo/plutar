@@ -74,6 +74,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
+    @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.couchant.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
@@ -90,6 +91,7 @@ struct RootView: View {
 
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
+    @State private var showResetRankingConfirm = false
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -200,6 +202,14 @@ struct RootView: View {
                 feedScreen
             }
         }
+        // `Tab` has no per-item `.tint()`, so the tab bar's own color comes
+        // from whatever `.tint()` is active right here, at the TabView
+        // itself — set to the day/source chip's color. Further down the
+        // chain, `.tint(theme.accent)` resets the environment back to the
+        // accent color for everything presented from this point on
+        // (sheets, alerts), without affecting the tab bar chrome already
+        // resolved above.
+        .tint(theme.chip)
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -260,6 +270,13 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Marquer comme lus") { markAllAsRead() }
         }
+        .alert(
+            "Réinitialiser le classement des sources",
+            isPresented: $showResetRankingConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
+        }
     }
 
     /// The actual feed screen — identical content shown under all three feed
@@ -317,6 +334,41 @@ struct RootView: View {
                         }
                     }
 
+                    // Cumulative ranking, most-to-least important — a
+                    // persistent tally (see `SourceRank`) that keeps
+                    // growing regardless of links being deleted, so it
+                    // survives clearing the feed.
+                    if mode == .source && !sourceRanks.isEmpty {
+                        Section {
+                            ForEach(Array(sourceRanks.enumerated()), id: \.element.host) { index, rank in
+                                sourceRankRow(rank: index + 1, entry: rank)
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                            }
+
+                            Button(role: .destructive) {
+                                showResetRankingConfirm = true
+                            } label: {
+                                Text("Réinitialiser le classement")
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .tracking(1.2)
+                                    .textCase(.uppercase)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 14)
+                        } header: {
+                            Text("Classement des sources")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(theme.ink(0.55))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .listRowInsets(EdgeInsets())
+                                .padding(.horizontal, 14)
+                                .padding(.top, 10)
+                        }
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
@@ -510,6 +562,27 @@ struct RootView: View {
         .clipShape(Capsule())
     }
 
+    private func sourceRankRow(rank: Int, entry: SourceRank) -> some View {
+        HStack(spacing: 12) {
+            Text("\(rank)")
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(theme.ink(0.4))
+                .frame(width: 22, alignment: .leading)
+            Text(entry.host)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(theme.title)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Text("\(entry.count)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(theme.ink(0.5))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
     @ViewBuilder
     private var undoToast: some View {
         if undoSnapshot != nil {
@@ -627,12 +700,23 @@ struct RootView: View {
     /// timestamped — the same seed used on first launch.
     private func regenerateLinks() {
         for item in allItems { modelContext.delete(item) }
-        for item in SeedData.makeLinkItems() { modelContext.insert(item) }
+        for item in SeedData.makeLinkItems() {
+            modelContext.insert(item)
+            SourceRank.bump(item.host, in: modelContext)
+        }
         try? modelContext.save()
     }
 
     private func save(_ entry: SeedData.PoolEntry) {
-        modelContext.insert(entry.makeLinkItem())
+        let item = entry.makeLinkItem()
+        modelContext.insert(item)
+        SourceRank.bump(item.host, in: modelContext)
+        try? modelContext.save()
+    }
+
+    /// Zeroes out the persistent source-importance tally — see `SourceRank`.
+    private func resetSourceRanking() {
+        for rank in sourceRanks { modelContext.delete(rank) }
         try? modelContext.save()
     }
 }

@@ -7,7 +7,7 @@ struct PlutarApp: App {
 
     init() {
         do {
-            container = try ModelContainer(for: LinkItem.self)
+            container = try ModelContainer(for: LinkItem.self, SourceRank.self)
         } catch {
             fatalError("Failed to create the SwiftData container: \(error)")
         }
@@ -30,6 +30,7 @@ struct PlutarApp: App {
 
         for item in SeedData.makeLinkItems() {
             context.insert(item)
+            SourceRank.bump(item.host, in: context)
         }
         try? context.save()
     }
