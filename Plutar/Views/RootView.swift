@@ -99,6 +99,10 @@ struct RootView: View {
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     @State private var showResetRankingConfirm = false
+    @State private var showMarkDayReadConfirm = false
+    /// The specific day's links to mark as read, set right before
+    /// `showMarkDayReadConfirm` is raised.
+    @State private var dayItemsToMarkRead: [LinkItem] = []
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -334,6 +338,13 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
         }
+        .alert(
+            "Marquer les liens de ce jour comme lus",
+            isPresented: $showMarkDayReadConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Marquer comme lus") { markSourceAsRead(dayItemsToMarkRead) }
+        }
     }
 
     /// The actual feed screen — identical content shown under all three feed
@@ -495,7 +506,7 @@ struct RootView: View {
     private var floatingCounterBadge: some View {
         HStack {
             Spacer()
-            Text("\(min(currentCount, 99))")
+            Text("\(currentCount)")
                 .font(.system(size: 22, weight: .heavy))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
@@ -583,19 +594,45 @@ struct RootView: View {
             .listRowInsets(EdgeInsets())
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
+        } else if mode == .chrono {
+            // Same row as the day pill, pill on the left — the mark-all-read
+            // button is pushed to the trailing edge, same as Sources' own.
+            HStack(alignment: .center, spacing: 10) {
+                dayChipLabel(group)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    dayItemsToMarkRead = group.items
+                    showMarkDayReadConfirm = true
+                } label: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(theme.ink(0.55))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 4)
         } else {
-            Text(group.label)
-                .font(.system(size: 16.5, weight: .bold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(theme.chip)
-                .foregroundStyle(theme.chipText)
-                .clipShape(Capsule())
+            dayChipLabel(group)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .listRowInsets(EdgeInsets())
                 .padding(.horizontal, 14)
                 .padding(.vertical, 4)
         }
+    }
+
+    private func dayChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
+        Text(group.label)
+            .font(.system(size: 16.5, weight: .bold))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(theme.chip)
+            .foregroundStyle(theme.chipText)
+            .clipShape(Capsule())
     }
 
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
