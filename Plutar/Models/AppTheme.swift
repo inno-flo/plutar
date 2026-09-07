@@ -40,7 +40,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .crepuscule: return "Lacanau soir"
         case .scand: return "Copenhague"
         case .scandSoir: return "Copenhague soir"
-        case .blanc: return "Marine clair"
+        case .blanc: return "Kamakura"
         case .marine: return "Marine sombre"
         case .astronaute: return "Cap Canaveral"
         case .astronauteSoir: return "Cap Canaveral soir"
@@ -53,7 +53,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .crepuscule: return Color(hex: "#3C2208")
         case .scand: return Color(hex: "#F4F1E9")
         case .scandSoir: return Color(hex: "#23262B")
-        case .blanc: return Color(hex: "#FFFFFF")
+        case .blanc: return Color(hex: "#E4F1FF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
         case .astronauteSoir: return Color(hex: "#0C1A2E")
@@ -66,7 +66,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .crepuscule: return Color(hex: "#4A2A0C")
         case .scand: return Color(hex: "#E2D7CC")
         case .scandSoir: return Color(hex: "#23262B")
-        case .blanc: return Color(hex: "#FFFFFF")
+        case .blanc: return Color(hex: "#E4F1FF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
         case .astronauteSoir: return Color(hex: "#0C1A2E")
@@ -157,7 +157,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .couchant: return Color(hex: "#8C3F12")
         case .crepuscule: return Color(hex: "#D8460B")
         case .scand, .scandSoir: return Color(hex: "#6E8CA0")
-        case .blanc: return Color(hex: "#14264B")
+        case .blanc: return Color(hex: "#7FACCC")
         case .marine, .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         }
     }
@@ -171,6 +171,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronaute, .scand: return .white
         case .astronauteSoir: return AppTheme.marine.background
         case .crepuscule: return AppTheme.couchant.title
+        case .blanc: return Color(hex: "#E1F3FC")
         // Copenhague soir: its own (dark) background, darker than plain
         // white but still readable on the bleu-scandinave chip.
         default: return background
@@ -201,6 +202,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .crepuscule: return AppTheme.couchant.title
         case .astronaute, .scand: return .white
         case .astronauteSoir: return AppTheme.marine.background
+        case .blanc: return Color(hex: "#E1F3FC")
         // Copenhague soir falls through to `background` too — see chipText.
         default: return background
         }
