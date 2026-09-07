@@ -117,15 +117,14 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 
     /// Sticky day-group (or source) pill background.
-    var chip: Color {
-        switch self {
-        case .couchant: return Color(hex: "#8C3F12")
-        case .crepuscule: return Color(hex: "#D95204")
-        case .creme: return Color(hex: "#16150F")
-        case .blanc: return Color(hex: "#14264B")
-        case .marine, .astronaute: return Color(hex: "#FF4F00")
-        }
-    }
+    ///
+    /// Test: set to reference the counter badge's own background
+    /// (`accent`) rather than each theme's own dedicated chip color, so the
+    /// day/source pills match the counter. Previous per-theme values, kept
+    /// here in case this reverts:
+    /// couchant #8C3F12, crepuscule #D95204, creme #16150F, blanc #14264B,
+    /// marine/astronaute #FF4F00.
+    var chip: Color { accent }
 
     /// Text color drawn on top of `chip` — white for Astronaute, whose
     /// `background` (the default choice) is too close in value to `chip`'s

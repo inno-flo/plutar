@@ -123,6 +123,10 @@ struct RootView: View {
     /// link is added and shrinks when one is marked read (leaving Date/Sources).
     private var currentCount: Int { visibleItems.count }
 
+    /// Highest tally in the source ranking — the reference each row's width
+    /// is scaled against (see `sourceRankRow`).
+    private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
+
     private var groups: [(label: String, items: [LinkItem])] {
         let list = visibleItems
         switch mode {
@@ -341,7 +345,7 @@ struct RootView: View {
                     if mode == .source && !sourceRanks.isEmpty {
                         Section {
                             ForEach(Array(sourceRanks.enumerated()), id: \.element.host) { index, rank in
-                                sourceRankRow(rank: index + 1, entry: rank)
+                                sourceRankRow(rank: index + 1, entry: rank, maxCount: maxSourceRankCount)
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -357,8 +361,8 @@ struct RootView: View {
                             }
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(.trailing, 14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 14)
                         } header: {
                             Text("Classement des sources")
                                 .font(.system(size: 13, weight: .semibold))
@@ -562,25 +566,34 @@ struct RootView: View {
         .clipShape(Capsule())
     }
 
-    private func sourceRankRow(rank: Int, entry: SourceRank) -> some View {
-        HStack(spacing: 12) {
-            Text("\(rank)")
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(theme.ink(0.4))
-                .frame(width: 22, alignment: .leading)
-            Text(entry.host)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(theme.title)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            Text("\(entry.count)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(theme.ink(0.5))
+    /// A row's width is proportional to its share of `maxCount` (the
+    /// top-ranked source's own count) — a bar-chart-like read on
+    /// importance, not just the numeral shown at its trailing edge.
+    private func sourceRankRow(rank: Int, entry: SourceRank, maxCount: Int) -> some View {
+        GeometryReader { proxy in
+            let ratio = maxCount > 0 ? CGFloat(entry.count) / CGFloat(maxCount) : 1
+            let width = max(proxy.size.width * ratio, 140)
+            HStack(spacing: 12) {
+                Text("\(rank)")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(theme.ink(0.4))
+                    .frame(width: 22, alignment: .leading)
+                Text(entry.host)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(theme.title)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text("\(entry.count)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(theme.ink(0.5))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(width: width, alignment: .leading)
+            .background(theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(theme.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(height: 44)
     }
 
     @ViewBuilder
