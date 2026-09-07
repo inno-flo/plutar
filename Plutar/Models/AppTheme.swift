@@ -32,6 +32,12 @@ extension Color {
 enum AppTheme: String, CaseIterable, Identifiable {
     case couchant, crepuscule, blanc, blancSoir, marine, scand, scandSoir, astronaute, astronauteSoir
 
+    /// Themes offered in the Affichage picker — every case except Marine
+    /// sombre, which is hidden (kept as a real case since other themes,
+    /// e.g. Cap Canaveral soir, reference its colors directly). Kamakura
+    /// soir sits right where Marine sombre would have appeared.
+    static var selectable: [AppTheme] { allCases.filter { $0 != .marine } }
+
     var id: String { rawValue }
 
     var label: String {

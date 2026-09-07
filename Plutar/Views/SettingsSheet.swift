@@ -49,7 +49,7 @@ struct SettingsSheet: View {
 
                     section("Thème") {
                         LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(AppTheme.allCases) { t in
+                            ForEach(AppTheme.selectable) { t in
                                 themePill(t)
                             }
                         }
