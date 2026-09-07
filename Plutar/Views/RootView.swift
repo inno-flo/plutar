@@ -589,15 +589,6 @@ struct RootView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(theme.chip)
-                // An opaque backing sized to the pill itself (not the whole
-                // row), sitting behind `theme.chip` — without it, the pill
-                // relies entirely on the system's own translucent veil
-                // behind a pinned section header, which briefly
-                // flickers/clips on the day boundary as you scroll past it.
-                // Sized only to the capsule so the rest of the row still
-                // shows that veil, matching the floating header's
-                // transparency everywhere else.
-                .background(effectiveBackground, in: Capsule())
                 .foregroundStyle(theme.chipText)
                 .clipShape(Capsule())
                 .frame(maxWidth: .infinity, alignment: .leading)
