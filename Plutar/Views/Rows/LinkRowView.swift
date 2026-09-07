@@ -38,8 +38,17 @@ struct LinkRowView: View {
         .padding(.horizontal, 18)
         .background(theme.card)
         .foregroundStyle(theme.title)
+        // A read cell (i.e. every cell in Lus) is tinted toward the page's
+        // own background instead of just made transparent — plain opacity
+        // makes the cell blend with whatever scrolls behind it, which reads
+        // inconsistently from theme to theme; blending toward a color the
+        // theme already defines gives a real, consistently muted tone.
+        .overlay {
+            if item.isRead {
+                theme.background.opacity(0.6)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .opacity(item.isRead ? 0.55 : 1)
         .saturation(item.isRead ? 0 : 1)
         .shadow(color: .black.opacity(0.08), radius: 9, y: 4)
     }
@@ -79,7 +88,7 @@ struct LinkRowView: View {
                     .font(appFont.font(size: 19, weight: titleWeight))
                     .lineLimit(3)
                 Text(stampString)
-                    .font(appFont.font(size: 11.5))
+                    .font(appFont.font(size: 13.5))
                     .foregroundStyle(theme.ink(0.4))
                     .textCase(.uppercase)
             }

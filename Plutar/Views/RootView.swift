@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UIKit
 
 private enum FeedMode: String, CaseIterable {
     case chrono, source, read
@@ -75,6 +74,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
+    @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.couchant.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
@@ -90,10 +90,21 @@ struct RootView: View {
     @State private var undoTask: Task<Void, Never>?
 
     @State private var showClearReadConfirm = false
+    @State private var showMarkAllReadConfirm = false
+    @State private var showResetRankingConfirm = false
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
     @State private var expandedSources: Set<String> = []
+
+    /// Which icon the expand-all/collapse-all button shows. Deliberately a
+    /// separate stored flag rather than a value derived from `groups` +
+    /// `expandedSources`: it should flip only when the user taps that
+    /// button, or when individually expanding/collapsing sources happens to
+    /// land on "every source expanded" or "every source collapsed" — not on
+    /// every unrelated change to `groups` (e.g. a source emptying out after
+    /// its links are marked read).
+    @State private var allSourcesExpandedIcon = false
 
     private var theme: AppTheme {
         get { AppTheme(rawValue: themeRaw) ?? .couchant }
@@ -111,6 +122,10 @@ struct RootView: View {
     /// (unread links for Date/Sources, read links for Lus), so it grows when a
     /// link is added and shrinks when one is marked read (leaving Date/Sources).
     private var currentCount: Int { visibleItems.count }
+
+    /// Highest tally in the source ranking — the reference each row's width
+    /// is scaled against (see `sourceRankRow`).
+    private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
 
     private var groups: [(label: String, items: [LinkItem])] {
         let list = visibleItems
@@ -135,12 +150,6 @@ struct RootView: View {
         }
     }
 
-    /// True once every source group is expanded — drives which icon the
-    /// expand-all/collapse-all button shows.
-    private var allSourcesExpanded: Bool {
-        !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.label) }
-    }
-
     private func toggleSource(_ label: String) {
         withAnimation(.easeInOut(duration: 0.25)) {
             if expandedSources.contains(label) {
@@ -148,12 +157,20 @@ struct RootView: View {
             } else {
                 expandedSources.insert(label)
             }
+            // Only the two "every source" extremes move the icon; anything
+            // in between leaves it as it was.
+            if !groups.isEmpty && groups.allSatisfy({ expandedSources.contains($0.label) }) {
+                allSourcesExpandedIcon = true
+            } else if expandedSources.isEmpty {
+                allSourcesExpandedIcon = false
+            }
         }
     }
 
     private func toggleAllSources() {
         withAnimation(.easeInOut(duration: 0.25)) {
-            expandedSources = allSourcesExpanded ? [] : Set(groups.map(\.label))
+            allSourcesExpandedIcon.toggle()
+            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.label)) : []
         }
     }
 
@@ -164,7 +181,13 @@ struct RootView: View {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
         f.dateFormat = "EEEE d MMMM"
-        return f.string(from: day).capitalized
+        let formatted = f.string(from: day)
+        // French uses the ordinal "1er" for the first of the month, not "1"
+        // — e.g. "1er avril", not "1 avril".
+        let withOrdinal = calendar.component(.day, from: day) == 1
+            ? formatted.replacingOccurrences(of: " 1 ", with: " 1er ")
+            : formatted
+        return withOrdinal.capitalized
     }
 
     var body: some View {
@@ -183,9 +206,17 @@ struct RootView: View {
                 feedScreen
             }
         }
+        // `Tab` has no per-item `.tint()`, so the tab bar's own color comes
+        // from whatever `.tint()` is active right here, at the TabView
+        // itself — set to the day/source chip's color. Further down the
+        // chain, `.tint(theme.accent)` resets the environment back to the
+        // accent color for everything presented from this point on
+        // (sheets, alerts), without affecting the tab bar chrome already
+        // resolved above.
+        .tint(theme.chip)
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
-        .tabBarMinimizeBehavior(.automatic)
+        .tabBarMinimizeBehavior(.onScrollDown)
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
                 showSettings = true
@@ -217,7 +248,8 @@ struct RootView: View {
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onRegenerate: { regenerateLinks(); showSettings = false },
-                onClose: { showSettings = false }
+                onClose: { showSettings = false },
+                chipColor: theme.chip
             )
         }
         .sheet(item: $pendingShare) { entry in
@@ -230,11 +262,25 @@ struct RootView: View {
             .presentationDetents([.height(220)])
         }
         .alert(
-            "Supprimer tous les liens lus ?",
+            "Supprimer les liens lus",
             isPresented: $showClearReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) { clearRead() }
+        }
+        .alert(
+            "Marquer les liens comme lus",
+            isPresented: $showMarkAllReadConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Marquer comme lus") { markAllAsRead() }
+        }
+        .alert(
+            "Réinitialiser le classement des sources",
+            isPresented: $showResetRankingConfirm
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
         }
     }
 
@@ -245,14 +291,6 @@ struct RootView: View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 theme.background.ignoresSafeArea()
-                    .onAppear {
-                        // Test: List section headers pin to the top edge
-                        // while scrolling, and iOS gives that pinned state
-                        // its own translucent backdrop by default (visible
-                        // behind e.g. the "Aujourd'hui" chip). This clears
-                        // it so the header floats with no backdrop at all.
-                        UITableViewHeaderFooterView.appearance().tintColor = .clear
-                    }
 
                 List {
                     ForEach(groups, id: \.label) { group in
@@ -301,17 +339,56 @@ struct RootView: View {
                         }
                     }
 
+                    // Cumulative ranking, most-to-least important — a
+                    // persistent tally (see `SourceRank`) that keeps
+                    // growing regardless of links being deleted, so it
+                    // survives clearing the feed.
+                    if mode == .source && !sourceRanks.isEmpty {
+                        Section {
+                            ForEach(Array(sourceRanks.enumerated()), id: \.element.host) { index, rank in
+                                sourceRankRow(rank: index + 1, entry: rank, maxCount: maxSourceRankCount)
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                            }
+
+                            Button(role: .destructive) {
+                                showResetRankingConfirm = true
+                            } label: {
+                                Text("Réinitialiser le classement")
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .tracking(1.2)
+                                    .textCase(.uppercase)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 14)
+                        } header: {
+                            Text("Classement des sources")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(theme.ink(0.55))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .listRowInsets(EdgeInsets())
+                                .padding(.horizontal, 14)
+                                .padding(.top, 10)
+                        }
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .animation(.easeInOut(duration: 0.25), value: expandedSources)
                 .overlay {
                     if groups.isEmpty {
-                        EmptyStateView(
+                        // Sources mirrors Date's empty state exactly (icon,
+                        // title, subtitle) — only Lus differs.
+                        QuietEmptyStateView(
                             theme: theme,
-                            title: mode == .read ? "Aucun lien lu" : "Fil vide",
+                            appFont: appFont,
+                            icon: "moon.stars",
+                            title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
                             text: mode == .read
-                                ? "Les liens ouverts apparaîtront ici, grisés dans le fil."
+                                ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
                                 : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
                             showsSimulateButton: mode != .read,
                             onSimulateShare: { pendingShare = SeedData.pool.randomElement() }
@@ -322,37 +399,60 @@ struct RootView: View {
                 if mode == .read && !groups.isEmpty {
                     clearReadButton
                 } else if mode == .source && !groups.isEmpty {
-                    toggleAllSourcesButton
+                    // Toggle-all above, mark-all-read below — same spot the
+                    // Date mark-all-read button sits in.
+                    VStack(spacing: 14) {
+                        floatingButton(
+                            icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+                            flipped: !allSourcesExpandedIcon
+                        ) {
+                            toggleAllSources()
+                        }
+                        floatingButton(icon: "checkmark.circle.fill") {
+                            showMarkAllReadConfirm = true
+                        }
+                    }
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 } else if mode == .chrono && !groups.isEmpty {
                     markAllReadButton
-                }
-
-                // No title bar in any view. The counter itself only shows
-                // in Date — removed from Sources and Lus.
-                if mode == .chrono {
-                    floatingCounterBadge
                 }
 
                 undoToast
             }
             .navigationTitle("")
             .navigationBarHidden(true)
+            // No title bar in any view. The counter shows in Date and
+            // Sources — removed from Lus. A reserved safe-area inset
+            // (rather than a ZStack overlay) so it never overlaps the
+            // list's own content — in Sources, the first source's chip can
+            // carry its own mark-as-read button right at the top, and the
+            // two were colliding when the counter merely floated on top.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if mode == .chrono || mode == .source {
+                    floatingCounterBadge
+                }
+            }
         }
     }
 
     /// The link-count pill, floating on its own with no surrounding title
     /// bar, in the same top-trailing spot a header used to place it.
     private var floatingCounterBadge: some View {
-        Text("\(min(currentCount, 99))")
-            .font(.system(size: 22, weight: .heavy))
-            .frame(minWidth: 40, minHeight: 36)
-            .padding(.horizontal, 8)
-            .background(theme.accent)
-            .foregroundStyle(theme.countForeground)
-            .clipShape(Capsule())
-            .padding(.top, 14)
-            .padding(.trailing, 18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        HStack {
+            Spacer()
+            Text("\(min(currentCount, 99))")
+                .font(.system(size: 22, weight: .heavy))
+                .frame(minWidth: 40, minHeight: 36)
+                .padding(.horizontal, 8)
+                .background(theme.chip)
+                .foregroundStyle(theme.countForeground)
+                .clipShape(Capsule())
+        }
+        .padding(.top, 14)
+        .padding(.trailing, 18)
+        .padding(.bottom, 10)
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
@@ -369,8 +469,12 @@ struct RootView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
-                .frame(width: 44, height: 44)
         }
+        // The fixed size belongs on the button itself, not just the icon
+        // inside it — sizing only the inner Image left the outer shape
+        // glassEffect/circle actually clips at the mercy of the label's own
+        // reported size, which wasn't reliably a perfect square.
+        .frame(width: 44, height: 44)
         .buttonStyle(.plain)
         .glassEffect(.regular, in: .circle)
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
@@ -384,22 +488,10 @@ struct RootView: View {
     }
 
     private var markAllReadButton: some View {
-        floatingButton(icon: "checkmark.circle.fill") { markAllAsRead() }
+        floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
             .padding(.trailing, 18)
             .padding(.bottom, 30)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-    }
-
-    private var toggleAllSourcesButton: some View {
-        floatingButton(
-            icon: allSourcesExpanded ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
-            flipped: !allSourcesExpanded
-        ) {
-            toggleAllSources()
-        }
-        .padding(.trailing, 18)
-        .padding(.bottom, 30)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     /// Chip shown as each Section's header. In Sources it also acts as the
@@ -440,7 +532,7 @@ struct RootView: View {
             .padding(.vertical, 4)
         } else {
             Text(group.label)
-                .font(.system(size: 14.5, weight: .bold))
+                .font(.system(size: 16.5, weight: .bold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(theme.chip)
@@ -456,7 +548,7 @@ struct RootView: View {
     private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(.system(size: 14.5, weight: .bold))
+                .font(.system(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(theme == .marine ? .white : theme.chipText)
@@ -473,6 +565,36 @@ struct RootView: View {
         .background(theme.chip)
         .foregroundStyle(theme.chipText)
         .clipShape(Capsule())
+    }
+
+    /// A row's width is proportional to its share of `maxCount` (the
+    /// top-ranked source's own count) — a bar-chart-like read on
+    /// importance, not just the numeral shown at its trailing edge.
+    private func sourceRankRow(rank: Int, entry: SourceRank, maxCount: Int) -> some View {
+        GeometryReader { proxy in
+            let ratio = maxCount > 0 ? CGFloat(entry.count) / CGFloat(maxCount) : 1
+            let width = max(proxy.size.width * ratio, 140)
+            HStack(spacing: 12) {
+                Text("\(rank)")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(theme.ink(0.4))
+                    .frame(width: 22, alignment: .leading)
+                Text(entry.host)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(theme.title)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text("\(entry.count)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(theme.ink(0.5))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(width: width, alignment: .leading)
+            .background(theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .frame(height: 44)
     }
 
     @ViewBuilder
@@ -592,12 +714,23 @@ struct RootView: View {
     /// timestamped — the same seed used on first launch.
     private func regenerateLinks() {
         for item in allItems { modelContext.delete(item) }
-        for item in SeedData.makeLinkItems() { modelContext.insert(item) }
+        for item in SeedData.makeLinkItems() {
+            modelContext.insert(item)
+            SourceRank.bump(item.host, in: modelContext)
+        }
         try? modelContext.save()
     }
 
     private func save(_ entry: SeedData.PoolEntry) {
-        modelContext.insert(entry.makeLinkItem())
+        let item = entry.makeLinkItem()
+        modelContext.insert(item)
+        SourceRank.bump(item.host, in: modelContext)
+        try? modelContext.save()
+    }
+
+    /// Zeroes out the persistent source-importance tally — see `SourceRank`.
+    private func resetSourceRanking() {
+        for rank in sourceRanks { modelContext.delete(rank) }
         try? modelContext.save()
     }
 }

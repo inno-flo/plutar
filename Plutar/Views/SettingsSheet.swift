@@ -20,6 +20,11 @@ struct SettingsSheet: View {
     let onClearAll: () -> Void
     let onRegenerate: () -> Void
     let onClose: () -> Void
+    /// Same color as the day/source pill and counter badge — applied only
+    /// to the selected pills' fill below, not to the whole sheet (that
+    /// broadly cascaded into the toolbar's close icon and other text
+    /// rendering unexpectedly white).
+    let chipColor: Color
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -133,6 +138,7 @@ struct SettingsSheet: View {
         if isActive {
             Button(action: action) { Text(label).font(font) }
                 .buttonStyle(.glassProminent)
+                .tint(chipColor)
         } else {
             Button(action: action) { Text(label).font(font) }
                 .buttonStyle(.glass)
@@ -144,6 +150,7 @@ struct SettingsSheet: View {
         if theme == t {
             Button { theme = t } label: { themeLabel(t) }
                 .buttonStyle(.glassProminent)
+                .tint(chipColor)
         } else {
             Button { theme = t } label: { themeLabel(t) }
                 .buttonStyle(.glass)

@@ -14,6 +14,7 @@
 		8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BDB1017E51147DD32031A2 /* SeedData.swift */; };
 		A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
+		8AF8F2C10C2C876952034D86 /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8664445EFBBC0A8A6146F71 /* SourceRank.swift */; };
 		E360489DDA0D19A34174505E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CC3F448604493B8E9A7320 /* PlutarApp.swift */; };
 /* End PBXBuildFile section */
@@ -28,6 +29,7 @@
 		89CC3F448604493B8E9A7320 /* PlutarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarApp.swift; sourceTree = "<group>"; };
 		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
+		F8664445EFBBC0A8A6146F71 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
 		CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D743AACE9F462982DE372A84 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -38,6 +40,7 @@
 			children = (
 				89026185FF840D288774DDD0 /* AppTheme.swift */,
 				A4949EBEF6B304848C4BEE06 /* LinkItem.swift */,
+				F8664445EFBBC0A8A6146F71 /* SourceRank.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -185,6 +188,7 @@
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
 				8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,
+				8AF8F2C10C2C876952034D86 /* SourceRank.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

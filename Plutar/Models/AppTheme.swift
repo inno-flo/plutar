@@ -1,16 +1,28 @@
 import SwiftUI
 
 extension Color {
-    /// Convenience initializer from a "#RRGGBB" hex string.
+    /// Convenience initializer from a "#RRGGBB" or "#RRGGBBAA" hex string.
     init(hex: String) {
         var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         s.removeAll { $0 == "#" }
         var value: UInt64 = 0
         Scanner(string: s).scanHexInt64(&value)
-        let r = Double((value >> 16) & 0xFF) / 255
-        let g = Double((value >> 8) & 0xFF) / 255
-        let b = Double(value & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
+        let r: Double
+        let g: Double
+        let b: Double
+        let a: Double
+        if s.count == 8 {
+            r = Double((value >> 24) & 0xFF) / 255
+            g = Double((value >> 16) & 0xFF) / 255
+            b = Double((value >> 8) & 0xFF) / 255
+            a = Double(value & 0xFF) / 255
+        } else {
+            r = Double((value >> 16) & 0xFF) / 255
+            g = Double((value >> 8) & 0xFF) / 255
+            b = Double(value & 0xFF) / 255
+            a = 1
+        }
+        self.init(red: r, green: g, blue: b, opacity: a)
     }
 }
 
@@ -18,17 +30,17 @@ extension Color {
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case couchant, crepuscule, creme, blanc, marine, astronaute
+    case couchant, crepuscule, blanc, marine, scand, astronaute
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .couchant: return "Couchant"
-        case .crepuscule: return "Crépuscule"
-        case .creme: return "Crème"
-        case .blanc: return "Blanc"
-        case .marine: return "Marine"
+        case .couchant: return "70's beach"
+        case .crepuscule: return "70's beach evening"
+        case .scand: return "Copenhague"
+        case .blanc: return "Marine clair"
+        case .marine: return "Marine sombre"
         case .astronaute: return "Astronaute"
         }
     }
@@ -37,7 +49,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#D95204")
         case .crepuscule: return Color(hex: "#3C2208")
-        case .creme: return Color(hex: "#F4F1E9")
+        case .scand: return Color(hex: "#F4F1E9")
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
@@ -48,7 +60,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
         case .crepuscule: return Color(hex: "#3C2208")
-        case .creme: return Color(hex: "#F4F1E9")
+        case .scand: return Color(hex: "#E2D7CC")
         case .blanc: return Color(hex: "#FFFFFF")
         case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
@@ -60,7 +72,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return (60, 34, 8)
         case .crepuscule: return (235, 231, 220)
-        case .creme: return (22, 21, 15)
+        case .scand: return (43, 42, 40)
         case .blanc: return (20, 38, 75)
         case .marine: return (255, 255, 255)
         case .astronaute: return (255, 255, 255)
@@ -81,7 +93,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#D95204")
         case .crepuscule: return Color(hex: "#F2A626")
-        case .creme, .blanc, .marine, .astronaute: return Color(hex: "#FF4F00")
+        case .scand, .blanc, .marine, .astronaute: return Color(hex: "#FF4F00")
         }
     }
 
@@ -89,7 +101,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#F2A626")
         case .crepuscule: return Color(hex: "#E07B26")
-        case .creme, .blanc, .marine, .astronaute: return Color(hex: "#FFA366")
+        case .scand, .blanc, .marine, .astronaute: return Color(hex: "#FFA366")
         }
     }
 
@@ -98,7 +110,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return (Color(hex: "#F2A626"), Color(hex: "#E07B26"))
         case .crepuscule: return (Color(hex: "#5C3410"), Color(hex: "#4A2A0C"))
-        case .creme: return (Color(hex: "#DCD5C6"), Color(hex: "#CFC7B6"))
+        case .scand: return (Color(hex: "#DCD5C6"), Color(hex: "#CFC7B6"))
         case .blanc: return (Color(hex: "#E4E9F2"), Color(hex: "#D2DAE8"))
         case .marine: return (Color(hex: "#1F3763"), Color(hex: "#2A4780"))
         case .astronaute: return (Color(hex: "#3A6DA5"), Color(hex: "#27547F"))
@@ -109,30 +121,32 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#F5F2E9")
         case .crepuscule: return Color(hex: "#4A2A0C")
-        case .creme: return Color(hex: "#FFFDF6")
+        case .scand: return Color(hex: "#FBF8F3")
         case .blanc: return Color(hex: "#F3F6FB")
         case .marine: return Color(hex: "#1C3364")
         case .astronaute: return Color(hex: "#35699F")
         }
     }
 
-    /// Sticky day-group (or source) pill background.
+    /// Sticky day/source-name pill AND counter badge background — each
+    /// theme's own color, except Copenhague's dedicated "bleu scandinave",
+    /// which isn't shared with any other theme.
     var chip: Color {
         switch self {
         case .couchant: return Color(hex: "#8C3F12")
         case .crepuscule: return Color(hex: "#D95204")
-        case .creme: return Color(hex: "#16150F")
+        case .scand: return Color(hex: "#6E8CA0")
         case .blanc: return Color(hex: "#14264B")
         case .marine, .astronaute: return Color(hex: "#FF4F00")
         }
     }
 
-    /// Text color drawn on top of `chip` — white for Astronaute, whose
-    /// `background` (the default choice) is too close in value to `chip`'s
-    /// orange to read well.
+    /// Text color drawn on top of `chip` (and the counter badge) — white for
+    /// Astronaute and Copenhague, whose `background` is too close in value
+    /// to `chip` to read well; each other theme's own background otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute: return .white
+        case .astronaute, .scand: return .white
         default: return background
         }
     }
@@ -159,22 +173,23 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .couchant: return Color(hex: "#EBE7DC")
         case .crepuscule: return Color(hex: "#3C2208")
-        case .astronaute: return .white
+        case .astronaute, .scand: return .white
         default: return background
         }
     }
 }
 
-/// Typeface choice from the settings drawer. Both are available on stock iOS.
+/// Typeface choice from the settings drawer. All three are available on stock iOS.
 enum AppFont: String, CaseIterable, Identifiable {
-    case futura, rounded
+    case futura, rounded, avenirNext
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .futura: return "Futura"
-        case .rounded: return "Rounded"
+        case .rounded: return "SF Pro"
+        case .avenirNext: return "Avenir Next"
         }
     }
 
@@ -182,6 +197,10 @@ enum AppFont: String, CaseIterable, Identifiable {
         switch self {
         case .futura: return .custom("Futura", size: size).weight(weight)
         case .rounded: return .system(size: size, weight: weight, design: .rounded)
+        // Fixed to its own named DemiBold variant, ignoring `weight` —
+        // like Futura, ".weight()" doesn't reliably resolve to a real
+        // bold/regular variant for a named custom font.
+        case .avenirNext: return .custom("AvenirNext-DemiBold", size: size)
         }
     }
 }
