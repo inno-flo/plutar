@@ -30,7 +30,12 @@ extension Color {
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case blanc, blancSoir, scand, scandSoir, astronaute, astronauteSoir, leMans, leMansSoir
+    case tokyo, tokyoSoir, scand, scandSoir, blanc, blancSoir, astronaute, astronauteSoir, leMans, leMansSoir
+
+    /// Themes offered in the Affichage picker — every case except Le Mans
+    /// and Le Mans soir, which are hidden. They stay real cases in case
+    /// something else ends up referencing their colors directly.
+    static var selectable: [AppTheme] { allCases.filter { $0 != .leMans && $0 != .leMansSoir } }
 
     var id: String { rawValue }
 
@@ -44,6 +49,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return "Cap Canaveral soir"
         case .leMans: return "Le Mans"
         case .leMansSoir: return "Le Mans soir"
+        case .tokyo: return "Tokyo"
+        case .tokyoSoir: return "Tokyo soir"
         }
     }
 
@@ -57,6 +64,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return Color(hex: "#0C1A2E")
         case .leMans: return Color(hex: "#FFFFFF")
         case .leMansSoir: return Color(hex: "#23262B")
+        case .tokyo: return Color(hex: "#F7F5F1")
+        case .tokyoSoir: return Color(hex: "#000000")
         }
     }
 
@@ -70,6 +79,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return Color(hex: "#0C1A2E")
         case .leMans: return Color(hex: "#FFFFFF")
         case .leMansSoir: return Color(hex: "#23262B")
+        case .tokyo: return Color(hex: "#F7F5F1")
+        case .tokyoSoir: return Color(hex: "#000000")
         }
     }
 
@@ -83,6 +94,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronaute, .astronauteSoir: return (255, 255, 255)
         case .leMans: return (12, 22, 29)
         case .leMansSoir: return (242, 232, 224)
+        case .tokyo: return (34, 34, 34)
+        case .tokyoSoir: return (237, 237, 237)
         }
     }
 
@@ -115,6 +128,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return (Color(hex: "#1B3350"), Color(hex: "#122740"))
         case .leMans: return (Color(hex: "#DCEBFA"), Color(hex: "#C7DCF0"))
         case .leMansSoir: return (Color(hex: "#96481E"), Color(hex: "#7E3B18"))
+        case .tokyo: return (Color(hex: "#F7F5F1"), Color(hex: "#EFEBE4"))
+        case .tokyoSoir: return (Color(hex: "#1E1E1E"), Color(hex: "#171717"))
         }
     }
 
@@ -128,6 +143,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return Color(hex: "#142942")
         case .leMans: return Color(hex: "#DCEBFA")
         case .leMansSoir: return Color(hex: "#96481E")
+        case .tokyo: return Color(hex: "#FFFFFF")
+        case .tokyoSoir: return Color(hex: "#1E1E1E")
         }
     }
 
@@ -157,6 +174,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         case .leMans: return Color(hex: "#D17132")
         case .leMansSoir: return Color(hex: "#96481E")
+        case .tokyo: return Color(hex: "#E1000F")
+        // Charcoal, not pure black — Tokyo soir's own background is pure
+        // black, so the chip needs some contrast to stand out.
+        case .tokyoSoir: return Color(hex: "#1C1C1E")
         }
     }
 
@@ -166,7 +187,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute, .scand, .leMans: return .white
+        case .astronaute, .scand, .leMans, .tokyo, .tokyoSoir: return .white
         // Cap Canaveral soir's own chip/counter text, matching what the
         // (now-removed) Marine sombre theme used to use.
         case .astronauteSoir: return Color(hex: "#14264B")
@@ -189,17 +210,18 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .blanc: return Color(hex: "#E53935")
         case .blancSoir: return Color(hex: "#7A1F1F")
-        case .astronauteSoir, .scandSoir: return Color(hex: "#8C2F2F")
+        case .astronauteSoir, .scandSoir, .tokyoSoir: return Color(hex: "#8C2F2F")
+        case .tokyo: return Color(hex: "#E1000F")
         default: return nil
         }
     }
 
     /// Leading swipe "Non lu" (mark as unread) tint in Lus — plain system
-    /// green by default; Kamakura soir, Cap Canaveral soir and Copenhague
-    /// soir use a darker green instead.
+    /// green by default; Kamakura soir, Cap Canaveral soir, Copenhague soir
+    /// and Tokyo soir use a darker green instead.
     var markUnreadSwipeTint: Color {
         switch self {
-        case .blancSoir, .astronauteSoir, .scandSoir: return Color(hex: "#1F5C33")
+        case .blancSoir, .astronauteSoir, .scandSoir, .tokyoSoir: return Color(hex: "#1F5C33")
         default: return .green
         }
     }
@@ -229,7 +251,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var countForeground: Color {
         switch self {
-        case .astronaute, .scand, .leMans: return .white
+        case .astronaute, .scand, .leMans, .tokyo, .tokyoSoir: return .white
         case .astronauteSoir: return Color(hex: "#14264B")
         case .blanc: return Color(hex: "#E1F3FC")
         // Le Mans soir — see chipText.
