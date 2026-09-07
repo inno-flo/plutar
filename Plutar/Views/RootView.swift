@@ -76,7 +76,7 @@ struct RootView: View {
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
     @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
-    @AppStorage("plutar.theme") private var themeRaw = AppTheme.couchant.rawValue
+    @AppStorage("plutar.theme") private var themeRaw = AppTheme.scand.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.futura.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
@@ -107,7 +107,7 @@ struct RootView: View {
     @State private var allSourcesExpandedIcon = false
 
     private var theme: AppTheme {
-        get { AppTheme(rawValue: themeRaw) ?? .couchant }
+        get { AppTheme(rawValue: themeRaw) ?? .scand }
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .futura }
     private var layout: LinkLayout {
@@ -307,6 +307,7 @@ struct RootView: View {
                                             Button(role: .destructive) { requestDelete(item) } label: {
                                                 Label("Supprimer", systemImage: "trash")
                                             }
+                                            .tint(theme.deleteSwipeTint)
                                         }
                                         .swipeActions(edge: .leading) {
                                             if mode == .read {
@@ -322,7 +323,7 @@ struct RootView: View {
                                                 } label: {
                                                     Label("Lu", systemImage: "checkmark.circle.fill")
                                                 }
-                                                .tint(.gray)
+                                                .tint(theme.markReadSwipeTint)
                                             }
                                         }
                                         // Plain opacity — without it, a newly-inserted row
@@ -551,7 +552,7 @@ struct RootView: View {
                 .font(.system(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(theme == .marine ? .white : theme.chipText)
+                .foregroundStyle(theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 .background(theme.chipText.opacity(0.22))

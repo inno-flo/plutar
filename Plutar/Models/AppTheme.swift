@@ -26,30 +26,20 @@ extension Color {
     }
 }
 
-/// One of the seven color themes from the mockup. Each theme is a background,
+/// One of the color themes from the mockup. Each theme is a background,
 /// an "ink" (text) color used at several opacities, an accent, and the tones
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
-    case couchant, couchantSoir, crepuscule, blanc, blancSoir, marine, scand, scandSoir, astronaute, astronauteSoir
-
-    /// Themes offered in the Affichage picker — every case except Marine
-    /// sombre, which is hidden (kept as a real case since other themes,
-    /// e.g. Cap Canaveral soir, reference its colors directly). Kamakura
-    /// soir sits right where Marine sombre would have appeared.
-    static var selectable: [AppTheme] { allCases.filter { $0 != .marine } }
+    case blanc, blancSoir, scand, scandSoir, astronaute, astronauteSoir
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .couchant: return "Saint-Girons"
-        case .couchantSoir: return "Saint-Girons soir"
-        case .crepuscule: return "Lacanau soir"
         case .scand: return "Copenhague"
         case .scandSoir: return "Copenhague soir"
         case .blanc: return "Kamakura"
         case .blancSoir: return "Kamakura soir"
-        case .marine: return "Marine sombre"
         case .astronaute: return "Cap Canaveral"
         case .astronauteSoir: return "Cap Canaveral soir"
         }
@@ -57,14 +47,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var swatch: Color {
         switch self {
-        case .couchant: return Color(hex: "#F0FFFB")
-        case .couchantSoir: return Color(hex: "#102019")
-        case .crepuscule: return Color(hex: "#3C2208")
         case .scand: return Color(hex: "#F4F1E9")
         case .scandSoir: return Color(hex: "#23262B")
         case .blanc: return Color(hex: "#E4F1FF")
         case .blancSoir: return Color(hex: "#101B2C")
-        case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
         case .astronauteSoir: return Color(hex: "#0C1A2E")
         }
@@ -72,14 +58,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var background: Color {
         switch self {
-        case .couchant: return Color(hex: "#F0FFFB")
-        case .couchantSoir: return Color(hex: "#102019")
-        case .crepuscule: return Color(hex: "#4A2A0C")
         case .scand: return Color(hex: "#E2D7CC")
         case .scandSoir: return Color(hex: "#23262B")
         case .blanc: return Color(hex: "#E4F1FF")
         case .blancSoir: return Color(hex: "#101B2C")
-        case .marine: return Color(hex: "#14264B")
         case .astronaute: return Color(hex: "#2E5D93")
         case .astronauteSoir: return Color(hex: "#0C1A2E")
         }
@@ -88,14 +70,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Base RGB used to derive the translucent "ink" tones (text at various opacities).
     private var inkRGB: (Double, Double, Double) {
         switch self {
-        case .couchant: return (60, 34, 8)
-        case .couchantSoir: return (240, 255, 251)
-        case .crepuscule: return (245, 198, 0)
         case .scand: return (43, 42, 40)
         case .scandSoir: return (230, 227, 220)
         case .blanc: return (20, 38, 75)
         case .blancSoir: return (225, 235, 245)
-        case .marine: return (255, 255, 255)
         case .astronaute, .astronauteSoir: return (255, 255, 255)
         }
     }
@@ -111,31 +89,20 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 
     var accent: Color {
-        switch self {
-        case .couchant, .couchantSoir: return Color(hex: "#D95204")
-        case .crepuscule: return Color(hex: "#F2A626")
-        case .scand, .scandSoir, .blanc, .blancSoir, .marine, .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
-        }
+        Color(hex: "#FF4F00")
     }
 
     var accentSoft: Color {
-        switch self {
-        case .couchant, .couchantSoir: return Color(hex: "#F2A626")
-        case .crepuscule: return Color(hex: "#E07B26")
-        case .scand, .scandSoir, .blanc, .blancSoir, .marine, .astronaute, .astronauteSoir: return Color(hex: "#FFA366")
-        }
+        Color(hex: "#FFA366")
     }
 
     /// Diagonal-stripe thumbnail placeholder colors.
     var thumbnailStripes: (Color, Color) {
         switch self {
-        case .couchant, .couchantSoir: return (Color(hex: "#F2A626"), Color(hex: "#E07B26"))
-        case .crepuscule: return (Color(hex: "#5C3410"), Color(hex: "#4A2A0C"))
         case .scand: return (Color(hex: "#DCD5C6"), Color(hex: "#CFC7B6"))
         case .scandSoir: return (Color(hex: "#3A3F46"), Color(hex: "#2D3138"))
         case .blanc: return (Color(hex: "#E4E9F2"), Color(hex: "#D2DAE8"))
         case .blancSoir: return (Color(hex: "#16243A"), Color(hex: "#0F1B2C"))
-        case .marine: return (Color(hex: "#1F3763"), Color(hex: "#2A4780"))
         case .astronaute: return (Color(hex: "#3A6DA5"), Color(hex: "#27547F"))
         case .astronauteSoir: return (Color(hex: "#1B3350"), Color(hex: "#122740"))
         }
@@ -143,14 +110,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var card: Color {
         switch self {
-        case .couchant: return Color(hex: "#F0DBB3")
-        case .couchantSoir: return Color(hex: "#3B2E1E")
-        case .crepuscule: return Color(hex: "#9B4923")
         case .scand: return Color(hex: "#FBF8F3")
         case .scandSoir: return Color(hex: "#2D3138")
         case .blanc: return Color(hex: "#F3F6FB")
         case .blancSoir: return Color(hex: "#1A2940")
-        case .marine: return Color(hex: "#1C3364")
         case .astronaute: return Color(hex: "#35699F")
         case .astronauteSoir: return Color(hex: "#142942")
         }
@@ -171,23 +134,22 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// (shared with its dark variant), which isn't used by any other theme.
     var chip: Color {
         switch self {
-        case .couchant, .couchantSoir: return Color(hex: "#356BC6")
-        case .crepuscule: return Color(hex: "#D8460B")
         case .scand, .scandSoir: return Color(hex: "#6E8CA0")
         case .blanc, .blancSoir: return Color(hex: "#7FACCC")
-        case .marine, .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
+        case .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
         }
     }
 
     /// Text color drawn on top of `chip` (and the counter badge) — white for
-    /// Cap Canaveral and Copenhague (plus their dark variants), whose
-    /// `background` is too close in value to `chip` to read well; each
-    /// other theme's own background otherwise.
+    /// Cap Canaveral and Copenhague, whose `background` is too close in
+    /// value to `chip` to read well; each other theme's own background
+    /// otherwise.
     var chipText: Color {
         switch self {
         case .astronaute, .scand: return .white
-        case .astronauteSoir: return AppTheme.marine.background
-        case .crepuscule: return AppTheme.couchant.title
+        // Cap Canaveral soir's own chip/counter text, matching what the
+        // (now-removed) Marine sombre theme used to use.
+        case .astronauteSoir: return Color(hex: "#14264B")
         case .blanc: return Color(hex: "#E1F3FC")
         // Copenhague soir and Kamakura soir: each falls through to its own
         // (dark) background — darker than the light variant's pale text,
@@ -196,19 +158,29 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    var time: Color {
+    /// Trailing swipe-to-delete tint (Date/Sources/Lus) — nil uses the
+    /// system's own destructive red. Kamakura gets its own red, Kamakura
+    /// soir a darker one.
+    var deleteSwipeTint: Color? {
         switch self {
-        case .couchant: return Color(hex: "#B04A12")
-        case .crepuscule: return Color(hex: "#F2A626")
-        case .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
-        default: return ink(1)
+        case .blanc: return Color(hex: "#E53935")
+        case .blancSoir: return Color(hex: "#7A1F1F")
+        default: return nil
+        }
+    }
+
+    /// Leading swipe "Lu" (mark as read) tint in Date/Sources — plain gray
+    /// by default; Kamakura and Kamakura soir use their own `card` color
+    /// (the same background as a link cell in Lus) instead.
+    var markReadSwipeTint: Color {
+        switch self {
+        case .blanc, .blancSoir: return card
+        default: return .gray
         }
     }
 
     var title: Color {
         switch self {
-        case .couchant: return Color(hex: "#3C2208")
-        case .crepuscule: return Color(hex: "#F5C600")
         case .astronaute, .astronauteSoir: return .white
         default: return ink(1)
         }
@@ -216,12 +188,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var countForeground: Color {
         switch self {
-        case .crepuscule: return AppTheme.couchant.title
         case .astronaute, .scand: return .white
-        case .astronauteSoir: return AppTheme.marine.background
+        case .astronauteSoir: return Color(hex: "#14264B")
         case .blanc: return Color(hex: "#E1F3FC")
-        // Saint-Girons (day and soir) and Copenhague soir all fall through
-        // to `background` too — see chipText.
+        // Copenhague soir falls through to `background` too — see chipText.
         default: return background
         }
     }
