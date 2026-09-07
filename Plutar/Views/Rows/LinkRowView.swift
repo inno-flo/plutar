@@ -36,15 +36,17 @@ struct LinkRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
-        .background(theme.card)
+        .background(item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)
         .foregroundStyle(theme.title)
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
         // inconsistently from theme to theme; blending toward a color the
         // theme already defines gives a real, consistently muted tone.
+        // Skipped when the theme provides its own flat `readCardOverride`
+        // (Cap Canaveral uses a plain medium gray instead).
         .overlay {
-            if item.isRead {
+            if item.isRead && theme.readCardOverride == nil {
                 theme.background.opacity(0.6)
             }
         }
