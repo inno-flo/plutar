@@ -14,8 +14,12 @@ private struct ContentHeightKey: PreferenceKey {
 /// layout, plus destructive/regenerate feed actions.
 struct SettingsSheet: View {
     @Binding var theme: AppTheme
+    @Binding var appearance: AppAppearance
     @Binding var appFont: AppFont
     @Binding var showThumbnails: Bool
+    /// Experimental test setting: forces every "soir" theme's view
+    /// background to pure black.
+    @Binding var blackSoirBackground: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
     let onRegenerate: () -> Void
@@ -55,9 +59,26 @@ struct SettingsSheet: View {
                         }
                     }
 
+                    section("Apparence") {
+                        HStack(spacing: 8) {
+                            ForEach(AppAppearance.allCases) { a in
+                                pill(a.label, isActive: appearance == a) { appearance = a }
+                            }
+                        }
+                    }
+
                     section("Liens") {
                         Toggle(isOn: $showThumbnails) {
                             Text("Afficher les vignettes")
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    section("Test") {
+                        Toggle(isOn: $blackSoirBackground) {
+                            Text("Fond noir pour les thèmes soir")
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)

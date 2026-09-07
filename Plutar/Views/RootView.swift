@@ -73,13 +73,20 @@ private struct DeletedSnapshot {
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    /// The system's own current light/dark setting — used to resolve the
+    /// "Automatique" Apparence option to an actual theme variant.
+    @Environment(\.colorScheme) private var systemColorScheme
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
     @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage("plutar.theme") private var themeRaw = AppTheme.scand.rawValue
+    @AppStorage("plutar.appearance") private var appearanceRaw = AppAppearance.auto.rawValue
     @AppStorage("plutar.font") private var fontRaw = AppFont.rounded.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
+    /// Experimental test setting: forces every "soir" theme's view
+    /// background to pure black instead of its own defined color.
+    @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
 
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .chrono
@@ -106,12 +113,35 @@ struct RootView: View {
     /// its links are marked read).
     @State private var allSourcesExpandedIcon = false
 
+    /// The theme family picked in the "Thème" grid, before the "Apparence"
+    /// setting resolves it to an actual light-or-soir variant to display.
+    private var selectedTheme: AppTheme {
+        AppTheme(rawValue: themeRaw) ?? .scand
+    }
+    private var appearance: AppAppearance {
+        get { AppAppearance(rawValue: appearanceRaw) ?? .auto }
+    }
+
+    /// The theme actually displayed: `selectedTheme`'s light or soir variant,
+    /// picked according to `appearance` ("Automatique" follows the system's
+    /// own active light/dark setting).
     private var theme: AppTheme {
-        get { AppTheme(rawValue: themeRaw) ?? .scand }
+        switch appearance {
+        case .light: return selectedTheme.lightVariant
+        case .dark: return selectedTheme.soirVariant
+        case .auto: return systemColorScheme == .dark ? selectedTheme.soirVariant : selectedTheme.lightVariant
+        }
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout {
         get { LinkLayout(rawValue: layoutRaw) ?? .rail }
+    }
+
+    /// The view background actually drawn — pure black instead of the
+    /// theme's own background when the "soir" test toggle is on and the
+    /// current theme is a soir variant.
+    private var effectiveBackground: Color {
+        (blackSoirBackground && theme.isSoir) ? Color(hex: "#000000") : theme.background
     }
 
     private var visibleItems: [LinkItem] {
@@ -235,16 +265,25 @@ struct RootView: View {
         }
         .tint(theme.accent)
         // Native chrome (the floating tab bar, sheets, alerts) picks its own
-        // label/material colors from light vs. dark mode. Without this, a
-        // dark theme (e.g. Crépuscule) still gets light-mode system chrome,
-        // and its unselected tab icons/text can end up nearly invisible
-        // against the floating tab bar's own background.
-        .preferredColorScheme(theme.isDark ? .dark : .light)
+        // label/material colors from light vs. dark mode. Forcing it to
+        // match the theme's own darkness (rather than the system's) used to
+        // be unconditional here, to keep e.g. a dark theme's unselected tab
+        // icons/text legible against the floating tab bar's own background.
+        // The "Apparence" setting now controls this explicitly: "Claire"/
+        // "Sombre" force one or the other regardless of theme or system;
+        // "Automatique" (nil) hands it back to iOS's own active system
+        // appearance instead.
+        .preferredColorScheme(appearance.colorScheme)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(
-                theme: Binding(get: { theme }, set: { themeRaw = $0.rawValue }),
+                // The grid picks the theme family (its literal light/soir
+                // form doesn't matter — "Apparence" resolves that), not the
+                // actually-displayed `theme`.
+                theme: Binding(get: { selectedTheme }, set: { themeRaw = $0.rawValue }),
+                appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
                 showThumbnails: $showThumbnails,
+                blackSoirBackground: $blackSoirBackground,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onRegenerate: { regenerateLinks(); showSettings = false },
@@ -290,7 +329,7 @@ struct RootView: View {
     private var feedScreen: some View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
-                theme.background.ignoresSafeArea()
+                effectiveBackground.ignoresSafeArea()
 
                 List {
                     ForEach(groups, id: \.label) { group in

@@ -37,6 +37,40 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// something else ends up referencing their colors directly.
     static var selectable: [AppTheme] { allCases.filter { $0 != .leMans && $0 != .leMansSoir } }
 
+    /// Whether this is a "soir" (dark) variant of another theme.
+    var isSoir: Bool {
+        switch self {
+        case .scandSoir, .blancSoir, .astronauteSoir, .leMansSoir, .tokyoSoir: return true
+        default: return false
+        }
+    }
+
+    /// This theme's light-mode counterpart (itself if already light) — used
+    /// to resolve the "Apparence" setting to an actual theme to display.
+    var lightVariant: AppTheme {
+        switch self {
+        case .tokyoSoir: return .tokyo
+        case .scandSoir: return .scand
+        case .blancSoir: return .blanc
+        case .astronauteSoir: return .astronaute
+        case .leMansSoir: return .leMans
+        default: return self
+        }
+    }
+
+    /// This theme's "soir" (dark) counterpart (itself if already soir) —
+    /// used to resolve the "Apparence" setting to an actual theme to display.
+    var soirVariant: AppTheme {
+        switch self {
+        case .tokyo: return .tokyoSoir
+        case .scand: return .scandSoir
+        case .blanc: return .blancSoir
+        case .astronaute: return .astronauteSoir
+        case .leMans: return .leMansSoir
+        default: return self
+        }
+    }
+
     var id: String { rawValue }
 
     var label: String {
@@ -258,6 +292,35 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .tokyoSoir: return Color(hex: "#000000")
         // Copenhague soir falls through to `background` too — see chipText.
         default: return background
+        }
+    }
+}
+
+/// Light/soir selector from the settings drawer. "Claire" forces the active
+/// theme's light variant, "Sombre" forces its soir variant, and
+/// "Automatique" switches between the two based on the system's own active
+/// appearance setting — see `RootView.theme`, which resolves the raw
+/// selected `AppTheme` and this setting into the theme actually displayed.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case light, dark, auto
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .light: return "Claire"
+        case .dark: return "Sombre"
+        case .auto: return "Automatique"
+        }
+    }
+
+    /// Value to pass to `.preferredColorScheme` — nil for "Automatique"
+    /// lets the system's active appearance take over.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light: return .light
+        case .dark: return .dark
+        case .auto: return nil
         }
     }
 }
