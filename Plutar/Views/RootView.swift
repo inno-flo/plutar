@@ -769,8 +769,8 @@ struct RootView: View {
         }
     }
 
-    /// Wipes the store and drops the 40 demo links back in, freshly
-    /// timestamped — the same seed used on first launch.
+    /// Wipes the store and drops 200 demo links back in, freshly timestamped
+    /// and with each of the 6 test sources' quantity randomized anew.
     private func regenerateLinks() {
         for item in allItems { modelContext.delete(item) }
         for item in SeedData.makeLinkItems() {

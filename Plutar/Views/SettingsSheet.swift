@@ -59,6 +59,13 @@ struct SettingsSheet: View {
                         }
                     }
 
+                    Toggle(isOn: $blackSoirBackground) {
+                        Text("Fond noir pour les thèmes soir")
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                     section("Apparence") {
                         HStack(spacing: 8) {
                             ForEach(AppAppearance.allCases) { a in
@@ -70,15 +77,6 @@ struct SettingsSheet: View {
                     section("Liens") {
                         Toggle(isOn: $showThumbnails) {
                             Text("Afficher les vignettes")
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-
-                    section("Test") {
-                        Toggle(isOn: $blackSoirBackground) {
-                            Text("Fond noir pour les thèmes soir")
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)

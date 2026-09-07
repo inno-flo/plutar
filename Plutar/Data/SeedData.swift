@@ -16,11 +16,12 @@ private struct SeedEntry {
     let minute: Int
 }
 
-/// Generates the 40 demo links used before the real Share Extension exists
-/// (no paid developer account yet — see project notes). Sources and counts:
-/// macrumors.com ×5, theverge.com ×5, daringfireball.net ×10, nytimes.com ×5,
-/// lemonde.fr ×10, reuters.com/technology ×5 — spread hour-by-hour over the
-/// last 10 days.
+/// Generates 200 demo links used before the real Share Extension exists (no
+/// paid developer account yet — see project notes), spread across the same
+/// 6 test sources (macrumors.com, theverge.com, daringfireball.net,
+/// nytimes.com, lemonde.fr, reuters.com/technology). Each source's quantity
+/// is randomized on every call — see `makeLinkItems` — by cycling that
+/// source's handful of content templates to fill its quota.
 enum SeedData {
 
     private static let macrumors = "macrumors.com"
@@ -94,10 +95,6 @@ enum SeedData {
         SeedEntry(title: "Social Media Platforms Brace for New Content Rules", host: reuters, pathHint: "technology/social-media-new-content-rules", excerpt: "Compliance teams have until the end of the year to adjust.", colorHex: reutersColor, initial: "R", sourceApp: "Safari", hasThumbnail: false, dayOffset: 8, hour: 16, minute: 24),
     ]
 
-    private static var all: [SeedEntry] {
-        macrumorsItems + thevergeItems + daringfireballItems + nytimesItems + lemondeItems + reutersItems
-    }
-
     /// Real-world subdomain for each host (daringfireball.net and
     /// theverge.com don't use "www.", the others do).
     private static func urlHost(for host: String) -> String {
@@ -136,30 +133,59 @@ enum SeedData {
         PoolEntry(title: "Regulators Weigh New Rules for AI-Generated Content Labeling", host: reuters, pathHint: "technology/ai-content-labeling-rules", excerpt: "A draft proposal could require disclosure on synthetic media.", colorHex: reutersColor, initial: "R", sourceApp: "Safari", hasThumbnail: false),
     ]
 
-    /// Builds the 40 seed `LinkItem`s, anchored on `now` (defaults to the
-    /// moment the store is first seeded).
+    /// The 6 test sources' own content templates, cycled to fill each
+    /// source's randomly assigned quota below.
+    private static var sourceTemplates: [[SeedEntry]] {
+        [macrumorsItems, thevergeItems, daringfireballItems, nytimesItems, lemondeItems, reutersItems]
+    }
+
+    /// Splits `total` randomly into `buckets` positive integers summing to
+    /// exactly `total` — each source ends up with at least one link.
+    private static func randomQuantities(total: Int, buckets: Int) -> [Int] {
+        guard buckets > 0 else { return [] }
+        var quantities = Array(repeating: 1, count: buckets)
+        for _ in 0..<(total - buckets) {
+            quantities[Int.random(in: 0..<buckets)] += 1
+        }
+        return quantities.shuffled()
+    }
+
+    /// Builds 200 seed `LinkItem`s, anchored on `now` (defaults to the
+    /// moment the store is seeded/regenerated). Each source's share of the
+    /// 200 is re-randomized on every call — see the type's own doc comment.
     static func makeLinkItems(now: Date = Date()) -> [LinkItem] {
         let calendar = Calendar.current
-        return all.map { entry in
-            let day = calendar.date(byAdding: .day, value: -entry.dayOffset, to: now) ?? now
-            var components = calendar.dateComponents([.year, .month, .day], from: day)
-            components.hour = entry.hour
-            components.minute = entry.minute
-            let timestamp = calendar.date(from: components) ?? day
+        let quantities = randomQuantities(total: 200, buckets: sourceTemplates.count)
 
-            let urlString = "https://\(Self.urlHost(for: entry.host))/\(entry.pathHint)"
+        var items: [LinkItem] = []
+        var dayCursor = 0
+        for (templates, quantity) in zip(sourceTemplates, quantities) {
+            for i in 0..<quantity {
+                let entry = templates[i % templates.count]
+                // Spread across the last 30 days instead of all landing on
+                // the same timestamp when a template repeats to fill quota.
+                let day = calendar.date(byAdding: .day, value: -(dayCursor % 30), to: now) ?? now
+                var components = calendar.dateComponents([.year, .month, .day], from: day)
+                components.hour = entry.hour
+                components.minute = (entry.minute + i) % 60
+                let timestamp = calendar.date(from: components) ?? day
 
-            return LinkItem(
-                title: entry.title,
-                urlString: urlString,
-                host: entry.host,
-                initial: entry.initial,
-                colorHex: entry.colorHex,
-                dateAdded: timestamp,
-                sourceApp: entry.sourceApp,
-                excerpt: entry.excerpt,
-                hasThumbnail: entry.hasThumbnail
-            )
+                let urlString = "https://\(Self.urlHost(for: entry.host))/\(entry.pathHint)"
+
+                items.append(LinkItem(
+                    title: entry.title,
+                    urlString: urlString,
+                    host: entry.host,
+                    initial: entry.initial,
+                    colorHex: entry.colorHex,
+                    dateAdded: timestamp,
+                    sourceApp: entry.sourceApp,
+                    excerpt: entry.excerpt,
+                    hasThumbnail: entry.hasThumbnail
+                ))
+                dayCursor += 1
+            }
         }
+        return items
     }
 }
