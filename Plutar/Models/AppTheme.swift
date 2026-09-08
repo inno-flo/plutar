@@ -192,9 +192,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
         // A darker gray than Cap Canaveral's own, for better contrast
         // against the dark background.
         case .astronauteSoir: return Color(hex: "#4A4A4E")
-        // Keeps Lus at the slightly-darkened tone from before, now that
-        // `card` itself (Date/Sources' unread background) is plain white.
+        // Kamakura's own bluish Lus tint.
         case .blanc: return Color(hex: "#E7EAEE")
+        // Copenhague's own beige Lus tint — previously had no override
+        // here (its Lus tone was just `card` tinted toward `background`,
+        // see LinkRowView), which worked out to about this color.
+        case .scand: return Color(hex: "#ECE4DC")
         default: return nil
         }
     }
