@@ -4,7 +4,7 @@ import SwiftUI
 /// so it can size the presentation detent to fit instead of using a fixed
 /// or full-screen height.
 private struct ContentHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
     }
@@ -32,6 +32,15 @@ struct SettingsSheet: View {
     let chipColor: Color
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    /// Room for the inline nav bar and the home-indicator safe area below
+    /// the scroll view.
+    private static let chromeAllowance: CGFloat = 100
+    /// Upper bound on the proposed detent. Past this the sheet is full
+    /// height anyway and the ScrollView takes over, so there is nothing to
+    /// gain from a taller one — and it stops an accessibility text size from
+    /// driving the measurement somewhere absurd.
+    private static let maxDetentHeight: CGFloat = 860
 
     /// Measured height of the actual content, so the sheet only opens as
     /// tall as it needs to instead of always going full-screen. The value
@@ -144,9 +153,16 @@ struct SettingsSheet: View {
             }
         }
         .onPreferenceChange(ContentHeightKey.self) { height in
-            // Content height plus room for the inline nav bar and the
-            // home-indicator safe area below the scroll view.
-            contentHeight = height + 100
+            // This is a feedback loop: the measured height sets the detent,
+            // the detent resizes the sheet, and that re-runs the
+            // measurement. It converges because the width never changes, but
+            // the theme `LazyVGrid` reports a growing height as it
+            // materializes its rows, so the loop fires several times on
+            // open. Ignoring sub-point differences stops the last of those
+            // from resizing the sheet again over a rounding artefact.
+            let proposed = min(height + Self.chromeAllowance, Self.maxDetentHeight)
+            guard abs(proposed - contentHeight) > 1 else { return }
+            contentHeight = proposed
         }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
