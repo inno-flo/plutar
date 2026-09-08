@@ -8,6 +8,7 @@ struct LinkRowView: View {
     let theme: AppTheme
     let appFont: AppFont
     let showThumbnails: Bool
+    let showFavicons: Bool
 
     private static let stampFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -63,8 +64,10 @@ struct LinkRowView: View {
 
     private var railBody: some View {
         HStack(alignment: .top, spacing: 10) {
-            favicon(size: 30)
-                .frame(width: 34, alignment: .leading)
+            if showFavicons {
+                favicon(size: 30)
+                    .frame(width: 34, alignment: .leading)
+            }
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(item.title)
@@ -87,7 +90,9 @@ struct LinkRowView: View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 7) {
-                    favicon(size: 18)
+                    if showFavicons {
+                        favicon(size: 18)
+                    }
                     hostRow
                 }
                 Text(item.title)
@@ -112,7 +117,9 @@ struct LinkRowView: View {
             HStack {
                 hostRow
                 Spacer()
-                favicon(size: 22)
+                if showFavicons {
+                    favicon(size: 22)
+                }
             }
             if showThumbnail {
                 thumbnail(size: 150, fullWidth: true)

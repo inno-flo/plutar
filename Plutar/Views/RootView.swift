@@ -84,6 +84,7 @@ struct RootView: View {
     @AppStorage("plutar.font") private var fontRaw = AppFont.rounded.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
+    @AppStorage("plutar.showFavicons") private var showFavicons = true
     /// Experimental test setting: forces every "soir" theme's view
     /// background to pure black instead of its own defined color.
     @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
@@ -296,6 +297,7 @@ struct RootView: View {
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
                 showThumbnails: $showThumbnails,
+                showFavicons: $showFavicons,
                 blackSoirBackground: $blackSoirBackground,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
@@ -349,7 +351,7 @@ struct RootView: View {
                         Section {
                             if mode != .source || expandedSources.contains(group.label) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails)
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: showFavicons)
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))

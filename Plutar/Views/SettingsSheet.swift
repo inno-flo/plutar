@@ -17,6 +17,7 @@ struct SettingsSheet: View {
     @Binding var appearance: AppAppearance
     @Binding var appFont: AppFont
     @Binding var showThumbnails: Bool
+    @Binding var showFavicons: Bool
     /// Experimental test setting: forces every "soir" theme's view
     /// background to pure black.
     @Binding var blackSoirBackground: Bool
@@ -75,12 +76,21 @@ struct SettingsSheet: View {
                     }
 
                     section("Liens") {
-                        Toggle(isOn: $showThumbnails) {
-                            Text("Afficher les vignettes")
+                        VStack(spacing: 8) {
+                            Toggle(isOn: $showFavicons) {
+                                Text("Afficher les favicons")
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                            Toggle(isOn: $showThumbnails) {
+                                Text("Afficher les vignettes")
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
 
                     section("Présentation du fil") {

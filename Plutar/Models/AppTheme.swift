@@ -193,7 +193,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         // against the dark background.
         case .astronauteSoir: return Color(hex: "#4A4A4E")
         // Kamakura's own bluish Lus tint.
-        case .blanc: return Color(hex: "#E7EAEE")
+        case .blanc: return Color(hex: "#D1E2F9")
         // Copenhague's own beige Lus tint — previously had no override
         // here (its Lus tone was just `card` tinted toward `background`,
         // see LinkRowView), which worked out to about this color.
