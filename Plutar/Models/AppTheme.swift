@@ -88,21 +88,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    var swatch: Color {
-        switch self {
-        case .scand: return Color(hex: "#F4F1E9")
-        case .scandSoir: return Color(hex: "#23262B")
-        case .blanc: return Color(hex: "#E4F1FF")
-        case .blancSoir: return Color(hex: "#101B2C")
-        case .astronaute: return Color(hex: "#2E5D93")
-        case .astronauteSoir: return Color(hex: "#0C1A2E")
-        case .leMans: return Color(hex: "#FFFFFF")
-        case .leMansSoir: return Color(hex: "#23262B")
-        case .tokyo: return Color(hex: "#F7F5F1")
-        case .tokyoSoir: return Color(hex: "#000000")
-        }
-    }
-
     var background: Color {
         switch self {
         case .scand: return Color(hex: "#E2D7CC")
@@ -201,13 +186,16 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 
     /// Sticky day/source-name pill AND counter badge background — each
-    /// theme's own color, except Copenhague's dedicated "bleu scandinave"
-    /// (shared with its dark variant), which isn't used by any other theme.
+    /// theme's own color. Every "nuit" variant now uses a darker tone of its
+    /// light counterpart's color, rather than sharing the exact same value.
     var chip: Color {
         switch self {
-        case .scand, .scandSoir: return Color(hex: "#6E8CA0")
-        case .blanc, .blancSoir: return Color(hex: "#7FACCC")
-        case .astronaute, .astronauteSoir: return Color(hex: "#FF4F00")
+        case .scand: return Color(hex: "#6E8CA0")
+        case .scandSoir: return Color(hex: "#4A6270")
+        case .blanc: return Color(hex: "#7FACCC")
+        case .blancSoir: return Color(hex: "#4F7AA8")
+        case .astronaute: return Color(hex: "#FF4F00")
+        case .astronauteSoir: return Color(hex: "#C23D00")
         case .leMans: return Color(hex: "#D17132")
         case .leMansSoir: return Color(hex: "#96481E")
         case .tokyo: return Color(hex: "#E1000F")
@@ -327,26 +315,25 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     }
 }
 
-/// Typeface choice from the settings drawer. Both are available on stock iOS.
+/// Typeface choice from the settings drawer, both available on stock iOS.
+/// SF Pro (`.rounded`) is the default.
 enum AppFont: String, CaseIterable, Identifiable {
-    case rounded, avenirNext
+    case rounded, sfCompact
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .rounded: return "SF Pro"
-        case .avenirNext: return "Avenir Next"
+        case .sfCompact: return "SF Compact"
         }
     }
 
     func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         switch self {
         case .rounded: return .system(size: size, weight: weight, design: .rounded)
-        // Fixed to its own named DemiBold variant, ignoring `weight` —
-        // ".weight()" doesn't reliably resolve to a real bold/regular
-        // variant for a named custom font.
-        case .avenirNext: return .custom("AvenirNext-DemiBold", size: size)
+        // Fixed to its plain (Regular) style, ignoring `weight`.
+        case .sfCompact: return .custom("SFCompactDisplay-Regular", size: size)
         }
     }
 }

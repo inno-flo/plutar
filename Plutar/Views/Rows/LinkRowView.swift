@@ -21,9 +21,9 @@ struct LinkRowView: View {
     private var viaString: String { "via \(item.sourceApp)" }
     private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
-    /// Both remaining fonts render titles bold fine: Rounded is a real
-    /// system weight variant, and Avenir Next ignores this entirely (fixed
-    /// to its own DemiBold variant regardless of what's passed).
+    /// Rounded is a real system weight variant and renders this bold fine;
+    /// SF Compact ignores it entirely (fixed to its own Regular style
+    /// regardless of what's passed), so titles stay at Regular weight there.
     private var titleWeight: Font.Weight { .bold }
 
     var body: some View {

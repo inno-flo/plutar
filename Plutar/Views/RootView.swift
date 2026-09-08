@@ -489,16 +489,14 @@ struct RootView: View {
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            // No title bar in any view. The counter shows in Date and
-            // Sources — removed from Lus. A reserved safe-area inset
-            // (rather than a ZStack overlay) so it never overlaps the
-            // list's own content — in Sources, the first source's chip can
-            // carry its own mark-as-read button right at the top, and the
-            // two were colliding when the counter merely floated on top.
+            // No title bar in any view — the counter takes its place in all
+            // three. A reserved safe-area inset (rather than a ZStack
+            // overlay) so it never overlaps the list's own content — in
+            // Sources, the first source's chip can carry its own mark-as-
+            // read button right at the top, and the two were colliding when
+            // the counter merely floated on top.
             .safeAreaInset(edge: .top, spacing: 0) {
-                if mode == .chrono || mode == .source {
-                    floatingCounterBadge
-                }
+                floatingCounterBadge
             }
         }
     }

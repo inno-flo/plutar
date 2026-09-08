@@ -75,7 +75,15 @@ struct SettingsSheet: View {
                         }
                     }
 
-                    section("Liens") {
+                    section("Présentation du fil") {
+                        HStack(spacing: 8) {
+                            ForEach(LinkLayout.allCases) { l in
+                                pill(l.label, isActive: layout == l) { layout = l }
+                            }
+                        }
+                    }
+
+                    section("Présentation des liens") {
                         VStack(spacing: 8) {
                             Toggle(isOn: $showFavicons) {
                                 Text("Afficher les favicons")
@@ -90,14 +98,6 @@ struct SettingsSheet: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
-                    }
-
-                    section("Présentation du fil") {
-                        HStack(spacing: 8) {
-                            ForEach(LinkLayout.allCases) { l in
-                                pill(l.label, isActive: layout == l) { layout = l }
-                            }
                         }
                     }
 
@@ -188,7 +188,7 @@ struct SettingsSheet: View {
 
     private func themeLabel(_ t: AppTheme) -> some View {
         HStack(spacing: 7) {
-            Circle().fill(t.swatch).frame(width: 12, height: 12)
+            Circle().fill(t.chip).frame(width: 12, height: 12)
             Text(t.label)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
