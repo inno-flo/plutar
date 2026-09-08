@@ -213,16 +213,26 @@ struct RootView: View {
         }
     }
 
+    /// Built once instead of per call: `groups` is a computed property with
+    /// no memoization, re-evaluated several times per `feedScreen` body, and
+    /// it labels every day bucket — so a per-call `DateFormatter()` (one of
+    /// the most expensive objects in Foundation to construct) was being
+    /// allocated hundreds of times per render pass. Safe to share because
+    /// `RootView`, like every `View`, is `@MainActor`-isolated.
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "d MMMM"
+        return f
+    }()
+
     private func dayLabel(_ day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day) { return "Aujourd'hui" }
         if calendar.isDateInYesterday(day) { return "Hier" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMMM"
         // Only the first letter gets a capital, French-style — "3 mars",
         // not "3 Mars" (`.capitalized` would capitalize every word).
-        let raw = f.string(from: day)
+        let raw = Self.dayFormatter.string(from: day)
         let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
         // French uses the ordinal "1er" for the first of the month, not "1"
         // — e.g. "1er avril", not "1 avril". Applied after the capitalization
