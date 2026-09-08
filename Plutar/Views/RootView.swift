@@ -250,12 +250,9 @@ struct RootView: View {
                 }
             }
             // Not a real destination — see `RootTab.settings` and the
-            // `onChange(of: selectedTab)` handler below. Its content mirrors
-            // the feed (instead of e.g. `Color.clear`) so the instant that
-            // TabView actually switches to it — before we bounce the
-            // selection back — there's nothing visually different to flash.
+            // `onChange(of: selectedTab)` handler below.
             Tab("Affichage", systemImage: "gear", value: RootTab.settings) {
-                feedScreen
+                settingsTabPlaceholder
             }
         }
         // `Tab` has no per-item `.tint()`, so the tab bar's own color comes
@@ -351,6 +348,31 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
         }
+    }
+
+    /// Stand-in shown under the "Affichage" tab. That tab is never really
+    /// visited — selecting it opens the settings sheet and bounces the
+    /// selection back on the next run loop turn — but TabView does switch to
+    /// it for that one frame, so it needs to render *something* that doesn't
+    /// read as a flash.
+    ///
+    /// It used to render `feedScreen`, which made TabView build and keep
+    /// alive a fourth full NavigationStack + List of every link, identical to
+    /// the other three and re-invalidated along with them: four times the
+    /// row layout, the cell caches, and the `groups` recomputation, for a
+    /// destination nobody ever looks at.
+    ///
+    /// Keeps the counter badge — the only thing sitting at the top of all
+    /// three real screens — in exactly the spot and size `feedScreen` puts
+    /// it, so the top of the display is pixel-identical across the bounce
+    /// and there's nothing there to flash. The empty body below it is
+    /// covered by the settings sheet rising over it.
+    private var settingsTabPlaceholder: some View {
+        effectiveBackground
+            .ignoresSafeArea()
+            .safeAreaInset(edge: .top, spacing: 0) {
+                floatingCounterBadge
+            }
     }
 
     /// The actual feed screen — identical content shown under all three feed
