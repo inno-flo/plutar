@@ -190,6 +190,13 @@ struct RootView: View {
     }
 
     private func toggleSource(_ label: String) {
+        // Read once, up front: `groups` is a computed property that eagerly
+        // regroups and sorts every visible link, and reading it twice inline
+        // below did all of that twice per tap. It depends on `mode` and the
+        // items, never on `expandedSources`, so its value is the same either
+        // side of the mutation — and computing it outside the transaction
+        // keeps that work out of the animation.
+        let currentGroups = groups
         withAnimation(.easeInOut(duration: 0.25)) {
             if expandedSources.contains(label) {
                 expandedSources.remove(label)
@@ -198,7 +205,7 @@ struct RootView: View {
             }
             // Only the two "every source" extremes move the icon; anything
             // in between leaves it as it was.
-            if !groups.isEmpty && groups.allSatisfy({ expandedSources.contains($0.label) }) {
+            if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.label) }) {
                 allSourcesExpandedIcon = true
             } else if expandedSources.isEmpty {
                 allSourcesExpandedIcon = false
