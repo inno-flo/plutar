@@ -75,6 +75,19 @@ private struct DeletedSnapshot {
     }
 }
 
+/// One section of the feed — a day in Date/Lus, a host in Sources.
+///
+/// `id` is deliberately *not* `label`. Two days a year apart both render as
+/// "3 mars", so keying `ForEach` on the displayed text made them collide on
+/// one identifier, which SwiftUI resolves by dropping or mis-animating rows.
+/// In Sources the two are the same string (the host), which is why the
+/// expansion state in `expandedSources` round-trips unchanged.
+private struct FeedGroup: Identifiable {
+    let id: String
+    let label: String
+    let items: [LinkItem]
+}
+
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
@@ -172,7 +185,7 @@ struct RootView: View {
     /// is scaled against (see `sourceRankRow`).
     private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
 
-    private var groups: [(label: String, items: [LinkItem])] {
+    private var groups: [FeedGroup] {
         let list = visibleItems
         switch mode {
         case .chrono, .read:
@@ -184,18 +197,24 @@ struct RootView: View {
                 if buckets[day] == nil { buckets[day] = []; order.append(day) }
                 buckets[day]!.append(item)
             }
-            return order.map { day in (dayLabel(day), buckets[day]!) }
+            return order.map { day in
+                FeedGroup(id: Self.dayKeyFormatter.string(from: day),
+                          label: dayLabel(day),
+                          items: buckets[day]!)
+            }
         case .source:
             let byHost = Dictionary(grouping: list, by: \.host)
             let hosts = byHost.keys.sorted { a, b in
                 let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
                 return ca != cb ? ca > cb : a < b
             }
-            return hosts.map { host in (host, byHost[host] ?? []) }
+            return hosts.map { host in
+                FeedGroup(id: host, label: host, items: byHost[host] ?? [])
+            }
         }
     }
 
-    private func toggleSource(_ label: String) {
+    private func toggleSource(_ id: String) {
         // Read once, up front: `groups` is a computed property that eagerly
         // regroups and sorts every visible link, and reading it twice inline
         // below did all of that twice per tap. It depends on `mode` and the
@@ -204,14 +223,14 @@ struct RootView: View {
         // keeps that work out of the animation.
         let currentGroups = groups
         withAnimation(.easeInOut(duration: 0.25)) {
-            if expandedSources.contains(label) {
-                expandedSources.remove(label)
+            if expandedSources.contains(id) {
+                expandedSources.remove(id)
             } else {
-                expandedSources.insert(label)
+                expandedSources.insert(id)
             }
             // Only the two "every source" extremes move the icon; anything
             // in between leaves it as it was.
-            if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.label) }) {
+            if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.id) }) {
                 allSourcesExpandedIcon = true
             } else if expandedSources.isEmpty {
                 allSourcesExpandedIcon = false
@@ -222,7 +241,7 @@ struct RootView: View {
     private func toggleAllSources() {
         withAnimation(.easeInOut(duration: 0.25)) {
             allSourcesExpandedIcon.toggle()
-            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.label)) : []
+            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.id)) : []
         }
     }
 
@@ -232,6 +251,15 @@ struct RootView: View {
     /// the most expensive objects in Foundation to construct) was being
     /// allocated hundreds of times per render pass. Safe to share because
     /// `RootView`, like every `View`, is `@MainActor`-isolated.
+    /// Collision-free identity for a day bucket — unlike the displayed
+    /// label, which repeats from one year to the next. See `FeedGroup`.
+    private static let dayKeyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
@@ -250,9 +278,15 @@ struct RootView: View {
         // French uses the ordinal "1er" for the first of the month, not "1"
         // — e.g. "1er avril", not "1 avril". Applied after the capitalization
         // above so it stays "1er", not "1Er".
-        return calendar.component(.day, from: day) == 1
+        let label = calendar.component(.day, from: day) == 1
             ? formatted.replacingOccurrences(of: "1 ", with: "1er ")
             : formatted
+        // Links accumulate for years in a read-later app, so a bare "3 mars"
+        // would read identically for two different years. Shown only when it
+        // isn't the current year, so the common case stays short.
+        let year = calendar.component(.year, from: day)
+        guard year != calendar.component(.year, from: Date()) else { return label }
+        return "\(label) \(year)"
     }
 
     var body: some View {
@@ -397,7 +431,7 @@ struct RootView: View {
                 effectiveBackground.ignoresSafeArea()
 
                 List {
-                    ForEach(groups, id: \.label) { group in
+                    ForEach(groups) { group in
                         Section {
                             // The group chip isn't a real Section header below —
                             // List/UITableView pins plain-style Section headers to
@@ -412,7 +446,7 @@ struct RootView: View {
                             groupHeader(group)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
-                            if mode != .source || expandedSources.contains(group.label) {
+                            if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
                                     LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: showFavicons)
                                         .listRowSeparator(.hidden)
@@ -619,13 +653,13 @@ struct RootView: View {
     /// collapse/expand toggle for that source and carries a link-count badge;
     /// in Date/Lus it's a plain, non-interactive day label.
     @ViewBuilder
-    private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
+    private func groupHeader(_ group: FeedGroup) -> some View {
         if mode == .source {
             // Centered alignment keeps the mark-all-read icon on the same
             // vertical line as the count badge and chevron inside the chip.
             HStack(alignment: .center, spacing: 10) {
                 Button {
-                    toggleSource(group.label)
+                    toggleSource(group.id)
                 } label: {
                     sourceChipLabel(group)
                 }
@@ -636,7 +670,7 @@ struct RootView: View {
                 // Only while expanded — marks every link from this source as
                 // read, which empties it out of the (unread-only) Sources
                 // view, so the source disappears from the list.
-                if expandedSources.contains(group.label) {
+                if expandedSources.contains(group.id) {
                     Button {
                         markSourceAsRead(group.items)
                     } label: {
@@ -666,7 +700,7 @@ struct RootView: View {
         }
     }
 
-    private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
+    private func sourceChipLabel(_ group: FeedGroup) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
                 .font(.system(size: 16.5, weight: .bold))
@@ -677,7 +711,7 @@ struct RootView: View {
                 .padding(.horizontal, 4)
                 .background(theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
-            Image(systemName: expandedSources.contains(group.label) ? "chevron.up" : "chevron.down")
+            Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 10, weight: .bold))
                 .opacity(0.7)
         }
