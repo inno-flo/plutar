@@ -349,20 +349,19 @@ struct RootView: View {
                 List {
                     ForEach(groups, id: \.label) { group in
                         Section {
-                            // Date's day pill isn't a real Section header below —
+                            // The group chip isn't a real Section header below —
                             // List/UITableView pins plain-style Section headers to
                             // the top while scrolling, and swapping the pinned
-                            // pill for the next day's caused the List's top scroll-
-                            // edge glass effect to flash opaque for a frame. Since
-                            // Date has no use for a pinned pill anyway (unlike
-                            // Sources, whose header carries the collapse/expand and
-                            // mark-read controls), it's placed as a normal row here
-                            // instead so it just scrolls by with everything else.
-                            if mode == .chrono {
-                                groupHeader(group)
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                            }
+                            // chip for the next one's caused the List's top
+                            // scroll-edge glass effect to flash opaque for a
+                            // frame in every view (Date's day pill, Sources'
+                            // source chip + its mark-read button). It's placed
+                            // as a normal row here instead so the whole chip —
+                            // in Sources, button included — just scrolls by
+                            // with everything else, nothing pinned to swap.
+                            groupHeader(group)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.label) {
                                 ForEach(group.items) { item in
                                     LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: showFavicons)
@@ -402,10 +401,6 @@ struct RootView: View {
                                         // source's list animate differently from the rest.
                                         .transition(.opacity)
                                 }
-                            }
-                        } header: {
-                            if mode != .chrono {
-                                groupHeader(group)
                             }
                         }
                     }
