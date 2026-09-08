@@ -56,17 +56,22 @@ private struct DeletedSnapshot {
     let sourceApp: String
     let excerpt: String
     let hasThumbnail: Bool
+    /// Restored along with the rest — without it, undoing a delete in Lus
+    /// brought the link back as unread, i.e. into Date rather than the view
+    /// the user was actually looking at.
+    let isRead: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
         initial = item.initial; colorHex = item.colorHex; dateAdded = item.dateAdded
         sourceApp = item.sourceApp; excerpt = item.excerpt; hasThumbnail = item.hasThumbnail
+        isRead = item.isRead
     }
 
     func makeLinkItem() -> LinkItem {
         LinkItem(title: title, urlString: urlString, host: host, initial: initial,
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
-                 excerpt: excerpt, hasThumbnail: hasThumbnail)
+                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead)
     }
 }
 
