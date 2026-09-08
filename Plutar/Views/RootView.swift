@@ -85,8 +85,8 @@ struct RootView: View {
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
     @AppStorage("plutar.showFavicons") private var showFavicons = true
-    /// Experimental test setting: forces every "soir" theme's view
-    /// background to pure black instead of its own defined color.
+    /// Forces every "soir" theme's view background to pure black instead of
+    /// its own defined color.
     @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
 
     @State private var mode: FeedMode = .chrono
@@ -139,9 +139,9 @@ struct RootView: View {
     }
 
     /// The view background actually drawn — pure black instead of the
-    /// theme's own background when the "soir" test toggle is on and the
-    /// current theme is a soir variant; pure white for Tokyo, across all
-    /// three views (Date/Sources/Lus).
+    /// theme's own background when the "Fond noir pour les thèmes nuit"
+    /// toggle is on and the current theme is a soir variant; pure white for
+    /// Tokyo, across all three views (Date/Sources/Lus).
     private var effectiveBackground: Color {
         if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
         if theme == .tokyo { return Color(hex: "#FFFFFF") }

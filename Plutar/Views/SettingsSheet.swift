@@ -18,8 +18,8 @@ struct SettingsSheet: View {
     @Binding var appFont: AppFont
     @Binding var showThumbnails: Bool
     @Binding var showFavicons: Bool
-    /// Experimental test setting: forces every "soir" theme's view
-    /// background to pure black.
+    /// Forces every "soir" theme's view background to pure black instead of
+    /// its own defined color.
     @Binding var blackSoirBackground: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
@@ -162,7 +162,6 @@ struct SettingsSheet: View {
         }
     }
 
-    // MARK: iOS 26 standard (Liquid Glass) button look, currently in use.
     // `.glassProminent` reads as "selected", plain `.glass` as "unselected" —
     // there's no single ButtonStyle value that branches on `isActive`, so the
     // two cases are two separate buttons under an `if`; SwiftUI's ViewBuilder
@@ -198,42 +197,5 @@ struct SettingsSheet: View {
             Text(t.label)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: Previous (pre-iOS 26) look — kept unused on the side in case this
-    // gets reverted. Not called anywhere right now; see `pill`/`themePill`
-    // above for what's actually live.
-
-    private func legacyPill(_ label: String, isActive: Bool, font: Font? = nil, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label).font(font)
-        }
-        .buttonStyle(PillButtonStyle(isActive: isActive))
-    }
-
-    private func legacyThemePill(_ t: AppTheme) -> some View {
-        Button {
-            theme = t
-        } label: {
-            themeLabel(t)
-        }
-        .buttonStyle(PillButtonStyle(isActive: theme == t))
-    }
-}
-
-/// Previous pill look (solid accent fill / secondary tint), kept for a
-/// possible revert — see the "Previous (pre-iOS 26) look" section above.
-private struct PillButtonStyle: ButtonStyle {
-    let isActive: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13))
-            .padding(.horizontal, 15)
-            .padding(.vertical, 9)
-            .background(isActive ? Color.accentColor : Color.secondary.opacity(0.12))
-            .foregroundStyle(isActive ? Color.white : Color.primary)
-            .clipShape(Capsule())
-            .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }

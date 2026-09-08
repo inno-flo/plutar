@@ -21,7 +21,7 @@ struct PlutarApp: App {
         .modelContainer(container)
     }
 
-    /// Populates the store with the 40 demo links on first launch only.
+    /// Populates the store with the 200 demo links on first launch only.
     private func seedIfNeeded() {
         let context = container.mainContext
         let descriptor = FetchDescriptor<LinkItem>()
