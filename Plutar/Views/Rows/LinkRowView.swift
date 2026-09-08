@@ -10,14 +10,6 @@ struct LinkRowView: View {
     let showThumbnails: Bool
     let showFavicons: Bool
 
-    private static let stampFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "EEEE d MMMM"
-        return f
-    }()
-
-    private var stampString: String { Self.stampFormatter.string(from: item.dateAdded) }
     private var viaString: String { "via \(item.sourceApp)" }
     private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
@@ -63,48 +55,29 @@ struct LinkRowView: View {
         .shadow(color: .black.opacity(0.08), radius: 9, y: 4)
     }
 
-    // MARK: Rail (default) — favicon on the left, title + host, optional thumbnail.
+    // MARK: Rail (default) — just the title, host below, nothing else.
 
     private var railBody: some View {
-        HStack(alignment: .top, spacing: 10) {
-            if showFavicons {
-                favicon(size: 30)
-                    .frame(width: 34, alignment: .leading)
-            }
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(item.title)
-                    .font(appFont.font(size: 18, weight: titleWeight))
-                    .lineLimit(3)
-                hostRow
-            }
-
-            Spacer(minLength: 0)
-
-            if showThumbnail {
-                thumbnail(size: 64)
-            }
+        VStack(alignment: .leading, spacing: 7) {
+            Text(item.title)
+                .font(appFont.font(size: 18, weight: titleWeight))
+                .lineLimit(3)
+            hostRow
         }
     }
 
-    // MARK: Card — favicon + host on top, larger title, date, optional thumbnail on the right.
+    // MARK: Card — favicon + title, host below, thumbnail on the right.
 
     private var cardBody: some View {
         HStack(alignment: .top, spacing: 14) {
+            if showFavicons {
+                favicon(size: 18)
+            }
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 7) {
-                    if showFavicons {
-                        favicon(size: 18)
-                    }
-                    hostRow
-                }
                 Text(item.title)
                     .font(appFont.font(size: 19, weight: titleWeight))
                     .lineLimit(3)
-                Text(stampString)
-                    .font(appFont.font(size: 13.5))
-                    .foregroundStyle(theme.ink(0.4))
-                    .textCase(.uppercase)
+                hostRow
             }
             Spacer(minLength: 0)
             if showThumbnail {
