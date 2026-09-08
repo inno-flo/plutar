@@ -56,18 +56,36 @@ private struct DeletedSnapshot {
     let sourceApp: String
     let excerpt: String
     let hasThumbnail: Bool
+    /// Restored along with the rest — without it, undoing a delete in Lus
+    /// brought the link back as unread, i.e. into Date rather than the view
+    /// the user was actually looking at.
+    let isRead: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
         initial = item.initial; colorHex = item.colorHex; dateAdded = item.dateAdded
         sourceApp = item.sourceApp; excerpt = item.excerpt; hasThumbnail = item.hasThumbnail
+        isRead = item.isRead
     }
 
     func makeLinkItem() -> LinkItem {
         LinkItem(title: title, urlString: urlString, host: host, initial: initial,
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
-                 excerpt: excerpt, hasThumbnail: hasThumbnail)
+                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead)
     }
+}
+
+/// One section of the feed — a day in Date/Lus, a host in Sources.
+///
+/// `id` is deliberately *not* `label`. Two days a year apart both render as
+/// "3 mars", so keying `ForEach` on the displayed text made them collide on
+/// one identifier, which SwiftUI resolves by dropping or mis-animating rows.
+/// In Sources the two are the same string (the host), which is why the
+/// expansion state in `expandedSources` round-trips unchanged.
+private struct FeedGroup: Identifiable {
+    let id: String
+    let label: String
+    let items: [LinkItem]
 }
 
 struct RootView: View {
@@ -94,12 +112,20 @@ struct RootView: View {
     @State private var showSettings = false
     @State private var pendingShare: SeedData.PoolEntry?
 
-    @State private var undoSnapshot: DeletedSnapshot?
+    /// Every link deleted inside the current undo window, oldest first — a
+    /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
+    /// second swipe within the 5 seconds silently overwrote the first: the
+    /// toast stayed up, implying both were recoverable, while "Annuler"
+    /// only ever brought back the last one and the earlier link was gone
+    /// for good (the delete is committed immediately, below).
+    @State private var undoSnapshots: [DeletedSnapshot] = []
     @State private var undoTask: Task<Void, Never>?
 
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     @State private var showResetRankingConfirm = false
+    /// Raised by `persist()` when a write to the store fails.
+    @State private var saveFailed = false
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -161,7 +187,7 @@ struct RootView: View {
     /// is scaled against (see `sourceRankRow`).
     private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
 
-    private var groups: [(label: String, items: [LinkItem])] {
+    private var groups: [FeedGroup] {
         let list = visibleItems
         switch mode {
         case .chrono, .read:
@@ -173,27 +199,40 @@ struct RootView: View {
                 if buckets[day] == nil { buckets[day] = []; order.append(day) }
                 buckets[day]!.append(item)
             }
-            return order.map { day in (dayLabel(day), buckets[day]!) }
+            return order.map { day in
+                FeedGroup(id: Self.dayKeyFormatter.string(from: day),
+                          label: dayLabel(day),
+                          items: buckets[day]!)
+            }
         case .source:
             let byHost = Dictionary(grouping: list, by: \.host)
             let hosts = byHost.keys.sorted { a, b in
                 let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
                 return ca != cb ? ca > cb : a < b
             }
-            return hosts.map { host in (host, byHost[host] ?? []) }
+            return hosts.map { host in
+                FeedGroup(id: host, label: host, items: byHost[host] ?? [])
+            }
         }
     }
 
-    private func toggleSource(_ label: String) {
+    private func toggleSource(_ id: String) {
+        // Read once, up front: `groups` is a computed property that eagerly
+        // regroups and sorts every visible link, and reading it twice inline
+        // below did all of that twice per tap. It depends on `mode` and the
+        // items, never on `expandedSources`, so its value is the same either
+        // side of the mutation — and computing it outside the transaction
+        // keeps that work out of the animation.
+        let currentGroups = groups
         withAnimation(.easeInOut(duration: 0.25)) {
-            if expandedSources.contains(label) {
-                expandedSources.remove(label)
+            if expandedSources.contains(id) {
+                expandedSources.remove(id)
             } else {
-                expandedSources.insert(label)
+                expandedSources.insert(id)
             }
             // Only the two "every source" extremes move the icon; anything
             // in between leaves it as it was.
-            if !groups.isEmpty && groups.allSatisfy({ expandedSources.contains($0.label) }) {
+            if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.id) }) {
                 allSourcesExpandedIcon = true
             } else if expandedSources.isEmpty {
                 allSourcesExpandedIcon = false
@@ -204,27 +243,52 @@ struct RootView: View {
     private func toggleAllSources() {
         withAnimation(.easeInOut(duration: 0.25)) {
             allSourcesExpandedIcon.toggle()
-            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.label)) : []
+            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.id)) : []
         }
     }
+
+    /// Built once instead of per call: `groups` is a computed property with
+    /// no memoization, re-evaluated several times per `feedScreen` body, and
+    /// it labels every day bucket — so a per-call `DateFormatter()` (one of
+    /// the most expensive objects in Foundation to construct) was being
+    /// allocated hundreds of times per render pass. Safe to share because
+    /// `RootView`, like every `View`, is `@MainActor`-isolated.
+    /// Collision-free identity for a day bucket — unlike the displayed
+    /// label, which repeats from one year to the next. See `FeedGroup`.
+    private static let dayKeyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "d MMMM"
+        return f
+    }()
 
     private func dayLabel(_ day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day) { return "Aujourd'hui" }
         if calendar.isDateInYesterday(day) { return "Hier" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMMM"
         // Only the first letter gets a capital, French-style — "3 mars",
         // not "3 Mars" (`.capitalized` would capitalize every word).
-        let raw = f.string(from: day)
+        let raw = Self.dayFormatter.string(from: day)
         let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
         // French uses the ordinal "1er" for the first of the month, not "1"
         // — e.g. "1er avril", not "1 avril". Applied after the capitalization
         // above so it stays "1er", not "1Er".
-        return calendar.component(.day, from: day) == 1
+        let label = calendar.component(.day, from: day) == 1
             ? formatted.replacingOccurrences(of: "1 ", with: "1er ")
             : formatted
+        // Links accumulate for years in a read-later app, so a bare "3 mars"
+        // would read identically for two different years. Shown only when it
+        // isn't the current year, so the common case stays short.
+        let year = calendar.component(.year, from: day)
+        guard year != calendar.component(.year, from: Date()) else { return label }
+        return "\(label) \(year)"
     }
 
     var body: some View {
@@ -235,12 +299,9 @@ struct RootView: View {
                 }
             }
             // Not a real destination — see `RootTab.settings` and the
-            // `onChange(of: selectedTab)` handler below. Its content mirrors
-            // the feed (instead of e.g. `Color.clear`) so the instant that
-            // TabView actually switches to it — before we bounce the
-            // selection back — there's nothing visually different to flash.
+            // `onChange(of: selectedTab)` handler below.
             Tab("Affichage", systemImage: "gear", value: RootTab.settings) {
-                feedScreen
+                settingsTabPlaceholder
             }
         }
         // `Tab` has no per-item `.tint()`, so the tab bar's own color comes
@@ -336,6 +397,36 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
         }
+        .alert("Enregistrement impossible", isPresented: $saveFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
+        }
+    }
+
+    /// Stand-in shown under the "Affichage" tab. That tab is never really
+    /// visited — selecting it opens the settings sheet and bounces the
+    /// selection back on the next run loop turn — but TabView does switch to
+    /// it for that one frame, so it needs to render *something* that doesn't
+    /// read as a flash.
+    ///
+    /// It used to render `feedScreen`, which made TabView build and keep
+    /// alive a fourth full NavigationStack + List of every link, identical to
+    /// the other three and re-invalidated along with them: four times the
+    /// row layout, the cell caches, and the `groups` recomputation, for a
+    /// destination nobody ever looks at.
+    ///
+    /// Keeps the counter badge — the only thing sitting at the top of all
+    /// three real screens — in exactly the spot and size `feedScreen` puts
+    /// it, so the top of the display is pixel-identical across the bounce
+    /// and there's nothing there to flash. The empty body below it is
+    /// covered by the settings sheet rising over it.
+    private var settingsTabPlaceholder: some View {
+        effectiveBackground
+            .ignoresSafeArea()
+            .safeAreaInset(edge: .top, spacing: 0) {
+                floatingCounterBadge
+            }
     }
 
     /// The actual feed screen — identical content shown under all three feed
@@ -347,7 +438,7 @@ struct RootView: View {
                 effectiveBackground.ignoresSafeArea()
 
                 List {
-                    ForEach(groups, id: \.label) { group in
+                    ForEach(groups) { group in
                         Section {
                             // The group chip isn't a real Section header below —
                             // List/UITableView pins plain-style Section headers to
@@ -362,7 +453,7 @@ struct RootView: View {
                             groupHeader(group)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
-                            if mode != .source || expandedSources.contains(group.label) {
+                            if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
                                     LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: showFavicons)
                                         .listRowSeparator(.hidden)
@@ -443,7 +534,14 @@ struct RootView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .animation(.easeInOut(duration: 0.25), value: expandedSources)
+                // No `.animation(_:value: expandedSources)` here: the only
+                // two places that mutate `expandedSources` (`toggleSource`
+                // and `toggleAllSources`) already wrap it in `withAnimation`,
+                // so this modifier animated the same mutation a second time
+                // — two transactions racing on one batch update. Driving it
+                // from the mutation side alone also covers the floating
+                // expand/collapse button's own icon swap, which lives
+                // outside this List and so was never covered here.
                 .overlay {
                     if groups.isEmpty {
                         // Sources mirrors Date's empty state exactly (icon,
@@ -562,13 +660,13 @@ struct RootView: View {
     /// collapse/expand toggle for that source and carries a link-count badge;
     /// in Date/Lus it's a plain, non-interactive day label.
     @ViewBuilder
-    private func groupHeader(_ group: (label: String, items: [LinkItem])) -> some View {
+    private func groupHeader(_ group: FeedGroup) -> some View {
         if mode == .source {
             // Centered alignment keeps the mark-all-read icon on the same
             // vertical line as the count badge and chevron inside the chip.
             HStack(alignment: .center, spacing: 10) {
                 Button {
-                    toggleSource(group.label)
+                    toggleSource(group.id)
                 } label: {
                     sourceChipLabel(group)
                 }
@@ -579,7 +677,7 @@ struct RootView: View {
                 // Only while expanded — marks every link from this source as
                 // read, which empties it out of the (unread-only) Sources
                 // view, so the source disappears from the list.
-                if expandedSources.contains(group.label) {
+                if expandedSources.contains(group.id) {
                     Button {
                         markSourceAsRead(group.items)
                     } label: {
@@ -609,7 +707,7 @@ struct RootView: View {
         }
     }
 
-    private func sourceChipLabel(_ group: (label: String, items: [LinkItem])) -> some View {
+    private func sourceChipLabel(_ group: FeedGroup) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
                 .font(.system(size: 16.5, weight: .bold))
@@ -620,7 +718,7 @@ struct RootView: View {
                 .padding(.horizontal, 4)
                 .background(theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
-            Image(systemName: expandedSources.contains(group.label) ? "chevron.up" : "chevron.down")
+            Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 10, weight: .bold))
                 .opacity(0.7)
         }
@@ -669,11 +767,13 @@ struct RootView: View {
 
     @ViewBuilder
     private var undoToast: some View {
-        if undoSnapshot != nil {
+        if !undoSnapshots.isEmpty {
             VStack {
                 Spacer()
                 HStack {
-                    Text("Supprimé")
+                    Text(undoSnapshots.count == 1
+                         ? "Supprimé"
+                         : "\(undoSnapshots.count) supprimés")
                         .font(.system(size: 13.5))
                         .tracking(0.4)
                         .lineLimit(1)
@@ -704,16 +804,33 @@ struct RootView: View {
             }
             .zIndex(2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .animation(.easeOut(duration: 0.2), value: undoSnapshot != nil)
+            .animation(.easeOut(duration: 0.2), value: undoSnapshots.isEmpty)
         }
     }
 
     // MARK: Actions
 
+    /// Saves the context and reports a failure instead of dropping it.
+    ///
+    /// Every mutation here used to end in a bare `try? modelContext.save()`,
+    /// so a full disk or a constraint violation vanished without a trace:
+    /// the in-memory objects looked updated, nothing reached the store, and
+    /// neither the user nor the console ever heard about it.
+    private func persist(_ operation: String = #function) {
+        do {
+            try modelContext.save()
+        } catch {
+            PlutarLog.store.error(
+                "Save failed during \(operation, privacy: .public): \(String(describing: error), privacy: .public)"
+            )
+            saveFailed = true
+        }
+    }
+
     private func open(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = true
-            try? modelContext.save()
+            persist()
         }
         if let url = URL(string: item.urlString) {
             openURL(url)
@@ -723,52 +840,57 @@ struct RootView: View {
     private func markAsRead(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = true
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func markAsUnread(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = false
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func markSourceAsRead(_ items: [LinkItem]) {
         withAnimation(.easeInOut(duration: 0.25)) {
             for item in items { item.isRead = true }
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func requestDelete(_ item: LinkItem) {
-        let snapshot = DeletedSnapshot(item)
+        undoSnapshots.append(DeletedSnapshot(item))
         modelContext.delete(item)
-        try? modelContext.save()
-        undoSnapshot = snapshot
+        persist()
+        // Each delete restarts the window, so the user always gets the full
+        // 5 seconds from their own last swipe rather than from the first
+        // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(5))
-            if !Task.isCancelled { undoSnapshot = nil }
+            if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }
 
+    /// Restores every link deleted in the current window, not just the last.
     private func performUndo() {
-        guard let snapshot = undoSnapshot else { return }
-        modelContext.insert(snapshot.makeLinkItem())
-        try? modelContext.save()
+        guard !undoSnapshots.isEmpty else { return }
+        for snapshot in undoSnapshots {
+            modelContext.insert(snapshot.makeLinkItem())
+        }
+        persist()
         undoTask?.cancel()
-        undoSnapshot = nil
+        undoSnapshots.removeAll()
     }
 
     private func clearAll() {
         for item in allItems { modelContext.delete(item) }
-        try? modelContext.save()
+        persist()
     }
 
     private func clearRead() {
         for item in allItems where item.isRead { modelContext.delete(item) }
-        try? modelContext.save()
+        persist()
     }
 
     /// Marks every link currently shown (Date view: all unread links) as
@@ -776,7 +898,7 @@ struct RootView: View {
     private func markAllAsRead() {
         withAnimation(.easeInOut(duration: 0.25)) {
             for item in visibleItems { item.isRead = true }
-            try? modelContext.save()
+            persist()
         }
     }
 
@@ -784,24 +906,23 @@ struct RootView: View {
     /// and with each of the 6 test sources' quantity randomized anew.
     private func regenerateLinks() {
         for item in allItems { modelContext.delete(item) }
-        for item in SeedData.makeLinkItems() {
-            modelContext.insert(item)
-            SourceRank.bump(item.host, in: modelContext)
-        }
-        try? modelContext.save()
+        let items = SeedData.makeLinkItems()
+        for item in items { modelContext.insert(item) }
+        SourceRank.bump(items.map(\.host), in: modelContext)
+        persist()
     }
 
     private func save(_ entry: SeedData.PoolEntry) {
         let item = entry.makeLinkItem()
         modelContext.insert(item)
         SourceRank.bump(item.host, in: modelContext)
-        try? modelContext.save()
+        persist()
     }
 
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
-        try? modelContext.save()
+        persist()
     }
 }
 
