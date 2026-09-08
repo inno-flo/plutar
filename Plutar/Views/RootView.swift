@@ -99,7 +99,13 @@ struct RootView: View {
     @State private var showSettings = false
     @State private var pendingShare: SeedData.PoolEntry?
 
-    @State private var undoSnapshot: DeletedSnapshot?
+    /// Every link deleted inside the current undo window, oldest first — a
+    /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
+    /// second swipe within the 5 seconds silently overwrote the first: the
+    /// toast stayed up, implying both were recoverable, while "Annuler"
+    /// only ever brought back the last one and the earlier link was gone
+    /// for good (the delete is committed immediately, below).
+    @State private var undoSnapshots: [DeletedSnapshot] = []
     @State private var undoTask: Task<Void, Never>?
 
     @State private var showClearReadConfirm = false
@@ -720,11 +726,13 @@ struct RootView: View {
 
     @ViewBuilder
     private var undoToast: some View {
-        if undoSnapshot != nil {
+        if !undoSnapshots.isEmpty {
             VStack {
                 Spacer()
                 HStack {
-                    Text("Supprimé")
+                    Text(undoSnapshots.count == 1
+                         ? "Supprimé"
+                         : "\(undoSnapshots.count) supprimés")
                         .font(.system(size: 13.5))
                         .tracking(0.4)
                         .lineLimit(1)
@@ -755,7 +763,7 @@ struct RootView: View {
             }
             .zIndex(2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .animation(.easeOut(duration: 0.2), value: undoSnapshot != nil)
+            .animation(.easeOut(duration: 0.2), value: undoSnapshots.isEmpty)
         }
     }
 
@@ -793,23 +801,28 @@ struct RootView: View {
     }
 
     private func requestDelete(_ item: LinkItem) {
-        let snapshot = DeletedSnapshot(item)
+        undoSnapshots.append(DeletedSnapshot(item))
         modelContext.delete(item)
         try? modelContext.save()
-        undoSnapshot = snapshot
+        // Each delete restarts the window, so the user always gets the full
+        // 5 seconds from their own last swipe rather than from the first
+        // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(5))
-            if !Task.isCancelled { undoSnapshot = nil }
+            if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }
 
+    /// Restores every link deleted in the current window, not just the last.
     private func performUndo() {
-        guard let snapshot = undoSnapshot else { return }
-        modelContext.insert(snapshot.makeLinkItem())
+        guard !undoSnapshots.isEmpty else { return }
+        for snapshot in undoSnapshots {
+            modelContext.insert(snapshot.makeLinkItem())
+        }
         try? modelContext.save()
         undoTask?.cancel()
-        undoSnapshot = nil
+        undoSnapshots.removeAll()
     }
 
     private func clearAll() {
