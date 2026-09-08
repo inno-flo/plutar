@@ -51,7 +51,11 @@ struct LinkRowView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .saturation(item.isRead ? 0 : 1)
+        // Skipped when the theme provides its own flat `readCardOverride` —
+        // otherwise this desaturates that color too, washing e.g. Cap
+        // Canaveral's light blue down to a gray indistinguishable from
+        // before.
+        .saturation(item.isRead && theme.readCardOverride == nil ? 0 : 1)
         .shadow(color: .black.opacity(0.08), radius: 9, y: 4)
     }
 

@@ -173,7 +173,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .scandSoir: return Color(hex: "#2D3138")
         case .blanc: return Color(hex: "#FFFFFF")
         case .blancSoir: return Color(hex: "#1A2940")
-        case .astronaute: return Color(hex: "#35699F")
+        case .astronaute: return Color(hex: "#5F8FC7")
         case .astronauteSoir: return Color(hex: "#142942")
         case .leMans: return Color(hex: "#DCEBFA")
         case .leMansSoir: return Color(hex: "#96481E")
@@ -184,10 +184,11 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     /// Lus-only override for a read link cell's background — nil means use
     /// the default (`card` tinted toward `background`, see LinkRowView).
-    /// Cap Canaveral (and its dark variant) use a plain medium gray instead.
+    /// Cap Canaveral soir uses a plain medium gray; Cap Canaveral itself
+    /// uses its former `card` blue, swapped with `card` itself.
     var readCardOverride: Color? {
         switch self {
-        case .astronaute: return Color(hex: "#8E8E93")
+        case .astronaute: return Color(hex: "#35699F")
         // A darker gray than Cap Canaveral's own, for better contrast
         // against the dark background.
         case .astronauteSoir: return Color(hex: "#4A4A4E")
