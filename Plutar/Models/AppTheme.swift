@@ -76,15 +76,15 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .scand: return "Copenhague"
-        case .scandSoir: return "Copenhague soir"
+        case .scandSoir: return "Copenhague nuit"
         case .blanc: return "Kamakura"
-        case .blancSoir: return "Kamakura soir"
+        case .blancSoir: return "Kamakura nuit"
         case .astronaute: return "Cap Canaveral"
-        case .astronauteSoir: return "Cap Canaveral soir"
+        case .astronauteSoir: return "Cap Canaveral nuit"
         case .leMans: return "Le Mans"
-        case .leMansSoir: return "Le Mans soir"
+        case .leMansSoir: return "Le Mans nuit"
         case .tokyo: return "Tokyo"
-        case .tokyoSoir: return "Tokyo soir"
+        case .tokyoSoir: return "Tokyo nuit"
         }
     }
 
@@ -184,14 +184,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     /// Lus-only override for a read link cell's background — nil means use
     /// the default (`card` tinted toward `background`, see LinkRowView).
-    /// Cap Canaveral soir uses a plain medium gray; Cap Canaveral itself
-    /// uses its former `card` blue, swapped with `card` itself.
+    /// Cap Canaveral itself uses its former `card` blue, swapped with
+    /// `card` itself. Cap Canaveral soir has no override of its own — like
+    /// every other soir theme, it falls through to that same default.
     var readCardOverride: Color? {
         switch self {
         case .astronaute: return Color(hex: "#35699F")
-        // A darker gray than Cap Canaveral's own, for better contrast
-        // against the dark background.
-        case .astronauteSoir: return Color(hex: "#4A4A4E")
         // Kamakura's own bluish Lus tint.
         case .blanc: return Color(hex: "#D1E2F9")
         // Copenhague's own beige Lus tint — previously had no override
@@ -273,7 +271,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#72A8F6")
         case .scand: return Color(hex: "#6E6962")
         case .blancSoir: return readCardOverride ?? card
-        case .astronauteSoir: return readCardOverride ?? .gray
+        case .astronauteSoir: return Color(hex: "#4A4A4E")
         case .scandSoir: return Color(hex: "#4A4A4E")
         default: return .gray
         }

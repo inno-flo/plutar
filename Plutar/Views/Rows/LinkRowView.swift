@@ -38,7 +38,10 @@ struct LinkRowView: View {
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
         .background(item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)
-        .foregroundStyle(theme.title)
+        // In Lus (every cell here is read), the title drops down to the
+        // same muted tone as the host/"via" line below it instead of the
+        // theme's full-strength title color.
+        .foregroundStyle(item.isRead ? theme.ink(0.52) : theme.title)
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads

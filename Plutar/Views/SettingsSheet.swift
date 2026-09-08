@@ -61,7 +61,7 @@ struct SettingsSheet: View {
                     }
 
                     Toggle(isOn: $blackSoirBackground) {
-                        Text("Fond noir pour les thèmes soir")
+                        Text("Fond noir pour les thèmes nuit")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
