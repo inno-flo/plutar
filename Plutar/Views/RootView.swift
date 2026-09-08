@@ -480,7 +480,14 @@ struct RootView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .animation(.easeInOut(duration: 0.25), value: expandedSources)
+                // No `.animation(_:value: expandedSources)` here: the only
+                // two places that mutate `expandedSources` (`toggleSource`
+                // and `toggleAllSources`) already wrap it in `withAnimation`,
+                // so this modifier animated the same mutation a second time
+                // — two transactions racing on one batch update. Driving it
+                // from the mutation side alone also covers the floating
+                // expand/collapse button's own icon swap, which lives
+                // outside this List and so was never covered here.
                 .overlay {
                     if groups.isEmpty {
                         // Sources mirrors Date's empty state exactly (icon,
