@@ -28,10 +28,9 @@ struct PlutarApp: App {
         let existingCount = (try? context.fetchCount(descriptor)) ?? 0
         guard existingCount == 0 else { return }
 
-        for item in SeedData.makeLinkItems() {
-            context.insert(item)
-            SourceRank.bump(item.host, in: context)
-        }
+        let items = SeedData.makeLinkItems()
+        for item in items { context.insert(item) }
+        SourceRank.bump(items.map(\.host), in: context)
         try? context.save()
     }
 }

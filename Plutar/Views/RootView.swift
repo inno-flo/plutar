@@ -882,10 +882,9 @@ struct RootView: View {
     /// and with each of the 6 test sources' quantity randomized anew.
     private func regenerateLinks() {
         for item in allItems { modelContext.delete(item) }
-        for item in SeedData.makeLinkItems() {
-            modelContext.insert(item)
-            SourceRank.bump(item.host, in: modelContext)
-        }
+        let items = SeedData.makeLinkItems()
+        for item in items { modelContext.insert(item) }
+        SourceRank.bump(items.map(\.host), in: modelContext)
         try? modelContext.save()
     }
 
