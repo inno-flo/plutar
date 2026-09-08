@@ -124,6 +124,8 @@ struct RootView: View {
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     @State private var showResetRankingConfirm = false
+    /// Raised by `persist()` when a write to the store fails.
+    @State private var saveFailed = false
 
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
@@ -394,6 +396,11 @@ struct RootView: View {
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
+        }
+        .alert("Enregistrement impossible", isPresented: $saveFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
         }
     }
 
@@ -803,10 +810,27 @@ struct RootView: View {
 
     // MARK: Actions
 
+    /// Saves the context and reports a failure instead of dropping it.
+    ///
+    /// Every mutation here used to end in a bare `try? modelContext.save()`,
+    /// so a full disk or a constraint violation vanished without a trace:
+    /// the in-memory objects looked updated, nothing reached the store, and
+    /// neither the user nor the console ever heard about it.
+    private func persist(_ operation: String = #function) {
+        do {
+            try modelContext.save()
+        } catch {
+            PlutarLog.store.error(
+                "Save failed during \(operation, privacy: .public): \(String(describing: error), privacy: .public)"
+            )
+            saveFailed = true
+        }
+    }
+
     private func open(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = true
-            try? modelContext.save()
+            persist()
         }
         if let url = URL(string: item.urlString) {
             openURL(url)
@@ -816,28 +840,28 @@ struct RootView: View {
     private func markAsRead(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = true
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func markAsUnread(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = false
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func markSourceAsRead(_ items: [LinkItem]) {
         withAnimation(.easeInOut(duration: 0.25)) {
             for item in items { item.isRead = true }
-            try? modelContext.save()
+            persist()
         }
     }
 
     private func requestDelete(_ item: LinkItem) {
         undoSnapshots.append(DeletedSnapshot(item))
         modelContext.delete(item)
-        try? modelContext.save()
+        persist()
         // Each delete restarts the window, so the user always gets the full
         // 5 seconds from their own last swipe rather than from the first
         // one in the batch.
@@ -854,19 +878,19 @@ struct RootView: View {
         for snapshot in undoSnapshots {
             modelContext.insert(snapshot.makeLinkItem())
         }
-        try? modelContext.save()
+        persist()
         undoTask?.cancel()
         undoSnapshots.removeAll()
     }
 
     private func clearAll() {
         for item in allItems { modelContext.delete(item) }
-        try? modelContext.save()
+        persist()
     }
 
     private func clearRead() {
         for item in allItems where item.isRead { modelContext.delete(item) }
-        try? modelContext.save()
+        persist()
     }
 
     /// Marks every link currently shown (Date view: all unread links) as
@@ -874,7 +898,7 @@ struct RootView: View {
     private func markAllAsRead() {
         withAnimation(.easeInOut(duration: 0.25)) {
             for item in visibleItems { item.isRead = true }
-            try? modelContext.save()
+            persist()
         }
     }
 
@@ -885,20 +909,20 @@ struct RootView: View {
         let items = SeedData.makeLinkItems()
         for item in items { modelContext.insert(item) }
         SourceRank.bump(items.map(\.host), in: modelContext)
-        try? modelContext.save()
+        persist()
     }
 
     private func save(_ entry: SeedData.PoolEntry) {
         let item = entry.makeLinkItem()
         modelContext.insert(item)
         SourceRank.bump(item.host, in: modelContext)
-        try? modelContext.save()
+        persist()
     }
 
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
-        try? modelContext.save()
+        persist()
     }
 }
 

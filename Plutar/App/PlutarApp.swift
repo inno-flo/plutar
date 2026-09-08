@@ -76,6 +76,12 @@ struct PlutarApp: App {
         let items = SeedData.makeLinkItems()
         for item in items { context.insert(item) }
         SourceRank.bump(items.map(\.host), in: context)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            // Previously a bare `try?`: a failed seed left the app showing an
+            // empty feed with nothing anywhere saying why.
+            PlutarLog.store.error("Seeding failed: \(String(describing: error), privacy: .public)")
+        }
     }
 }
