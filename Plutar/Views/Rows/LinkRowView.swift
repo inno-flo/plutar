@@ -90,12 +90,11 @@ struct LinkRowView: View {
 
     private var editorialBody: some View {
         VStack(alignment: .leading, spacing: 11) {
-            HStack {
-                hostRow
-                Spacer()
+            HStack(spacing: 7) {
                 if showFavicons {
                     favicon(size: 22)
                 }
+                hostRow
             }
             if showThumbnail {
                 thumbnail(size: 150, fullWidth: true)

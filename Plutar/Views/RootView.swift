@@ -496,6 +496,28 @@ struct RootView: View {
                         }
                     }
 
+                    // When Sources has no links left but the ranking still
+                    // does, the empty-state block is placed as a normal row
+                    // here — above the ranking section below — instead of
+                    // as an overlay, so the two never sit on top of each
+                    // other; it just scrolls with everything else.
+                    if mode == .source && groups.isEmpty && !sourceRanks.isEmpty {
+                        QuietEmptyStateView(
+                            theme: theme,
+                            appFont: appFont,
+                            icon: "moon.stars",
+                            title: "Aucun lien partagé",
+                            text: "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
+                            showsSimulateButton: true,
+                            onSimulateShare: { pendingShare = SeedData.pool.randomElement() },
+                            fillHeight: false
+                        )
+                        .padding(.top, 40)
+                        .padding(.bottom, 20)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                    }
+
                     // Cumulative ranking, most-to-least important — a
                     // persistent tally (see `SourceRank`) that keeps
                     // growing regardless of links being deleted, so it
@@ -542,8 +564,12 @@ struct RootView: View {
                 // from the mutation side alone also covers the floating
                 // expand/collapse button's own icon swap, which lives
                 // outside this List and so was never covered here.
-                .overlay {
-                    if groups.isEmpty {
+                .overlay(alignment: .center) {
+                    // The Sources-with-ranking case is handled above as a
+                    // row inside the List itself, not here — an overlay
+                    // would sit on top of the ranking section instead of
+                    // scrolling above it.
+                    if groups.isEmpty && !(mode == .source && !sourceRanks.isEmpty) {
                         // Sources mirrors Date's empty state exactly (icon,
                         // title, subtitle) — only Lus differs.
                         QuietEmptyStateView(
@@ -605,7 +631,7 @@ struct RootView: View {
         HStack {
             Spacer()
             Text("\(currentCount)")
-                .font(.system(size: 22, weight: .heavy))
+                .font(appFont.font(size: 22, weight: .heavy))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
                 .background(theme.chip)

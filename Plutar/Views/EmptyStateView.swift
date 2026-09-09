@@ -14,6 +14,13 @@ struct QuietEmptyStateView: View {
     let text: String
     let showsSimulateButton: Bool
     let onSimulateShare: () -> Void
+    /// True (the default) centers the block in the full available height —
+    /// the ordinary case, an overlay on an otherwise-empty list. Sources
+    /// passes false when the source ranking still has entries: there the
+    /// block is placed as a normal row above the ranking instead of an
+    /// overlay, and sizing it to the full height would push the ranking
+    /// off-screen.
+    var fillHeight: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,8 +55,7 @@ struct QuietEmptyStateView: View {
                 .padding(.top, 24)
             }
         }
-        .padding(.top, 110)
         .padding(.horizontal, 46)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
     }
 }
