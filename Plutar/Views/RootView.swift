@@ -123,7 +123,6 @@ struct RootView: View {
 
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
-    @State private var showResetRankingConfirm = false
     /// Raised by `persist()` when a write to the store fails.
     @State private var saveFailed = false
 
@@ -363,6 +362,7 @@ struct RootView: View {
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onRegenerate: { regenerateLinks(); showSettings = false },
+                onResetRanking: { resetSourceRanking(); showSettings = false },
                 onClose: { showSettings = false },
                 chipColor: theme.chip
             )
@@ -389,13 +389,6 @@ struct RootView: View {
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Marquer comme lus") { markAllAsRead() }
-        }
-        .alert(
-            "Réinitialiser le classement des sources",
-            isPresented: $showResetRankingConfirm
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Réinitialiser", role: .destructive) { resetSourceRanking() }
         }
         .alert("Enregistrement impossible", isPresented: $saveFailed) {
             Button("OK", role: .cancel) {}
@@ -530,20 +523,6 @@ struct RootView: View {
                                     .listRowBackground(Color.clear)
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                             }
-
-                            Button(role: .destructive) {
-                                showResetRankingConfirm = true
-                            } label: {
-                                Text("Réinitialiser le classement")
-                                    .font(.system(size: 14.5, weight: .semibold))
-                                    .tracking(1.2)
-                                    .textCase(.uppercase)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 14)
                         } header: {
                             Text("Classement des sources")
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -632,7 +611,7 @@ struct RootView: View {
         HStack {
             Spacer()
             Text("\(currentCount)")
-                .font(appFont.font(size: 16.5, weight: .bold))
+                .font(appFont.font(size: 20, weight: .bold))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
                 .background(theme.chip)
@@ -890,11 +869,11 @@ struct RootView: View {
         modelContext.delete(item)
         persist()
         // Each delete restarts the window, so the user always gets the full
-        // 5 seconds from their own last swipe rather than from the first
+        // 1.8 seconds from their own last swipe rather than from the first
         // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(1.8))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }

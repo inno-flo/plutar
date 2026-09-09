@@ -24,6 +24,7 @@ struct SettingsSheet: View {
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
     let onRegenerate: () -> Void
+    let onResetRanking: () -> Void
     let onClose: () -> Void
     /// Same color as the day/source pill and counter badge — applied only
     /// to the selected pills' fill below, not to the whole sheet (that
@@ -53,8 +54,10 @@ struct SettingsSheet: View {
                 VStack(alignment: .leading, spacing: 22) {
                     section("Police") {
                         HStack(spacing: 8) {
-                            ForEach(AppFont.allCases) { f in
-                                pill(f.label, isActive: appFont == f, font: f.font(size: 17)) {
+                            // Displayed as Helvetica / SF Pro / SF Compact,
+                            // not `AppFont.allCases`' declaration order.
+                            ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
+                                pill(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular)) {
                                     appFont = f
                                 }
                             }
@@ -117,19 +120,20 @@ struct SettingsSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Button(role: .destructive, action: onClearAll) {
-                            Text("Vider le fil")
-                                .fontWeight(.semibold)
-                                .tracking(1.2)
-                                .textCase(.uppercase)
-                        }
-                        .buttonStyle(.glass)
+                        HStack(spacing: 8) {
+                            Button(role: .destructive, action: onClearAll) {
+                                Text("Vider le fil")
+                            }
+                            .buttonStyle(.glass)
 
-                        Button(action: onRegenerate) {
-                            Text("Regénérer les liens")
-                                .fontWeight(.semibold)
-                                .tracking(1.2)
-                                .textCase(.uppercase)
+                            Button(action: onRegenerate) {
+                                Text("Regénérer les liens")
+                            }
+                            .buttonStyle(.glass)
+                        }
+
+                        Button(role: .destructive, action: onResetRanking) {
+                            Text("Réinitialiser le classement")
                         }
                         .buttonStyle(.glass)
                     }
