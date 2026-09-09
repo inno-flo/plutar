@@ -110,7 +110,7 @@ struct LinkRowView: View {
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
             Text(item.excerpt)
-                .font(appFont.font(size: 12))
+                .font(appFont.font(size: 13))
                 .foregroundStyle(theme.ink(0.5))
                 .lineLimit(3)
         }
@@ -131,12 +131,12 @@ struct LinkRowView: View {
     private var hostRow: some View {
         HStack(spacing: 7) {
             Text(item.host)
-                .font(appFont.font(size: 12, weight: .semibold))
+                .font(appFont.font(size: 13, weight: .semibold))
                 .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
                 .lineLimit(1)
             if !viaString.isEmpty {
                 Text(viaString)
-                    .font(appFont.font(size: 12))
+                    .font(appFont.font(size: 13))
                     .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.34))
             }
         }
@@ -154,6 +154,7 @@ struct LinkRowView: View {
                 .font(.system(size: 6.5, design: .monospaced))
                 .foregroundStyle(theme.ink(0.5))
                 .padding(5)
+                .hidden()
         }
         .frame(width: fullWidth ? nil : size, height: size)
         .frame(maxWidth: fullWidth ? .infinity : size)

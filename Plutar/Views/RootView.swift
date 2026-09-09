@@ -689,7 +689,7 @@ struct RootView: View {
     private func floatingButton(icon: String, flipped: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
         }
@@ -745,13 +745,19 @@ struct RootView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(theme.ink(0.55))
+                            // Same 44pt box as the floating buttons below,
+                            // so the icon glyph lands on the same vertical
+                            // line as "Tout marquer comme lu" and
+                            // "Présentation liste/condensé".
+                            .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets())
-            .padding(.horizontal, 14)
+            .padding(.leading, 14)
+            .padding(.trailing, 18)
             .padding(.vertical, 4)
         } else {
             Text(group.label)
@@ -782,7 +788,7 @@ struct RootView: View {
                 .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
             Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .opacity(0.7)
         }
         .padding(.horizontal, 14)
@@ -928,11 +934,11 @@ struct RootView: View {
         modelContext.delete(item)
         persist()
         // Each delete restarts the window, so the user always gets the full
-        // 1.8 seconds from their own last swipe rather than from the first
+        // 1.2 seconds from their own last swipe rather than from the first
         // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.8))
+            try? await Task.sleep(for: .seconds(1.2))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }

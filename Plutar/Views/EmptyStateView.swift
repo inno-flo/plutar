@@ -29,12 +29,12 @@ struct QuietEmptyStateView: View {
                 .foregroundStyle(theme.ink(0.3))
 
             Text(title)
-                .font(appFont.font(size: 16.5, weight: .semibold))
+                .font(appFont.font(size: 18, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .padding(.top, 40)
 
             Text(text)
-                .font(appFont.font(size: 14))
+                .font(appFont.font(size: 18))
                 .foregroundStyle(theme.ink(0.55))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
