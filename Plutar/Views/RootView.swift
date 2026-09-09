@@ -516,14 +516,14 @@ struct RootView: View {
                                                 Button {
                                                     markAsUnread(item)
                                                 } label: {
-                                                    Label("Non lu", systemImage: "checkmark.circle")
+                                                    Label("Marquer non lu", systemImage: "checkmark.circle")
                                                 }
                                                 .tint(theme.markUnreadSwipeTint)
                                             } else {
                                                 Button {
                                                     markAsRead(item)
                                                 } label: {
-                                                    Label("Marquer comme lu", systemImage: "checkmark.circle.fill")
+                                                    Label("Marquer lu", systemImage: "checkmark.circle.fill")
                                                 }
                                                 .tint(theme.markReadSwipeTint)
                                             }

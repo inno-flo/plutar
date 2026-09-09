@@ -212,7 +212,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .blanc: return Color(hex: "#E53935")
         case .blancSoir: return Color(hex: "#7A1F1F")
-        case .astronaute, .astronauteSoir, .scandSoir, .tokyoSoir: return Color(hex: "#8C2F2F")
+        // Cap Canaveral clair reuses Tokyo clair's own red.
+        case .astronaute: return Color(hex: "#E1000F")
+        case .astronauteSoir, .scandSoir, .tokyoSoir: return Color(hex: "#8C2F2F")
         case .tokyo: return Color(hex: "#E1000F")
         default: return nil
         }
@@ -238,7 +240,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#72A8F6")
         case .scand: return Color(hex: "#6E6962")
         case .blancSoir: return readCardOverride ?? card
-        case .astronaute, .astronauteSoir: return Color(hex: "#4A4A4E")
+        // Cap Canaveral clair uses its own lighter neutral, distinct from
+        // soir's darker value.
+        case .astronaute: return Color(hex: "#8A8F99")
+        case .astronauteSoir: return Color(hex: "#4A4A4E")
         case .scandSoir: return Color(hex: "#4A4A4E")
         default: return .gray
         }
