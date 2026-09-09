@@ -119,7 +119,7 @@ struct SettingsSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Button(role: .destructive, action: onClearAll) {
                             Text("Vider le fil")
-                                .font(.system(size: 11.5, weight: .semibold))
+                                .fontWeight(.semibold)
                                 .tracking(1.2)
                                 .textCase(.uppercase)
                         }
@@ -127,7 +127,7 @@ struct SettingsSheet: View {
 
                         Button(action: onRegenerate) {
                             Text("Regénérer les liens")
-                                .font(.system(size: 11.5, weight: .semibold))
+                                .fontWeight(.semibold)
                                 .tracking(1.2)
                                 .textCase(.uppercase)
                         }
@@ -172,7 +172,7 @@ struct SettingsSheet: View {
         VStack(alignment: .leading, spacing: 9) {
             // Sentence case, no forced all-caps.
             Text(title)
-                .font(.system(size: 15, weight: .semibold))
+                .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
             content()
         }
