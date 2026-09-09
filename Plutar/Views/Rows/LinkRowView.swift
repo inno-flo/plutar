@@ -13,6 +13,11 @@ struct LinkRowView: View {
     private var viaString: String { "via \(item.sourceApp)" }
     private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
+    /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
+    /// matches the view's own counter gray instead of each text's usual
+    /// per-element tone.
+    private var isTokyoSoirRead: Bool { item.isRead && theme == .tokyoSoir }
+
     /// Rounded is a real system weight variant and renders this bold fine;
     /// SF Compact ignores it entirely (fixed to its own Regular style
     /// regardless of what's passed), so titles stay at Regular weight there.
@@ -33,7 +38,7 @@ struct LinkRowView: View {
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(item.isRead ? theme.ink(0.52) : theme.title)
+        .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
@@ -127,12 +132,12 @@ struct LinkRowView: View {
         HStack(spacing: 7) {
             Text(item.host)
                 .font(appFont.font(size: 12, weight: .semibold))
-                .foregroundStyle(theme.ink(0.52))
+                .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
                 .lineLimit(1)
             if !viaString.isEmpty {
                 Text(viaString)
                     .font(appFont.font(size: 12))
-                    .foregroundStyle(theme.ink(0.34))
+                    .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.34))
             }
         }
     }

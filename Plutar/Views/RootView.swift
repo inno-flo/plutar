@@ -186,13 +186,16 @@ struct RootView: View {
     /// is scaled against (see `sourceRankRow`).
     private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
 
-    /// Copenhague's ochre yellow for link-count counters — nil everywhere
-    /// else, so callers fall back to their own default background. Soir
-    /// gets a darker variant of the same hue.
-    private var counterOchre: Color? {
+    /// Per-theme override for the link-count counters' background — nil
+    /// everywhere else, so callers fall back to their own default
+    /// background. Copenhague uses an ochre yellow (a darker variant for
+    /// soir); Tokyo uses plain black, Tokyo soir a dark gray.
+    private var counterBackgroundOverride: Color? {
         switch theme {
         case .scand: return Color(hex: "#D9A62E")
         case .scandSoir: return Color(hex: "#A67816")
+        case .tokyo: return .black
+        case .tokyoSoir: return Color(hex: "#2B2B2B")
         default: return nil
         }
     }
@@ -628,8 +631,9 @@ struct RootView: View {
                 // Copenhague: the counter badge alone swaps to an ochre
                 // yellow in every view (a darker variant for soir), leaving
                 // the day/source pill on its usual `chip`.
-                .background(counterOchre ?? theme.chip)
-                .foregroundStyle(theme.countForeground)
+                .background(counterBackgroundOverride ?? theme.chip)
+                // Tokyo soir: same gray as the ranking rows' own count text.
+                .foregroundStyle(theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground)
                 .clipShape(Capsule())
         }
         .padding(.top, 14)
@@ -733,11 +737,12 @@ struct RootView: View {
                 .font(appFont.font(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(appFont.font(size: 16.5, weight: .bold))
-                .foregroundStyle(theme.chipText)
+                // Tokyo soir: same gray as the ranking rows' own count text.
+                .foregroundStyle(theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 // Copenhague: same ochre yellow as the other link counters.
-                .background(counterOchre ?? theme.chipText.opacity(0.22))
+                .background(counterBackgroundOverride ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
             Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 12, weight: .bold))
