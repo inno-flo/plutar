@@ -535,9 +535,10 @@ struct RootView: View {
                                 showResetRankingConfirm = true
                             } label: {
                                 Text("Réinitialiser le classement")
-                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .font(.system(size: 14.5, weight: .semibold))
                                     .tracking(1.2)
                                     .textCase(.uppercase)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
@@ -631,7 +632,7 @@ struct RootView: View {
         HStack {
             Spacer()
             Text("\(currentCount)")
-                .font(appFont.font(size: 22, weight: .bold))
+                .font(appFont.font(size: 16.5, weight: .bold))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
                 .background(theme.chip)
@@ -764,7 +765,7 @@ struct RootView: View {
             let width = max(proxy.size.width * ratio, 140)
             HStack(spacing: 12) {
                 Text("\(rank)")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.ink(0.4))
                     .frame(width: 22, alignment: .leading)
                 Text(entry.host)
@@ -809,7 +810,7 @@ struct RootView: View {
                     // tap target that made the button feel unresponsive.
                     Button(action: performUndo) {
                         Text("Annuler")
-                            .font(.system(size: 10.5, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .tracking(1.2)
                             .textCase(.uppercase)
                     }

@@ -75,7 +75,7 @@ struct LinkRowView: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text(item.title)
-                    .font(appFont.font(size: 19, weight: titleWeight))
+                    .font(appFont.font(size: 18, weight: titleWeight))
                     .lineLimit(3)
                 hostRow
             }
@@ -124,12 +124,12 @@ struct LinkRowView: View {
     private var hostRow: some View {
         HStack(spacing: 7) {
             Text(item.host)
-                .font(appFont.font(size: 11, weight: .semibold))
+                .font(appFont.font(size: 12, weight: .semibold))
                 .foregroundStyle(theme.ink(0.52))
                 .lineLimit(1)
             if !viaString.isEmpty {
                 Text(viaString)
-                    .font(appFont.font(size: 11))
+                    .font(appFont.font(size: 12))
                     .foregroundStyle(theme.ink(0.34))
             }
         }
