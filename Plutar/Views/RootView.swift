@@ -736,9 +736,9 @@ struct RootView: View {
     private func sourceChipLabel(_ group: FeedGroup) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(appFont.font(size: 15, weight: .bold))
+                .font(appFont.font(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
-                .font(appFont.font(size: 12, weight: .bold))
+                .font(appFont.font(size: 16.5, weight: .bold))
                 .foregroundStyle(theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
@@ -768,12 +768,12 @@ struct RootView: View {
                     .foregroundStyle(theme.ink(0.4))
                     .frame(width: 22, alignment: .leading)
                 Text(entry.host)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.title)
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text("\(entry.count)")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.ink(0.5))
             }
             .padding(.horizontal, 16)
