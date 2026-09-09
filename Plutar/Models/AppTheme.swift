@@ -177,8 +177,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blancSoir: return Color(hex: "#4F7AA8")
         case .astronaute: return Color(hex: "#FF4F00")
         case .astronauteSoir: return Color(hex: "#C23D00")
-        case .tokyo: return Color(hex: "#E1000F")
-        case .tokyoSoir: return Color(hex: "#BC002D")
+        // Tokyo's pill swapped hues with its counter badge: black here
+        // (was red), a near-black gray in soir (was dark red) — see
+        // `RootView.counterBackgroundOverride` for the other half of the
+        // swap.
+        case .tokyo: return .black
+        case .tokyoSoir: return Color(hex: "#2B2B2B")
         }
     }
 
@@ -188,12 +192,11 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// otherwise.
     var chipText: Color {
         switch self {
-        case .astronaute, .scand, .tokyo: return .white
-        // Cap Canaveral soir's own chip/counter text, matching what the
-        // (now-removed) Marine sombre theme used to use.
-        case .astronauteSoir: return Color(hex: "#14264B")
+        // Contrast audit: soir chipText used to go dark-on-dark here
+        // (navy-on-orange ~2.8:1, black-on-red ~3.2:1) — both now match
+        // their light counterpart's white-on-saturated pattern instead.
+        case .astronaute, .scand, .tokyo, .astronauteSoir, .tokyoSoir: return .white
         case .blanc: return Color(hex: "#E1F3FC")
-        case .tokyoSoir: return Color(hex: "#000000")
         // Copenhague soir and Kamakura soir: each falls through to its own
         // (dark) background — darker than the light variant's pale text,
         // but still readable on the shared chip color.
@@ -250,10 +253,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var countForeground: Color {
         switch self {
-        case .astronaute, .scand, .tokyo: return .white
-        case .astronauteSoir: return Color(hex: "#14264B")
+        case .astronaute, .scand, .tokyo, .astronauteSoir, .tokyoSoir: return .white
         case .blanc: return Color(hex: "#E1F3FC")
-        case .tokyoSoir: return Color(hex: "#000000")
         // Copenhague soir falls through to `background` too — see chipText.
         default: return background
         }

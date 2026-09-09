@@ -189,17 +189,20 @@ struct RootView: View {
     /// Per-theme override for the link-count counters' background — nil
     /// everywhere else, so callers fall back to their own default
     /// background. Copenhague uses an ochre yellow (a darker variant for
-    /// soir); Tokyo uses plain black, Tokyo soir a dark gray; Kamakura uses
-    /// its own slate blue-gray (a darker variant for soir); Cap Canaveral
-    /// uses plain white. Cap Canaveral soir isn't listed here — its Sources
-    /// pastille count badge already falls back to `chipText.opacity(0.22)`
-    /// on its own; see `mainCounterBackgroundOverride` for the top badge.
+    /// soir); Kamakura uses its own slate blue-gray (a darker variant for
+    /// soir); Cap Canaveral uses plain white. Tokyo's counter swapped hues
+    /// with its pill (`chip`): red here (was black), a dark red in soir
+    /// (was dark gray) — the pill itself now carries the black/gray side of
+    /// the swap, see `AppTheme.chip`. Cap Canaveral soir isn't listed here
+    /// — its Sources pastille count badge already falls back to
+    /// `chipText.opacity(0.22)` on its own; see
+    /// `mainCounterBackgroundOverride` for the top badge.
     private var counterBackgroundOverride: Color? {
         switch theme {
         case .scand: return Color(hex: "#D9A62E")
         case .scandSoir: return Color(hex: "#A67816")
-        case .tokyo: return .black
-        case .tokyoSoir: return Color(hex: "#2B2B2B")
+        case .tokyo: return Color(hex: "#E1000F")
+        case .tokyoSoir: return Color(hex: "#BC002D")
         case .blanc: return Color(hex: "#798891")
         case .blancSoir: return Color(hex: "#546067")
         case .astronaute: return .white
@@ -217,12 +220,19 @@ struct RootView: View {
     /// Cap Canaveral's own "international orange" for counter text, paired
     /// with `counterBackgroundOverride`'s white; Cap Canaveral soir uses
     /// `chipText` — the same combination the Sources pastille's own count
-    /// badge already falls back to. Nil everywhere else, so callers fall
-    /// back to their own default foreground.
+    /// badge already falls back to. Copenhague pairs its ochre counter with
+    /// dark ink instead of the pastille's white (contrast audit: white on
+    /// that ochre was ~2.2:1). Nil everywhere else, so callers fall back to
+    /// their own default foreground.
     private var counterForegroundOverride: Color? {
         switch theme {
         case .astronaute: return Color(hex: "#FF4F00")
         case .astronauteSoir: return theme.chipText
+        case .scand: return theme.ink(1)
+        // Kamakura soir: its counter's dark fallback text (`background`)
+        // was ~2.7:1 on that gray; pale ink matches the light variant's
+        // own pattern instead.
+        case .blancSoir: return theme.ink(1)
         default: return nil
         }
     }
