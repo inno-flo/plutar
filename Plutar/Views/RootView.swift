@@ -523,7 +523,7 @@ struct RootView: View {
                                                 Button {
                                                     markAsRead(item)
                                                 } label: {
-                                                    Label("Lu", systemImage: "checkmark.circle.fill")
+                                                    Label("Marquer comme lu", systemImage: "checkmark.circle.fill")
                                                 }
                                                 .tint(theme.markReadSwipeTint)
                                             }
