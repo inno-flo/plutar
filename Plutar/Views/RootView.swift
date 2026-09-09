@@ -720,7 +720,7 @@ struct RootView: View {
             .padding(.vertical, 4)
         } else {
             Text(group.label)
-                .font(.system(size: 16.5, weight: .bold))
+                .font(appFont.font(size: 16.5, weight: .bold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(theme.chip)
@@ -736,9 +736,9 @@ struct RootView: View {
     private func sourceChipLabel(_ group: FeedGroup) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
-                .font(.system(size: 16.5, weight: .bold))
+                .font(appFont.font(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
-                .font(.system(size: 10, weight: .heavy))
+                .font(appFont.font(size: 10, weight: .heavy))
                 .foregroundStyle(theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
