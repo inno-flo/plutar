@@ -189,13 +189,40 @@ struct RootView: View {
     /// Per-theme override for the link-count counters' background — nil
     /// everywhere else, so callers fall back to their own default
     /// background. Copenhague uses an ochre yellow (a darker variant for
-    /// soir); Tokyo uses plain black, Tokyo soir a dark gray.
+    /// soir); Tokyo uses plain black, Tokyo soir a dark gray; Kamakura uses
+    /// its own slate blue-gray (a darker variant for soir); Cap Canaveral
+    /// uses plain white. Cap Canaveral soir isn't listed here — its Sources
+    /// pastille count badge already falls back to `chipText.opacity(0.22)`
+    /// on its own; see `mainCounterBackgroundOverride` for the top badge.
     private var counterBackgroundOverride: Color? {
         switch theme {
         case .scand: return Color(hex: "#D9A62E")
         case .scandSoir: return Color(hex: "#A67816")
         case .tokyo: return .black
         case .tokyoSoir: return Color(hex: "#2B2B2B")
+        case .blanc: return Color(hex: "#798891")
+        case .blancSoir: return Color(hex: "#546067")
+        case .astronaute: return .white
+        default: return nil
+        }
+    }
+
+    /// Overrides the top link-count badge's background specifically (not
+    /// the Sources pastille's own count badge) — Cap Canaveral soir uses a
+    /// light gray there instead of `counterBackgroundOverride`'s value.
+    private var mainCounterBackgroundOverride: Color? {
+        theme == .astronauteSoir ? Color(hex: "#6D6D6D") : nil
+    }
+
+    /// Cap Canaveral's own "international orange" for counter text, paired
+    /// with `counterBackgroundOverride`'s white; Cap Canaveral soir uses
+    /// `chipText` — the same combination the Sources pastille's own count
+    /// badge already falls back to. Nil everywhere else, so callers fall
+    /// back to their own default foreground.
+    private var counterForegroundOverride: Color? {
+        switch theme {
+        case .astronaute: return Color(hex: "#FF4F00")
+        case .astronauteSoir: return theme.chipText
         default: return nil
         }
     }
@@ -631,9 +658,9 @@ struct RootView: View {
                 // Copenhague: the counter badge alone swaps to an ochre
                 // yellow in every view (a darker variant for soir), leaving
                 // the day/source pill on its usual `chip`.
-                .background(counterBackgroundOverride ?? theme.chip)
+                .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chip)
                 // Tokyo soir: same gray as the ranking rows' own count text.
-                .foregroundStyle(theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground)
+                .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
                 .clipShape(Capsule())
         }
         .padding(.top, 14)
@@ -738,11 +765,11 @@ struct RootView: View {
             Text("\(group.items.count)")
                 .font(appFont.font(size: 16.5, weight: .bold))
                 // Tokyo soir: same gray as the ranking rows' own count text.
-                .foregroundStyle(theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText)
+                .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText))
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 // Copenhague: same ochre yellow as the other link counters.
-                .background(counterBackgroundOverride ?? theme.chipText.opacity(0.22))
+                .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
             Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 12, weight: .bold))
