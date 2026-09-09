@@ -614,7 +614,10 @@ struct RootView: View {
                 .font(appFont.font(size: 20, weight: .bold))
                 .frame(minWidth: 40, minHeight: 36)
                 .padding(.horizontal, 8)
-                .background(theme.chip)
+                // Copenhague: the counter badge alone swaps to an ochre
+                // yellow in every view, leaving the day/source pill on its
+                // usual `chip`.
+                .background(theme == .scand ? Color(hex: "#D9A62E") : theme.chip)
                 .foregroundStyle(theme.countForeground)
                 .clipShape(Capsule())
         }
@@ -722,7 +725,8 @@ struct RootView: View {
                 .foregroundStyle(theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
-                .background(theme.chipText.opacity(0.22))
+                // Copenhague: same ochre yellow as the other link counters.
+                .background(theme == .scand ? Color(hex: "#D9A62E") : theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
             Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 12, weight: .bold))
@@ -749,7 +753,9 @@ struct RootView: View {
                     .frame(width: 22, alignment: .leading)
                 Text(entry.host)
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.title)
+                    // Soir themes: match the rank/count's own muted ink tone
+                    // instead of the full-strength title color.
+                    .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text("\(entry.count)")
