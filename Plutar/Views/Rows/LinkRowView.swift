@@ -52,7 +52,9 @@ struct LinkRowView: View {
         // Canaveral's light blue down to a gray indistinguishable from
         // before.
         .saturation(item.isRead && theme.readCardOverride == nil ? 0 : 1)
-        .shadow(color: .black.opacity(0.08), radius: 9, y: 4)
+        // No shadow on read cells (all of Lus) — it read as too heavy on an
+        // already muted/desaturated card.
+        .shadow(color: item.isRead ? .clear : .black.opacity(0.08), radius: 9, y: 4)
     }
 
     // MARK: Rail (default) — just the title, host below, nothing else.
