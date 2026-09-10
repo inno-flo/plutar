@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="lit" gradientUnits="userSpaceOnUse"
+                    cx="570.34" cy="289.68" r="410.86">
+      <stop offset="0" stop-color="#FFFDF6"/>
+      <stop offset="0.55" stop-color="#FFEDCA"/>
+      <stop offset="1" stop-color="#E7BC7C"/>
+    </radialGradient>
+    <radialGradient id="unlit" gradientUnits="userSpaceOnUse"
+                    cx="570.34" cy="289.68" r="410.86">
+      <stop offset="0" stop-color="#BCC6D4"/>
+      <stop offset="1" stop-color="#9CA8BA"/>
+    </radialGradient>
+    <mask id="crescent">
+      <circle cx="647.68" cy="376.68" r="241.68" fill="#FFFFFF"/>
+      <circle cx="751.26" cy="273.10" r="235.90" fill="#000000"/>
+    </mask>
+  </defs>
+  <!-- Two spheres of the same diameter, exactly superimposed: the unlit one,
+       then the lit crescent in front of it. -->
+  <circle cx="647.68" cy="376.68" r="241.68" fill="url(#unlit)"/>
+  <circle cx="647.68" cy="376.68" r="241.68" fill="url(#lit)" mask="url(#crescent)"/>
+</svg>

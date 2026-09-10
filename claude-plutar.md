@@ -52,7 +52,96 @@ Plutar/
   Views/Rows/LinkRowView.swift — rendu d'un lien (rail / fiche / éditoriale)
   Views/EmptyStateView.swift   — état vide
   Views/SettingsSheet.swift    — tiroir de réglages
+
+Design/AppIcon/                — sources vectorielles de l'icône (hors cible Xcode)
+  background-light.svg         — ciel crépusculaire clair
+  background-dark.svg          — ciel de nuit
+  moon.svg                     — le croissant de lune (calque avant)
+  page.svg                     — la page + ses lignes (calque avant)
 ```
+
+## Icône d'app
+
+Une page de journal en verre dépoli, un croissant de lune derrière, sur un ciel
+dégradé — motif simple, lisible jusqu'à 40 px. Le seul rappel de marque est la
+ligne de titre en `#FF4F00` (l'accent de l'app).
+
+Trois déclinaisons 1024×1024 dans `Plutar/Assets.xcassets/AppIcon.appiconset/`,
+déclarées via `appearances` dans `Contents.json` :
+
+| Fichier | Apparence | Fond |
+|---|---|---|
+| `AppIcon-light-1024.png` | claire (défaut) | ciel `#8FB4E0` → `#E9D6BC` |
+| `AppIcon-dark-1024.png` | `luminosity: dark` | nuit `#1B3054` → `#050A14` |
+| `AppIcon-tinted-1024.png` | `luminosity: tinted` | transparent, niveaux de gris |
+
+Conformité Liquid Glass :
+
+- toile pleine, sans coins arrondis pré-découpés (le masque est appliqué par le système)
+- contenu inscrit dans une marge d'environ 130 px, pour survivre au masque squircle
+- la page est un vrai verre dépoli : le fond est échantillonné, flouté (gaussienne 34 px)
+  puis lu à travers la forme — la lune transparaît légèrement au travers
+- reflet spéculaire en haut à gauche de la page + liseré lumineux sur son contour
+- le croissant porte un dégradé d'ombre vers le bas-droite qui lui donne du volume
+  (héritage de la version en lune pleine, où sans lui le disque se lisait comme un soleil)
+
+### Forme de la lune
+
+La lune est **deux sphères de diamètre identique, parfaitement superposées** : une
+sphère non éclairée, et le croissant lumineux devant elle. Ce que le croissant laisse
+ouvert montre donc la face sombre de la lune, pas le ciel — la silhouette reste un
+disque plein.
+
+Le croissant lui-même est **construit géométriquement**, pas repris d'un glyphe :
+c'est la sphère moins un second cercle décalé vers l'ouverture. Les pointes tombent
+exactement là où les deux cercles se croisent — franches et posées sur le limbe, sans
+capuchon arrondi ni corne qui dépasse.
+
+Trois réglages nommés dans `MakeIcon.swift`, surchargeables par variables
+d'environnement (`OPEN`, `THICK`, `WRAP`) pour tâtonner sans éditer le fichier :
+
+| Réglage | Valeur | Rôle |
+|---|---|---|
+| `moonOpenAngle` | `-45°` | direction d'ouverture — haut-droite, comme `moon.fill` |
+| `moonThickness` | `0.63` | plus grande largeur du croissant, en fraction du rayon |
+| `moonWrap` | `70°` | demi-angle des pointes depuis l'axe d'ouverture |
+
+La face non éclairée a son propre dégradé par déclinaison (`moonDarkInner` /
+`moonDarkOuter`) : gris-bleu `#BCC6D4` → `#9CA8BA` en clair, `#36435A` → `#202B3D`
+en sombre, gris moyen en teinté. Elle doit rester lisible contre son ciel — c'est la
+contrainte qui fixe ces valeurs.
+
+Épaisseur et enroulement sont calés pour que le croissant couvre **~40 % du disque**,
+soit exactement ce que couvre le glyphe `moon.fill` (mesuré sur son masque alpha :
+39,9 %). Même masse visuelle qu'avant, pointes propres.
+
+### Historique des essais
+
+L'icône est passée par trois formes de lune avant celle-ci, ce qui explique certains
+choix :
+
+1. **Disque plein orange** (l'accent) — se lisait comme un soleil. D'où le passage à
+   une palette crème et l'ajout du dégradé d'ombre.
+2. **Glyphe `moon.fill` en masque de découpe** — fidèle à l'UI, mais son ouverture
+   vers le haut-droite plaçait le corps épais derrière la page. Une rotation de 210°
+   a été essayée pour le dégager, puis abandonnée : l'ouverture devait rester celle
+   du symbole. Écarté au final pour ses pointes arrondies et débordantes.
+3. **Croissant à deux cercles** — pointes franches, mêmes proportions, mais sa
+   concavité laissait voir le ciel : la lune n'avait plus de silhouette ronde.
+4. **Deux sphères superposées** (actuel) — la concavité montre la face non éclairée.
+
+### Sources
+
+Les PNG sont rendus par `MakeIcon.swift` (CoreGraphics), pas dessinés à la main —
+`swift MakeIcon.swift <chemin de l'appiconset>`. Avec `LAYERS=.` en plus, le script
+réécrit aussi `moon.svg` à partir des mêmes constantes, donc les calques ne peuvent
+pas dériver du rendu.
+
+Les calques de `Design/AppIcon/` sont les mêmes formes à plat, sans reflets ni ombres
+puisque le système les ajoute lui-même, prêts à importer dans **Icon Composer** pour
+passer au format `.icon` d'iOS 26. `moon.svg` porte les deux sphères, la découpe du
+croissant étant exprimée par un `<mask>` SVG (cercle blanc moins cercle noir) — tout
+reste vectoriel.
 
 ## État de la vérification
 
@@ -65,4 +154,4 @@ Le projet compile avec succès (`xcodebuild -project Plutar.xcodeproj -scheme Pl
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)
 - Vérifier visuellement l'app une fois le Simulateur disponible, ajuster le rendu par rapport au mockup Claude Design
 - Compte développeur payant → ajouter la vraie Share Extension iOS pour remplacer les données factices
-- Icône d'app réelle (actuellement un `AppIcon.appiconset` vide)
+- Éventuellement reconstruire l'icône dans Icon Composer (`.icon`) à partir des SVG de `Design/AppIcon/`, pour bénéficier du rendu Liquid Glass dynamique (mode « clear », teinte système) plutôt que de PNG figés
