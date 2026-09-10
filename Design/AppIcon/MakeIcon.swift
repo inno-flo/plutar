@@ -1,6 +1,6 @@
 // Renders the three 1024×1024 app-icon variants.
 //   swift MakeIcon.swift ../../Plutar/Assets.xcassets/AppIcon.appiconset
-// LAYERS=. also re-exports moon.png for Icon Composer.
+// LAYERS=. also re-exports the flat SVG layers for Icon Composer.
 
 import Foundation
 import CoreGraphics
@@ -21,15 +21,20 @@ func sr(_ r: CGRect) -> CGRect { CGRect(x: sx(r.minX), y: sy(r.minY), width: r.w
 let moonC = CGPoint(x: sx(640), y: sy(384))
 let moonR: CGFloat = 228 * K
 let moonBox = CGRect(x: moonC.x - moonR, y: moonC.y - moonR, width: moonR * 2, height: moonR * 2)
-let page = sr(CGRect(x: 156, y: 356, width: 400, height: 500))
+// The sheet is nudged up and to the right by 5% of its own size.
+let pageBase = sr(CGRect(x: 156, y: 356, width: 400, height: 500))
+let pageOffset = CGSize(width: pageBase.width * 0.05, height: -pageBase.height * 0.05)
+func po(_ r: CGRect) -> CGRect { r.offsetBy(dx: pageOffset.width, dy: pageOffset.height) }
+
+let page = po(pageBase)
 let pageR: CGFloat = 48 * K
 
 struct Line { let r: CGRect; let radius: CGFloat; let accent: Bool }
 let lines: [Line] = [
-    Line(r: sr(CGRect(x: 216, y: 483, width: 176, height: 30)), radius: 15 * K, accent: true),
-    Line(r: sr(CGRect(x: 216, y: 575, width: 280, height: 22)), radius: 11 * K, accent: false),
-    Line(r: sr(CGRect(x: 216, y: 641, width: 280, height: 22)), radius: 11 * K, accent: false),
-    Line(r: sr(CGRect(x: 216, y: 707, width: 190, height: 22)), radius: 11 * K, accent: false),
+    Line(r: po(sr(CGRect(x: 216, y: 483, width: 176, height: 30))), radius: 15 * K, accent: true),
+    Line(r: po(sr(CGRect(x: 216, y: 575, width: 280, height: 22))), radius: 11 * K, accent: false),
+    Line(r: po(sr(CGRect(x: 216, y: 641, width: 280, height: 22))), radius: 11 * K, accent: false),
+    Line(r: po(sr(CGRect(x: 216, y: 707, width: 190, height: 22))), radius: 11 * K, accent: false),
 ]
 
 // ---------------------------------------------------------------- helpers
@@ -139,12 +144,10 @@ func clipToMoon(_ ctx: CGContext) {
 // ---------------------------------------------------------------- variants
 struct Variant {
     var name: String
-    var bgTop: UInt32 = 0, bgBottom: UInt32 = 0
+    var bg: UInt32 = 0                   // flat ground
     var opaqueBackground = true
-    var glow: UInt32 = 0xFF4F00, glowAlpha: Double = 0.3
     var moonInner: UInt32, moonMid: UInt32, moonOuter: UInt32
     var moonHighlight: Double            // white specular inside the moon
-    var moonDarkInner: UInt32, moonDarkOuter: UInt32   // the unlit sphere behind
     var moonShadow: UInt32, moonShadowAlpha: Double   // terminator, makes the disc read as a sphere
     var pageTint: UInt32, pageAlpha: Double
     var pageStroke: UInt32, pageStrokeAlpha: Double
@@ -155,12 +158,10 @@ struct Variant {
     var frost: Bool = true               // sample & blur the backdrop through the page
 }
 
-let light = Variant(
+var light = Variant(
     name: "light",
-    bgTop: 0x8FB4E0, bgBottom: 0xE9D6BC,
-    glow: 0xFFE6BC, glowAlpha: 0.26,
+    bg: 0x5F8FC7,
     moonInner: 0xFFFDF6, moonMid: 0xFFEDCA, moonOuter: 0xE7BC7C, moonHighlight: 0.34,
-    moonDarkInner: 0xBCC6D4, moonDarkOuter: 0x9CA8BA,
     moonShadow: 0x6E5330, moonShadowAlpha: 0.36,
     pageTint: 0xFFFFFF, pageAlpha: 0.88,
     pageStroke: 0xFFFFFF, pageStrokeAlpha: 0.95,
@@ -171,12 +172,10 @@ let light = Variant(
 
 let dark = Variant(
     name: "dark",
-    bgTop: 0x1B3054, bgBottom: 0x050A14,
-    glow: 0xFFCE86, glowAlpha: 0.30,
+    bg: 0x000000,
     moonInner: 0xFFFDF7, moonMid: 0xFFEFD2, moonOuter: 0xE8C286, moonHighlight: 0.30,
-    moonDarkInner: 0x36435A, moonDarkOuter: 0x202B3D,
     moonShadow: 0x241A0E, moonShadowAlpha: 0.42,
-    pageTint: 0xFFFFFF, pageAlpha: 0.17,
+    pageTint: 0xFFFFFF, pageAlpha: 0.24,
     pageStroke: 0xFFFFFF, pageStrokeAlpha: 0.38,
     specular: 0.30,
     titleColor: 0xFF6A1A, titleAlpha: 1.0,
@@ -186,9 +185,7 @@ let dark = Variant(
 let tinted = Variant(
     name: "tinted",
     opaqueBackground: false,
-    glow: 0xFFFFFF, glowAlpha: 0.10,
     moonInner: 0xFFFFFF, moonMid: 0xF0F0F0, moonOuter: 0xB4B4B4, moonHighlight: 0.20,
-    moonDarkInner: 0x9A9A9A, moonDarkOuter: 0x6E6E6E,
     moonShadow: 0x000000, moonShadowAlpha: 0.20,
     pageTint: 0xE8E8E8, pageAlpha: 0.55,
     pageStroke: 0xFFFFFF, pageStrokeAlpha: 0.55,
@@ -203,35 +200,16 @@ func pagePath() -> CGPath {
     CGPath(roundedRect: page, cornerWidth: pageR, cornerHeight: pageR, transform: nil)
 }
 
-/// Background gradient + halo + moon — everything that sits *behind* the page.
+/// Flat ground + moon — everything that sits *behind* the page.
 func renderBase(_ v: Variant) -> CGImage {
     let ctx = newContext()
 
     if v.opaqueBackground {
-        ctx.saveGState()
-        ctx.addRect(CGRect(x: 0, y: 0, width: S, height: S))
-        ctx.clip()
-        linear(ctx, [c(v.bgTop), c(v.bgBottom)], [0, 1],
-               from: CGPoint(x: 180, y: 0), to: CGPoint(x: 860, y: S))
-        ctx.restoreGState()
+        ctx.setFillColor(c(v.bg))
+        ctx.fill(CGRect(x: 0, y: 0, width: S, height: S))
     }
 
-    // Halo around the moon.
-    radial(ctx, [c(v.glow, v.glowAlpha), c(v.glow, v.glowAlpha * 0.45), c(v.glow, 0)],
-           [0, 0.45, 1], center: moonC, r0: moonR * 0.85, r1: moonR * 2.1)
-
-    // The moon is two spheres of the same diameter, exactly superimposed: an
-    // unlit one, and the lit crescent in front of it. What the crescent leaves
-    // open shows the darker sphere, not the sky.
-    ctx.saveGState()
-    ctx.addEllipse(in: moonBox)
-    ctx.clip()
-    radial(ctx, [c(v.moonDarkInner), c(v.moonDarkOuter)], [0, 1],
-           center: CGPoint(x: moonC.x - moonR * 0.32, y: moonC.y - moonR * 0.36),
-           r0: 0, r1: moonR * 1.7)
-    ctx.restoreGState()
-
-    // Lit crescent.
+    // Crescent.
     ctx.saveGState()
     clipToMoon(ctx)
     radial(ctx, [c(v.moonInner), c(v.moonMid), c(v.moonOuter)], [0, 0.55, 1],
@@ -305,6 +283,9 @@ func renderIcon(_ v: Variant) -> CGImage {
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
 let env = ProcessInfo.processInfo.environment
 if let v = env["OPEN"],  let d = Double(v) { moonOpenAngle = CGFloat(d) }
+// Knobs for tuning the light variant without editing the file.
+func hex(_ key: String) -> UInt32? { env[key].flatMap { UInt32($0, radix: 16) } }
+if let v = hex("BG") { light.bg = v }
 if let v = env["THICK"], let d = Double(v) { moonThickness = CGFloat(d) }
 if let v = env["WRAP"],  let d = Double(v) { moonWrap = CGFloat(d) }
 for v in [light, dark, tinted] {
@@ -312,35 +293,50 @@ for v in [light, dark, tinted] {
     print("wrote AppIcon-\(v.name)-1024.png")
 }
 
-// LAYERS=<dir> also exports the flat foreground layers for Icon Composer.
+// LAYERS=<dir> exports every layer as flat SVG for Icon Composer — same
+// constants as the raster above, so the two cannot drift apart.
 if let layerDir = env["LAYERS"] {
     let (cc, cr) = moonCutter()
     func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
-    let svg = """
-    <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+    func hx(_ v: UInt32) -> String { String(format: "#%06X", v) }
+    func write(_ name: String, _ body: String) {
+        let svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+        \(body)
+        </svg>
+        """
+        try! svg.write(toFile: "\(layerDir)/\(name).svg", atomically: true, encoding: .utf8)
+        print("wrote \(name).svg")
+    }
+
+    for v in [light, dark] {
+        write("background-\(v.name)", "  <rect width=\"1024\" height=\"1024\" fill=\"\(hx(v.bg))\"/>")
+    }
+
+    let m = light
+    write("moon", """
       <defs>
         <radialGradient id="lit" gradientUnits="userSpaceOnUse"
                         cx="\(f(moonC.x - moonR * 0.32))" cy="\(f(moonC.y - moonR * 0.36))" r="\(f(moonR * 1.7))">
-          <stop offset="0" stop-color="#FFFDF6"/>
-          <stop offset="0.55" stop-color="#FFEDCA"/>
-          <stop offset="1" stop-color="#E7BC7C"/>
+          <stop offset="0" stop-color="\(hx(m.moonInner))"/>
+          <stop offset="0.55" stop-color="\(hx(m.moonMid))"/>
+          <stop offset="1" stop-color="\(hx(m.moonOuter))"/>
         </radialGradient>
-        <radialGradient id="unlit" gradientUnits="userSpaceOnUse"
-                        cx="\(f(moonC.x - moonR * 0.32))" cy="\(f(moonC.y - moonR * 0.36))" r="\(f(moonR * 1.7))">
-          <stop offset="0" stop-color="#BCC6D4"/>
-          <stop offset="1" stop-color="#9CA8BA"/>
-        </radialGradient>
+        <!-- The crescent is the moon's sphere minus a second circle offset
+             towards the opening, so its cusps come to a point on the limb. -->
         <mask id="crescent">
           <circle cx="\(f(moonC.x))" cy="\(f(moonC.y))" r="\(f(moonR))" fill="#FFFFFF"/>
           <circle cx="\(f(cc.x))" cy="\(f(cc.y))" r="\(f(cr))" fill="#000000"/>
         </mask>
       </defs>
-      <!-- Two spheres of the same diameter, exactly superimposed: the unlit one,
-           then the lit crescent in front of it. -->
-      <circle cx="\(f(moonC.x))" cy="\(f(moonC.y))" r="\(f(moonR))" fill="url(#unlit)"/>
       <circle cx="\(f(moonC.x))" cy="\(f(moonC.y))" r="\(f(moonR))" fill="url(#lit)" mask="url(#crescent)"/>
-    </svg>
-    """
-    try! svg.write(toFile: "\(layerDir)/moon.svg", atomically: true, encoding: .utf8)
-    print("wrote moon.svg")
+    """)
+
+    let rows = lines.enumerated().map { i, l in
+        let fill = i == 0 ? hx(m.titleColor) : "\(hx(m.bodyColor))\" opacity=\"\(m.bodyAlpha)"
+        return "  <rect x=\"\(f(l.r.minX))\" y=\"\(f(l.r.minY))\" width=\"\(f(l.r.width))\""
+             + " height=\"\(f(l.r.height))\" rx=\"\(f(l.radius))\" fill=\"\(fill)\"/>"
+    }.joined(separator: "\n")
+    write("page", "  <rect x=\"\(f(page.minX))\" y=\"\(f(page.minY))\" width=\"\(f(page.width))\""
+        + " height=\"\(f(page.height))\" rx=\"\(f(pageR))\" fill=\"\(hx(m.pageTint))\"/>\n" + rows)
 }
