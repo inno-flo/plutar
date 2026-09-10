@@ -10,8 +10,8 @@
 		2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83289D1D4214A472A453D921 /* RootView.swift */; };
 		41B07B23D507832A25179785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
 		4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D743AACE9F462982DE372A84 /* SettingsSheet.swift */; };
+		6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
 		8AB0AF4BF8FB73C85969A814 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
-		8AF8F2C10C2C876952034D86 /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8664445EFBBC0A8A6146F71 /* SourceRank.swift */; };
 		8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BDB1017E51147DD32031A2 /* SeedData.swift */; };
 		A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
@@ -27,11 +27,11 @@
 		83289D1D4214A472A453D921 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		89026185FF840D288774DDD0 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		89CC3F448604493B8E9A7320 /* PlutarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarApp.swift; sourceTree = "<group>"; };
-		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
 		CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D743AACE9F462982DE372A84 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
-		F8664445EFBBC0A8A6146F71 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
+		E06AAF3499A80C9298DB76F9 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -40,7 +40,7 @@
 			children = (
 				89026185FF840D288774DDD0 /* AppTheme.swift */,
 				A4949EBEF6B304848C4BEE06 /* LinkItem.swift */,
-				F8664445EFBBC0A8A6146F71 /* SourceRank.swift */,
+				E06AAF3499A80C9298DB76F9 /* SourceRank.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -140,6 +140,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					8238E248FD48C4263B97FC08 = {
+						DevelopmentTeam = AQ24F2W59K;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -149,7 +150,6 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
-				en,
 				fr,
 			);
 			mainGroup = 7900E840EE6C285CF583C4FE;
@@ -188,7 +188,7 @@
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
 				8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,
-				8AF8F2C10C2C876952034D86 /* SourceRank.swift in Sources */,
+				6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +244,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -270,7 +270,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -337,7 +336,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.9;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -364,7 +363,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
