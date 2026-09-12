@@ -664,17 +664,38 @@ struct RootView: View {
     private var floatingCounterBadge: some View {
         HStack {
             Spacer()
-            Text("\(currentCount)")
-                .font(appFont.font(size: 20, weight: .bold))
-                .frame(minWidth: 40, minHeight: 36)
-                .padding(.horizontal, 8)
-                // Copenhague: the counter badge alone swaps to an ochre
-                // yellow in every view (a darker variant for soir), leaving
-                // the day/source pill on its usual `chip`.
-                .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chip)
-                // Tokyo soir: same gray as the ranking rows' own count text.
-                .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
-                .clipShape(Capsule())
+            // A fixed 44×44 slot — the same box `floatingButton` uses —
+            // positioned by the same Spacer + trailing-padding pattern as
+            // every other floating button below, so its center always lands
+            // on their shared horizontal center. The actual badge is
+            // centered on top of it via `.overlay`, which lets it grow
+            // symmetrically outward from that fixed center as its digit
+            // count changes, rather than shifting the center left as its
+            // one free (left) edge moves.
+            Color.clear
+                .frame(width: 44, height: 44)
+                .overlay {
+                    Text("\(currentCount)")
+                        .font(appFont.font(size: 20, weight: .bold))
+                        // minWidth used to be 40 — wide enough on its own to
+                        // swallow the width difference between 1 and 2
+                        // digits (both simply clamped to the floor), so the
+                        // badge looked the same size regardless of digit
+                        // count. Lowered so a single digit's natural width
+                        // dictates its own size and 2/3-digit counts
+                        // visibly grow past it instead.
+                        .frame(minWidth: 24, minHeight: 36)
+                        .padding(.horizontal, 8)
+                        // Copenhague: the counter badge alone swaps to an
+                        // ochre yellow in every view (a darker variant for
+                        // soir), leaving the day/source pill on its usual
+                        // `chip`.
+                        .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chip)
+                        // Tokyo soir: same gray as the ranking rows' own
+                        // count text.
+                        .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
+                        .clipShape(Capsule())
+                }
         }
         .padding(.top, 14)
         .padding(.trailing, 18)
