@@ -40,7 +40,6 @@ struct PlutarApp: App {
             )
             container = Self.makeInMemoryContainer()
         }
-        seedIfNeeded()
     }
 
     var body: some Scene {
@@ -73,24 +72,5 @@ struct PlutarApp: App {
             for: LinkItem.self, SourceRank.self,
             configurations: configuration
         )
-    }
-
-    /// Populates the store with the 200 demo links on first launch only.
-    private func seedIfNeeded() {
-        let context = container.mainContext
-        let descriptor = FetchDescriptor<LinkItem>()
-        let existingCount = (try? context.fetchCount(descriptor)) ?? 0
-        guard existingCount == 0 else { return }
-
-        let items = SeedData.makeLinkItems()
-        for item in items { context.insert(item) }
-        SourceRank.bump(items.map(\.host), in: context)
-        do {
-            try context.save()
-        } catch {
-            // Previously a bare `try?`: a failed seed left the app showing an
-            // empty feed with nothing anywhere saying why.
-            PlutarLog.store.error("Seeding failed: \(String(describing: error), privacy: .public)")
-        }
     }
 }
