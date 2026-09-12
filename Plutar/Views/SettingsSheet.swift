@@ -23,7 +23,6 @@ struct SettingsSheet: View {
     @Binding var blackSoirBackground: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
-    let onRegenerate: () -> Void
     let onResetRanking: () -> Void
     let onClose: () -> Void
     /// Same color as the day/source pill and counter badge — applied only
@@ -47,6 +46,8 @@ struct SettingsSheet: View {
     /// tall as it needs to instead of always going full-screen. The value
     /// starts at a reasonable guess and is corrected once layout runs.
     @State private var contentHeight: CGFloat = 480
+    @State private var showResetRankingConfirm = false
+    @State private var showClearFeedConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -119,23 +120,42 @@ struct SettingsSheet: View {
                         .opacity(layout == .rail ? 0.4 : 1)
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Button(role: .destructive, action: onClearAll) {
+                    section("Avancé") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(role: .destructive) {
+                                showResetRankingConfirm = true
+                            } label: {
+                                Text("Réinitialiser le classement")
+                            }
+                            .buttonStyle(.glass)
+                            .confirmationDialog(
+                                "Réinitialiser le classement ?",
+                                isPresented: $showResetRankingConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Réinitialiser", role: .destructive, action: onResetRanking)
+                                Button("Annuler", role: .cancel) {}
+                            } message: {
+                                Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                            }
+
+                            Button(role: .destructive) {
+                                showClearFeedConfirm = true
+                            } label: {
                                 Text("Vider le fil")
                             }
                             .buttonStyle(.glass)
-
-                            Button(action: onRegenerate) {
-                                Text("Regénérer les liens")
+                            .confirmationDialog(
+                                "Vider le fil ?",
+                                isPresented: $showClearFeedConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Vider", role: .destructive, action: onClearAll)
+                                Button("Annuler", role: .cancel) {}
+                            } message: {
+                                Text("Tous les liens seront supprimés définitivement.")
                             }
-                            .buttonStyle(.glass)
                         }
-
-                        Button(role: .destructive, action: onResetRanking) {
-                            Text("Réinitialiser le classement")
-                        }
-                        .buttonStyle(.glass)
                     }
                     .padding(.top, 6)
                 }

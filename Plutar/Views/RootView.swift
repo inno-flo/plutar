@@ -120,7 +120,6 @@ struct RootView: View {
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .chrono
     @State private var showSettings = false
-    @State private var pendingShare: SeedData.PoolEntry?
 
     /// Every link deleted inside the current undo window, oldest first — a
     /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
@@ -427,20 +426,10 @@ struct RootView: View {
                 blackSoirBackground: $blackSoirBackground,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
-                onRegenerate: { regenerateLinks(); showSettings = false },
                 onResetRanking: { resetSourceRanking(); showSettings = false },
                 onClose: { showSettings = false },
                 chipColor: theme.chip
             )
-        }
-        .sheet(item: $pendingShare) { entry in
-            ShareSimulationSheet(
-                entry: entry,
-                onOther: { pendingShare = SeedData.pool.filter { $0.id != entry.id }.randomElement() ?? entry },
-                onSave: { save(entry); pendingShare = nil },
-                onCancel: { pendingShare = nil }
-            )
-            .presentationDetents([.height(220)])
         }
         .alert(
             "Supprimer les liens lus",
@@ -567,8 +556,6 @@ struct RootView: View {
                             icon: "moon.stars",
                             title: "Aucun lien partagé",
                             text: "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
-                            showsSimulateButton: true,
-                            onSimulateShare: { pendingShare = SeedData.pool.randomElement() },
                             fillHeight: false
                         )
                         .padding(.top, 40)
@@ -625,9 +612,7 @@ struct RootView: View {
                             title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
                             text: mode == .read
                                 ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
-                                : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
-                            showsSimulateButton: mode != .read,
-                            onSimulateShare: { pendingShare = SeedData.pool.randomElement() }
+                                : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage."
                         )
                     }
                 }
@@ -1040,75 +1025,9 @@ struct RootView: View {
         }
     }
 
-    /// Wipes the store and drops 200 demo links back in, freshly timestamped
-    /// and with each of the 6 test sources' quantity randomized anew.
-    private func regenerateLinks() {
-        for item in allItems { modelContext.delete(item) }
-        let items = SeedData.makeLinkItems()
-        for item in items { modelContext.insert(item) }
-        SourceRank.bump(items.map(\.host), in: modelContext)
-        persist()
-    }
-
-    private func save(_ entry: SeedData.PoolEntry) {
-        let item = entry.makeLinkItem()
-        modelContext.insert(item)
-        SourceRank.bump(item.host, in: modelContext)
-        persist()
-    }
-
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
         persist()
-    }
-}
-
-private struct ShareSimulationSheet: View {
-    let entry: SeedData.PoolEntry
-    let onOther: () -> Void
-    let onSave: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Feuille de partage")
-                    .font(.system(size: 12, weight: .semibold))
-                    .tracking(2)
-                    .textCase(.uppercase)
-                Spacer()
-                Button("Annuler", action: onCancel)
-                    .font(.system(size: 11, weight: .medium))
-                    .tracking(1)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(hex: entry.colorHex).opacity(0.25))
-                    .frame(width: 44, height: 44)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.title).font(.system(size: 13.5)).lineLimit(1)
-                    Text(entry.host)
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(1)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(12)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
-
-            HStack(spacing: 10) {
-                Button("Autre page", action: onOther)
-                    .buttonStyle(.bordered)
-                Button("Enregistrer dans Plutar", action: onSave)
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(20)
     }
 }

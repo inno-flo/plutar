@@ -318,6 +318,22 @@ attendait justement de vrais liens du Share Extension pour être profilé
 ici (nécessite un appareil/Simulateur fonctionnel, hors de portée de cette
 machine).
 
+## Nettoyage post-Share Extension : réglages « Avancé »
+
+Le partage réel remplaçant définitivement la simulation :
+
+- Supprimé entièrement : le bouton « Simuler un partage » (`EmptyStateView`),
+  sa feuille de confirmation `ShareSimulationSheet` et le pool de 3 liens
+  factices qui l'alimentait (`SeedData.PoolEntry`/`SeedData.pool`).
+- « Regénérer les liens » retiré des réglages (bouton et câblage) — plus
+  aucun appelant, la fonction `regenerateLinks()` a été supprimée avec lui
+  plutôt que laissée mais inutilisée.
+- Nouvel en-tête **Avancé** dans Affichage, avec dans l'ordre
+  « Réinitialiser le classement » puis « Vider le fil » — chacun ouvre
+  désormais une boîte de dialogue de confirmation (`.confirmationDialog`)
+  avant d'agir, bouton de validation en rôle `.destructive` (rouge,
+  comportement standard iOS) contre un « Annuler ».
+
 ## Prochaines étapes possibles
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)
