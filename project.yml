@@ -36,6 +36,11 @@ targets:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
+    entitlements:
+      path: Plutar/Plutar.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.innoflo.plutar
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar
@@ -48,6 +53,55 @@ targets:
         DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+    dependencies:
+      - target: PlutarShare
+        embed: true
+
+  PlutarShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "26.6"
+    sources:
+      - path: PlutarShare
+      # Shared with the main app so both link to the exact same App
+      # Group container and LinkItem-building logic — see the comment
+      # atop SharedStore.swift.
+      - path: Plutar/Models/LinkItem.swift
+      - path: Plutar/Models/SourceRank.swift
+      - path: Plutar/Persistence
+    info:
+      path: PlutarShare/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleDisplayName: Plutar
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          NSExtensionAttributes:
+            # The simplified dictionary form (Supports*WithMaxCount) only
+            # matches items typed exactly as public.url — several non-Apple
+            # apps (X, Mastodon, Reddit…) hand the share sheet a plain-text
+            # attachment containing the link instead, which that form can't
+            # accept without also accepting arbitrary text. This predicate
+            # form matches either shape; ShareViewController still rejects
+            # plain text that isn't actually a URL once it's asked to load it.
+            NSExtensionActivationRule: 'SUBQUERY (extensionItems, $extensionItem, SUBQUERY ($extensionItem.attachments, $attachment, (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.url") || (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.plain-text")).@count >= 1).@count >= 1'
+    entitlements:
+      path: PlutarShare/PlutarShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.innoflo.plutar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.PlutarShare
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_EMIT_LOC_STRINGS: YES
+        DEVELOPMENT_TEAM: AQ24F2W59K
+        INFOPLIST_KEY_CFBundleDisplayName: Plutar
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO

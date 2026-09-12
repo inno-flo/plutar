@@ -60,18 +60,28 @@ private struct DeletedSnapshot {
     /// brought the link back as unread, i.e. into Date rather than the view
     /// the user was actually looking at.
     let isRead: Bool
+    /// Without these two, undoing the delete of a real shared link reset it
+    /// to pre-enrichment state — no thumbnail, and queued to be re-fetched
+    /// as if it were brand new.
+    let thumbnailFileName: String?
+    let metadataFetched: Bool
+    let excerptFetchAttempted: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
         initial = item.initial; colorHex = item.colorHex; dateAdded = item.dateAdded
         sourceApp = item.sourceApp; excerpt = item.excerpt; hasThumbnail = item.hasThumbnail
         isRead = item.isRead
+        thumbnailFileName = item.thumbnailFileName; metadataFetched = item.metadataFetched
+        excerptFetchAttempted = item.excerptFetchAttempted
     }
 
     func makeLinkItem() -> LinkItem {
         LinkItem(title: title, urlString: urlString, host: host, initial: initial,
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
-                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead)
+                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead,
+                 thumbnailFileName: thumbnailFileName, metadataFetched: metadataFetched,
+                 excerptFetchAttempted: excerptFetchAttempted)
     }
 }
 
@@ -435,7 +445,7 @@ struct RootView: View {
             Button("Supprimer", role: .destructive) { clearRead() }
         }
         .alert(
-            "Marquer les liens comme lus",
+            "Marquer tous les liens comme lus",
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
@@ -575,7 +585,7 @@ struct RootView: View {
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                             }
                         } header: {
-                            Text("Classement des sources")
+                            Text("Sources les plus partagées")
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundStyle(theme.ink(0.55))
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -760,17 +770,49 @@ struct RootView: View {
             .padding(.trailing, 18)
             .padding(.vertical, 4)
         } else {
-            Text(group.label)
-                .font(appFont.font(size: 16.5, weight: .bold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(theme.chip)
-                .foregroundStyle(theme.chipText)
-                .clipShape(Capsule())
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowInsets(EdgeInsets())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 4)
+            // Date mirrors Sources: the day chip stays a plain non-interactive
+            // label, with its own mark-as-read button trailing it — same
+            // 44pt tap target and icon treatment as Sources' per-source button.
+            HStack(alignment: .center, spacing: 10) {
+                Text(group.label)
+                    .font(appFont.font(size: 16.5, weight: .bold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(theme.chip)
+                    .foregroundStyle(theme.chipText)
+                    .clipShape(Capsule())
+
+                if mode == .chrono {
+                    Spacer(minLength: 0)
+
+                    Button {
+                        markSourceAsRead(group.items)
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                } else if mode == .read {
+                    Spacer(minLength: 0)
+
+                    Button {
+                        requestDeleteGroup(group.items)
+                    } label: {
+                        Image(systemName: "trash.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets())
+            .padding(.leading, 14)
+            .padding(.trailing, 18)
+            .padding(.vertical, 4)
         }
     }
 
@@ -918,6 +960,11 @@ struct RootView: View {
     private func markAsUnread(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = false
+            // A link moved back to unread re-enters Date/Sources, where the
+            // excerpt is worth having again (Éditoriale) — give
+            // LinkMetadataEnricher a fresh try rather than leaving it as it
+            // was left back when it was last unread.
+            item.excerptFetchAttempted = false
             persist()
         }
     }
@@ -936,6 +983,21 @@ struct RootView: View {
         // Each delete restarts the window, so the user always gets the full
         // 1.2 seconds from their own last swipe rather than from the first
         // one in the batch.
+        undoTask?.cancel()
+        undoTask = Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            if !Task.isCancelled { undoSnapshots.removeAll() }
+        }
+    }
+
+    /// Deletes every link in a Lus day group at once, all covered by the
+    /// same undo toast (its count reflects the whole group).
+    private func requestDeleteGroup(_ items: [LinkItem]) {
+        for item in items {
+            undoSnapshots.append(DeletedSnapshot(item))
+            modelContext.delete(item)
+        }
+        persist()
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(1.2))

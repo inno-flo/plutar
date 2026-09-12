@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Renders one `LinkItem` in whichever of the three timeline layouts is
 /// currently selected (rail / card / editorial).
@@ -143,6 +144,23 @@ struct LinkRowView: View {
     }
 
     private func thumbnail(size: CGFloat, fullWidth: Bool = false) -> some View {
+        Group {
+            if let fileName = item.thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                placeholderThumbnail
+            }
+        }
+        .frame(width: fullWidth ? nil : size, height: size)
+        .frame(maxWidth: fullWidth ? .infinity : size)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Placeholder for demo links (no real image ever fetched for those)
+    /// and for real ones still waiting on `LinkMetadataEnricher`.
+    private var placeholderThumbnail: some View {
         let stripes = theme.thumbnailStripes
         return ZStack(alignment: .bottomLeading) {
             StripesShape()
@@ -156,9 +174,23 @@ struct LinkRowView: View {
                 .padding(5)
                 .hidden()
         }
-        .frame(width: fullWidth ? nil : size, height: size)
-        .frame(maxWidth: fullWidth ? .infinity : size)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
+    /// disk on every layout pass — thumbnails are a handful of KB each, but
+    /// cells redraw often (theme changes, read-state toggles, swipe).
+    private static let thumbnailCache = NSCache<NSString, UIImage>()
+
+    private static func cachedThumbnail(_ fileName: String) -> UIImage? {
+        let key = fileName as NSString
+        if let cached = thumbnailCache.object(forKey: key) { return cached }
+        guard let directory = SharedStore.thumbnailsDirectoryURL(),
+              let image = UIImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
+        else {
+            return nil
+        }
+        thumbnailCache.setObject(image, forKey: key)
+        return image
     }
 }
 
