@@ -506,7 +506,7 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: mode != .chrono)
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: false)
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -759,7 +759,12 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets())
-            .padding(.leading, 14)
+            // The source chip's own leading padding (14) plus its label's
+            // internal padding (14) put the source name 28pt from the row
+            // edge, 4pt short of a link title's 32pt (14 listRowInset + 18
+            // LinkRowView padding) — nudged to match, same as the day pill
+            // below.
+            .padding(.leading, 18)
             .padding(.trailing, 18)
             .padding(.vertical, 4)
         } else {
@@ -803,7 +808,11 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets())
-            .padding(.leading, 14)
+            // Same nudge as the source chip above: the day pill's own
+            // leading padding (14) plus its label's internal padding (14)
+            // put "Aujourd'hui" 28pt from the row edge, 4pt short of a link
+            // title's 32pt (14 listRowInset + 18 LinkRowView padding).
+            .padding(.leading, 18)
             .padding(.trailing, 18)
             .padding(.vertical, 4)
         }
