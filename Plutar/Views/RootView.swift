@@ -987,11 +987,11 @@ struct RootView: View {
         modelContext.delete(item)
         persist()
         // Each delete restarts the window, so the user always gets the full
-        // 1.2 seconds from their own last swipe rather than from the first
+        // 1.5 seconds from their own last swipe rather than from the first
         // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.2))
+            try? await Task.sleep(for: .seconds(1.5))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }
@@ -1006,7 +1006,7 @@ struct RootView: View {
         persist()
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.2))
+            try? await Task.sleep(for: .seconds(1.5))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }
