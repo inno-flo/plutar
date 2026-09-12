@@ -126,7 +126,7 @@ enum LinkMetadataEnricher {
         return metaDescription(in: html)
     }
 
-    private static let descriptionPatterns = [
+    private nonisolated static let descriptionPatterns = [
         #"<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']"#,
         #"<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:description["']"#,
         #"<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']"#,
@@ -148,7 +148,7 @@ enum LinkMetadataEnricher {
         return nil
     }
 
-    private static let htmlEntities: [String: String] = [
+    private nonisolated static let htmlEntities: [String: String] = [
         "&amp;": "&", "&quot;": "\"", "&#39;": "'", "&apos;": "'",
         "&lt;": "<", "&gt;": ">", "&nbsp;": " ",
     ]
