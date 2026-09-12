@@ -60,7 +60,7 @@
 		07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeGesture.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
-		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SharePreprocessor.js; sourceTree = "<group>"; };
 		4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMetadataEnricher.swift; sourceTree = "<group>"; };
@@ -72,7 +72,7 @@
 		89CC3F448604493B8E9A7320 /* PlutarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarApp.swift; sourceTree = "<group>"; };
 		8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItemFactory.swift; sourceTree = "<group>"; };
 		8D7070AAD03D0D1CA47971AD /* PlutarShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarShare.entitlements; sourceTree = "<group>"; };
-		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1134246047A1EA572CF8858 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
 		AE8F832831F7C825B208B963 /* Plutar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Plutar.entitlements; sourceTree = "<group>"; };
@@ -232,7 +232,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					8238E248FD48C4263B97FC08 = {
 						DevelopmentTeam = AQ24F2W59K;
@@ -366,9 +366,10 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = AQ24F2W59K;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -383,6 +384,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -393,7 +395,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = PlutarShare/PlutarShare.entitlements;
-				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarShare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
@@ -420,7 +421,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Plutar/Plutar.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = Plutar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -444,7 +444,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = PlutarShare/PlutarShare.entitlements;
-				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarShare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
@@ -501,9 +500,10 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = AQ24F2W59K;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -525,6 +525,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -538,7 +539,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Plutar/Plutar.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = Plutar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
