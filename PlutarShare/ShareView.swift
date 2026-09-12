@@ -21,8 +21,10 @@ struct ShareView: View {
             Form {
                 Section {
                     TextField("Titre", text: $title)
+                        .font(.system(size: 15))
                 } header: {
                     Text(host)
+                        .font(.system(size: 17, weight: .bold))
                 }
             }
             .navigationTitle("plutar")
@@ -30,10 +32,11 @@ struct ShareView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler", action: onCancel)
+                        .font(.system(size: 17))
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") { onSave(title) }
-                        .fontWeight(.semibold)
+                        .font(.system(size: 17, weight: .semibold))
                 }
             }
         }
