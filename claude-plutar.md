@@ -334,6 +334,28 @@ Le partage réel remplaçant définitivement la simulation :
   avant d'agir, bouton de validation en rôle `.destructive` (rouge,
   comportement standard iOS) contre un « Annuler ».
 
+## Secouer pour changer de thème
+
+Nouveau geste : secouer l'appareil tire un thème au hasard, restreint à la
+famille clair/sombre actuellement affichée (un thème clair reste clair, un
+soir reste soir) — police, mise en page et tous les autres réglages
+d'Affichage restent intacts.
+
+- **`Plutar/Views/ShakeGesture.swift`** — le geste de secousse
+  (`UIEvent.EventSubtype.motionShake`), le même mécanisme système que
+  « Secouer pour annuler », déjà géré par l'accéléromètre côté UIKit sans
+  passer par CoreMotion. Capté en surchargeant `UIWindow.motionEnded`,
+  rediffusé en `Notification`, exposé via `View.onShake { }`. C'est le
+  même principe que le masquage des prix dans l'app PierreVincent.
+- `RootView.shakeToRandomizeTheme()` : tire dans `AppTheme.selectable`
+  filtré sur `isSoir == theme.isSoir` (le thème réellement affiché, pas le
+  brut stocké — voir le correctif Automatique plus haut), en excluant le
+  thème courant. Ne touche qu'à `themeRaw` — jamais `appearanceRaw`, pour
+  ne pas sortir l'Apparence d'Automatique.
+- Activable/désactivable via une bascule « Secouer pour changer de thème »,
+  en tête de la section **Avancé** (`plutar.shakeToChangeTheme`,
+  activée par défaut).
+
 ## Prochaines étapes possibles
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)

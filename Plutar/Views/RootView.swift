@@ -116,6 +116,7 @@ struct RootView: View {
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
+    @AppStorage("plutar.shakeToChangeTheme") private var shakeToChangeTheme = true
 
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .chrono
@@ -374,6 +375,10 @@ struct RootView: View {
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
         .tabBarMinimizeBehavior(.onScrollDown)
+        .onShake {
+            guard shakeToChangeTheme else { return }
+            shakeToRandomizeTheme()
+        }
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
                 showSettings = true
@@ -424,6 +429,7 @@ struct RootView: View {
                 showThumbnails: $showThumbnails,
                 showFavicons: $showFavicons,
                 blackSoirBackground: $blackSoirBackground,
+                shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
                 onResetRanking: { resetSourceRanking(); showSettings = false },
@@ -1029,5 +1035,17 @@ struct RootView: View {
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
         persist()
+    }
+
+    /// Picks a random theme within the currently displayed one's own
+    /// light/soir family — a clear theme shaken from stays clear, a soir one
+    /// stays soir — leaving `appearanceRaw` untouched so "Automatique" keeps
+    /// following the system rather than getting silently pinned to whichever
+    /// variant the new pick happens to be. Font, layout and every other
+    /// Affichage setting are untouched too: only `themeRaw` changes.
+    private func shakeToRandomizeTheme() {
+        let candidates = AppTheme.selectable.filter { $0.isSoir == theme.isSoir && $0 != selectedTheme }
+        guard let next = candidates.randomElement() else { return }
+        themeRaw = next.rawValue
     }
 }

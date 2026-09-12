@@ -21,6 +21,9 @@ struct SettingsSheet: View {
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @Binding var blackSoirBackground: Bool
+    /// Whether shaking the device (see `RootView.shakeToRandomizeTheme`)
+    /// picks a new theme within the current light/soir family.
+    @Binding var shakeToChangeTheme: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
     let onResetRanking: () -> Void
@@ -122,6 +125,13 @@ struct SettingsSheet: View {
 
                     section("Avancé") {
                         VStack(alignment: .leading, spacing: 8) {
+                            Toggle(isOn: $shakeToChangeTheme) {
+                                Text("Secouer pour changer de thème")
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                             Button(role: .destructive) {
                                 showResetRankingConfirm = true
                             } label: {

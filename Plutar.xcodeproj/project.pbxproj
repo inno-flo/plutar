@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */; };
 		2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		2BA5C1FB212524164BC56EE2 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83289D1D4214A472A453D921 /* RootView.swift */; };
@@ -56,6 +57,7 @@
 
 /* Begin PBXFileReference section */
 		07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeGesture.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */,
 				83289D1D4214A472A453D921 /* RootView.swift */,
 				D743AACE9F462982DE372A84 /* SettingsSheet.swift */,
+				0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */,
 				B16AB1A94CABFC818AB790D6 /* Rows */,
 			);
 			path = Views;
@@ -297,6 +300,7 @@
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
 				8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,
+				0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */,
 				2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */,
 				6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */,
 			);
