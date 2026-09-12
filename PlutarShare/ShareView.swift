@@ -33,10 +33,12 @@ struct ShareView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler", action: onCancel)
                         .font(.system(size: 17))
+                        .foregroundStyle(.black)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") { onSave(title) }
                         .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.black)
                 }
             }
         }
