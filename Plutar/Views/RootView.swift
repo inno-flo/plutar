@@ -506,7 +506,7 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: mode != .chrono)
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: false)
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))

@@ -12,9 +12,10 @@ struct LinkRowView: View {
     let showFavicons: Bool
     /// Whether a link with no real image (not fetched yet, or the fetch
     /// found none) falls back to the striped placeholder, or shows nothing
-    /// at all. Date passes `false` — a wall of placeholders for links still
-    /// waiting on `LinkMetadataEnricher` read as more "broken" than useful
-    /// there; Sources/Lus keep the placeholder.
+    /// at all. All three tabs (Date, Sources, Lus) now pass `false` — a wall
+    /// of placeholders for links still waiting on `LinkMetadataEnricher`
+    /// read as more "broken" than useful. Kept as a parameter rather than
+    /// deleted outright, in case a future layout wants the placeholder back.
     let showsPlaceholderThumbnail: Bool
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
