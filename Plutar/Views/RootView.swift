@@ -666,7 +666,13 @@ struct RootView: View {
             Spacer()
             Text("\(currentCount)")
                 .font(appFont.font(size: 20, weight: .bold))
-                .frame(minWidth: 40, minHeight: 36)
+                // minWidth used to be 40 — wide enough on its own to swallow
+                // the width difference between 1 and 2 digits (both simply
+                // clamped to the floor), so the badge looked the same size
+                // regardless of digit count. Lowered so a single digit's
+                // natural width dictates its own size and 2/3-digit counts
+                // visibly grow past it instead.
+                .frame(minWidth: 24, minHeight: 36)
                 .padding(.horizontal, 8)
                 // Copenhague: the counter badge alone swaps to an ochre
                 // yellow in every view (a darker variant for soir), leaving
