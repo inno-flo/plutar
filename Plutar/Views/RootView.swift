@@ -425,7 +425,6 @@ struct RootView: View {
                 ),
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
-                showThumbnails: $showThumbnails,
                 blackSoirBackground: $blackSoirBackground,
                 shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),

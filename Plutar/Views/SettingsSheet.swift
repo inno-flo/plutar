@@ -16,7 +16,6 @@ struct SettingsSheet: View {
     @Binding var theme: AppTheme
     @Binding var appearance: AppAppearance
     @Binding var appFont: AppFont
-    @Binding var showThumbnails: Bool
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @Binding var blackSoirBackground: Bool
@@ -96,22 +95,6 @@ struct SettingsSheet: View {
                                 pill(l.label, isActive: layout == l) { layout = l }
                             }
                         }
-                    }
-
-                    section("Présentation des liens") {
-                        VStack(spacing: 8) {
-                            Toggle(isOn: $showThumbnails) {
-                                Text("Afficher les vignettes")
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
-                        // Has no effect in Simple — that layout shows no
-                        // thumbnail at all — so it's grayed out and inert
-                        // there, usable again for the other two layouts.
-                        .disabled(layout == .rail)
-                        .opacity(layout == .rail ? 0.4 : 1)
                     }
 
                     section("Avancé") {
