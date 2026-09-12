@@ -11,7 +11,6 @@ struct LinkRowView: View {
     let showThumbnails: Bool
     let showFavicons: Bool
 
-    private var viaString: String { "via \(item.sourceApp)" }
     private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
@@ -89,7 +88,7 @@ struct LinkRowView: View {
             }
             Spacer(minLength: 0)
             if showThumbnail {
-                thumbnail(size: 86)
+                thumbnail(size: 43)
             }
         }
     }
@@ -130,17 +129,10 @@ struct LinkRowView: View {
     }
 
     private var hostRow: some View {
-        HStack(spacing: 7) {
-            Text(item.host)
-                .font(appFont.font(size: 13, weight: .semibold))
-                .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
-                .lineLimit(1)
-            if !viaString.isEmpty {
-                Text(viaString)
-                    .font(appFont.font(size: 13))
-                    .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.34))
-            }
-        }
+        Text(item.host)
+            .font(appFont.font(size: 13, weight: .semibold))
+            .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
+            .lineLimit(1)
     }
 
     private func thumbnail(size: CGFloat, fullWidth: Bool = false) -> some View {

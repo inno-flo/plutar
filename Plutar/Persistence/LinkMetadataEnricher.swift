@@ -9,6 +9,19 @@ import UIKit
 /// preview does. Runs in the main app only (network + image decoding don't
 /// fit the extension's short execution budget), triggered from
 /// `PlutarApp` whenever the app becomes active.
+// `ModelContext.mainContext` — the only context this ever runs on — is only
+// safe to touch from the main actor. Everything here that reads/writes
+// `context` or a `LinkItem` is pinned to `@MainActor` for that reason; the
+// actual slow part of each step (the network call inside
+// `fetchLinkMetadata`/`fetchMetaDescription`, plain nonisolated `async`
+// functions below) still runs off the main thread — awaiting a nonisolated
+// async function from `@MainActor` code hops off it for the call and back
+// once it returns, so the fetch itself never blocks the UI. Previously
+// nothing here was actor-pinned, so after the first `await` execution could
+// resume on a background thread while still mutating `LinkItem`/
+// `ModelContext` — the likely cause of a freeze-then-crash observed in
+// testing, with a handful of links left half-enriched once the app relaunched.
+@MainActor
 enum LinkMetadataEnricher {
     /// Processes a handful of not-yet-enriched links per call rather than
     /// every pending one at once, so a burst of shared links (or a cold
@@ -84,8 +97,14 @@ enum LinkMetadataEnricher {
         item.excerpt = excerpt
     }
 
-    private static func fetchLinkMetadata(for url: URL) async -> LPLinkMetadata? {
+    /// `nonisolated`, deliberately: this is the actual slow part (a network
+    /// round trip), and must run off the main actor so awaiting it doesn't
+    /// pin the wait to the main thread. `.timeout` bounds a hung/slow host
+    /// to the same 8 s cap as `fetchMetaDescription` below, rather than
+    /// however long `LPMetadataProvider` would otherwise wait on its own.
+    private nonisolated static func fetchLinkMetadata(for url: URL) async -> LPLinkMetadata? {
         let provider = LPMetadataProvider()
+        provider.timeout = 8
         return try? await provider.startFetchingMetadata(for: url)
     }
 
@@ -93,7 +112,8 @@ enum LinkMetadataEnricher {
     /// pulls a capped prefix of the HTML itself and reads it out directly —
     /// enough to reach `<meta name="description">` /
     /// `<meta property="og:description">`, which live in `<head>`.
-    private static func fetchMetaDescription(for url: URL) async -> String? {
+    /// `nonisolated` for the same reason as `fetchLinkMetadata` above.
+    private nonisolated static func fetchMetaDescription(for url: URL) async -> String? {
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
         guard let (data, _) = try? await URLSession.shared.data(for: request) else { return nil }
@@ -113,7 +133,7 @@ enum LinkMetadataEnricher {
         #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']"#,
     ]
 
-    private static func metaDescription(in html: String) -> String? {
+    private nonisolated static func metaDescription(in html: String) -> String? {
         let range = NSRange(html.startIndex..., in: html)
         for pattern in descriptionPatterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
@@ -133,13 +153,15 @@ enum LinkMetadataEnricher {
         "&lt;": "<", "&gt;": ">", "&nbsp;": " ",
     ]
 
-    private static func decodeHTMLEntities(_ string: String) -> String {
+    private nonisolated static func decodeHTMLEntities(_ string: String) -> String {
         htmlEntities.reduce(string) { result, entity in
             result.replacingOccurrences(of: entity.key, with: entity.value)
         }
     }
 
-    private static func saveThumbnail(from provider: NSItemProvider, id: UUID) async -> String? {
+    /// `nonisolated`: the image load/encode/write below has nothing to do
+    /// with `ModelContext` and doesn't need the main actor.
+    private nonisolated static func saveThumbnail(from provider: NSItemProvider, id: UUID) async -> String? {
         guard provider.canLoadObject(ofClass: UIImage.self) else { return nil }
         let image: UIImage? = await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: UIImage.self) { object, _ in

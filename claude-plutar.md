@@ -388,6 +388,40 @@ qui aurait laissé les favicons actifs pour qui l'avait déjà à `true`), et la
 bascule « Afficher les favicons » a disparu d'Affichage → Présentation des
 liens (qui ne garde que « Afficher les vignettes »).
 
+## Capsules de lien, vignette Détaillée, et le vrai bug du gel/plantage
+
+Trois demandes suite à un usage réel :
+
+- **« via X » retiré des capsules** — `LinkRowView.hostRow` n'affiche plus
+  que `item.host` ; `viaString`/le second `Text` ont disparu. Le champ
+  `LinkItem.sourceApp` (Safari vs Partage générique, voir plus haut) reste
+  en base — il n'était affiché qu'ici.
+- **Vignette réduite de 50 % en Détaillée** — `thumbnail(size: 86)` →
+  `thumbnail(size: 43)` dans `LinkRowView.cardBody`. Éditoriale (150,
+  pleine largeur) inchangée.
+- **Le vrai bug derrière le gel puis plantage observé** : `LinkMetadataEnricher`
+  n'était pinné à aucun acteur. Appelé depuis un `.task` SwiftUI (donc
+  démarré sur le main actor), mais dès le premier `await` dans une fonction
+  `nonisolated` par défaut, l'exécution pouvait reprendre sur un thread
+  d'arrière-plan — et les mutations de `LinkItem`/`ModelContext.mainContext`
+  qui suivaient (assignations de propriétés, `context.save()`) se
+  produisaient alors hors du thread principal, alors que `mainContext`
+  n'est garanti utilisable que depuis là. D'où le tableau observé : gel,
+  puis crash, puis au relancement quelques liens qui avaient bien reçu
+  titre/image malgré tout (l'écriture avait eu le temps de partir avant que
+  ça casse).
+
+  Corrigé en épinglant tout ce qui touche `context`/`item` à `@MainActor`
+  (l'enum entier, sauf les fonctions explicitement `nonisolated` :
+  `fetchLinkMetadata`, `fetchMetaDescription`, `metaDescription`,
+  `decodeHTMLEntities`, `saveThumbnail`). Le `await` sur une fonction
+  `nonisolated` depuis du code `@MainActor` continue de libérer le thread
+  principal pendant l'attente réseau — rien n'est perdu côté « ne bloque pas
+  l'app », seules les écritures sur le modèle sont maintenant garanties sur
+  le bon acteur. `LPMetadataProvider.timeout` fixé à 8 s (aligné sur le
+  fetch HTML), pour ne plus dépendre de son délai par défaut en cas d'hôte
+  qui ne répond jamais.
+
 ## Prochaines étapes possibles
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)
