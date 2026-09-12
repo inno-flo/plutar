@@ -836,6 +836,14 @@ struct RootView: View {
     /// A row's width is proportional to its share of `maxCount` (the
     /// top-ranked source's own count) — a bar-chart-like read on
     /// importance, not just the numeral shown at its trailing edge.
+    /// The domain suffix (".com", ".fr", ".net"…) is dropped for this
+    /// ranking specifically — `sourceRankRow` names its capsules "nytimes",
+    /// not "nytimes.com". Elsewhere (the link cards' host line) the full
+    /// domain is kept.
+    private func sourceRankDisplayName(_ host: String) -> String {
+        host.split(separator: ".").first.map(String.init) ?? host
+    }
+
     private func sourceRankRow(rank: Int, entry: SourceRank, maxCount: Int) -> some View {
         GeometryReader { proxy in
             let ratio = maxCount > 0 ? CGFloat(entry.count) / CGFloat(maxCount) : 1
@@ -845,12 +853,18 @@ struct RootView: View {
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.ink(0.4))
                     .frame(width: 22, alignment: .leading)
-                Text(entry.host)
+                Text(sourceRankDisplayName(entry.host))
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     // Soir themes: match the rank/count's own muted ink tone
                     // instead of the full-strength title color.
                     .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
                     .lineLimit(1)
+                    // Never truncated: readability of the name outranks the
+                    // capsule's width staying strictly proportional to
+                    // `entry.count`. `width` below is a floor, not a cap —
+                    // a name that doesn't fit at the proportional width
+                    // grows the capsule past it instead of clipping/eliding.
+                    .fixedSize()
                 Spacer(minLength: 8)
                 Text("\(entry.count)")
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
@@ -858,7 +872,7 @@ struct RootView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .frame(width: width, alignment: .leading)
+            .frame(minWidth: width, alignment: .leading)
             // Filled with the view's own background (not `card`) and outlined
             // in the theme's chip/counter color, across every theme.
             .background(effectiveBackground)
@@ -867,6 +881,7 @@ struct RootView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(theme.chip, lineWidth: 1)
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
         .frame(height: 44)
     }
@@ -1047,15 +1062,18 @@ struct RootView: View {
         persist()
     }
 
-    /// Picks a random theme within the currently displayed one's own
-    /// light/soir family — a clear theme shaken from stays clear, a soir one
-    /// stays soir — leaving `appearanceRaw` untouched so "Automatique" keeps
+    /// Steps to the next theme, in `AppTheme.selectable`'s declared order,
+    /// within the currently displayed one's own light/soir family — a clear
+    /// theme shaken from cycles to the next clear theme, a soir one to the
+    /// next soir one, wrapping back to the first once the family is
+    /// exhausted. Leaves `appearanceRaw` untouched so "Automatique" keeps
     /// following the system rather than getting silently pinned to whichever
     /// variant the new pick happens to be. Font, layout and every other
     /// Affichage setting are untouched too: only `themeRaw` changes.
     private func shakeToRandomizeTheme() {
-        let candidates = AppTheme.selectable.filter { $0.isSoir == theme.isSoir && $0 != selectedTheme }
-        guard let next = candidates.randomElement() else { return }
+        let family = AppTheme.selectable.filter { $0.isSoir == theme.isSoir }
+        guard let currentIndex = family.firstIndex(of: theme) else { return }
+        let next = family[(currentIndex + 1) % family.count]
         themeRaw = next.rawValue
     }
 }
