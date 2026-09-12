@@ -88,7 +88,7 @@ struct LinkRowView: View {
             }
             Spacer(minLength: 0)
             if showThumbnail {
-                thumbnail(size: 43)
+                thumbnail(size: 86)
             }
         }
     }
