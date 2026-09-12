@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Renders one `LinkItem` in whichever of the three timeline layouts is
 /// currently selected (rail / card / editorial).
@@ -9,9 +10,6 @@ struct LinkRowView: View {
     let appFont: AppFont
     let showThumbnails: Bool
     let showFavicons: Bool
-
-    private var viaString: String { "via \(item.sourceApp)" }
-    private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
@@ -87,9 +85,10 @@ struct LinkRowView: View {
                 hostRow
             }
             Spacer(minLength: 0)
-            if showThumbnail {
-                thumbnail(size: 86)
-            }
+            // Always shown in Détaillée — like Éditoriale below, this
+            // layout's premise includes a thumbnail; it's Simple's premise
+            // to have none.
+            thumbnail(size: 86)
         }
     }
 
@@ -103,9 +102,10 @@ struct LinkRowView: View {
                 }
                 hostRow
             }
-            if showThumbnail {
-                thumbnail(size: 150, fullWidth: true)
-            }
+            // Always shown — see the comment in cardBody: Détaillée and
+            // Éditoriale both always carry a thumbnail (placeholder or
+            // real), Simple never does.
+            thumbnail(size: 150, fullWidth: true)
             Text(item.title)
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
@@ -129,20 +129,30 @@ struct LinkRowView: View {
     }
 
     private var hostRow: some View {
-        HStack(spacing: 7) {
-            Text(item.host)
-                .font(appFont.font(size: 13, weight: .semibold))
-                .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
-                .lineLimit(1)
-            if !viaString.isEmpty {
-                Text(viaString)
-                    .font(appFont.font(size: 13))
-                    .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.34))
-            }
-        }
+        Text(item.host)
+            .font(appFont.font(size: 13, weight: .semibold))
+            .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
+            .lineLimit(1)
     }
 
     private func thumbnail(size: CGFloat, fullWidth: Bool = false) -> some View {
+        Group {
+            if let fileName = item.thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                placeholderThumbnail
+            }
+        }
+        .frame(width: fullWidth ? nil : size, height: size)
+        .frame(maxWidth: fullWidth ? .infinity : size)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Placeholder for demo links (no real image ever fetched for those)
+    /// and for real ones still waiting on `LinkMetadataEnricher`.
+    private var placeholderThumbnail: some View {
         let stripes = theme.thumbnailStripes
         return ZStack(alignment: .bottomLeading) {
             StripesShape()
@@ -156,9 +166,23 @@ struct LinkRowView: View {
                 .padding(5)
                 .hidden()
         }
-        .frame(width: fullWidth ? nil : size, height: size)
-        .frame(maxWidth: fullWidth ? .infinity : size)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
+    /// disk on every layout pass — thumbnails are a handful of KB each, but
+    /// cells redraw often (theme changes, read-state toggles, swipe).
+    private static let thumbnailCache = NSCache<NSString, UIImage>()
+
+    private static func cachedThumbnail(_ fileName: String) -> UIImage? {
+        let key = fileName as NSString
+        if let cached = thumbnailCache.object(forKey: key) { return cached }
+        guard let directory = SharedStore.thumbnailsDirectoryURL(),
+              let image = UIImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
+        else {
+            return nil
+        }
+        thumbnailCache.setObject(image, forKey: key)
+        return image
     }
 }
 

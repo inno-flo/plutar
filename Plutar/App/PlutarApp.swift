@@ -21,10 +21,11 @@ struct PlutarApp: App {
     let storeFailure: String?
 
     @State private var showStoreFailureAlert = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         do {
-            container = try ModelContainer(for: LinkItem.self, SourceRank.self)
+            container = try SharedStore.makeContainer()
             storeFailure = nil
         } catch {
             // A failed schema migration, a corrupt store or a full disk used
@@ -51,6 +52,14 @@ struct PlutarApp: App {
                     Text("Plutar n'a pas pu ouvrir sa base de données. L'app fonctionne normalement, mais les liens ajoutés ou supprimés pendant cette session seront perdus à la fermeture.")
                 }
                 .task { showStoreFailureAlert = storeFailure != nil }
+                .task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
+                .onChange(of: scenePhase) { _, newPhase in
+                    // Catches links shared while Plutar wasn't running, and
+                    // ones the extension left half-done (e.g. app backgrounded
+                    // mid-fetch) — not just the cold-start case above.
+                    guard newPhase == .active else { return }
+                    Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
+                }
         }
         .modelContainer(container)
     }

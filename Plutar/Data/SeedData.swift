@@ -104,35 +104,6 @@ enum SeedData {
         }
     }
 
-    /// A handful of extra links used to simulate an incoming share (there is
-    /// no real Share Extension yet — see project notes).
-    struct PoolEntry: Identifiable {
-        let id = UUID()
-        let title: String
-        let host: String
-        let pathHint: String
-        let excerpt: String
-        let colorHex: String
-        let initial: String
-        let sourceApp: String
-        let hasThumbnail: Bool
-
-        func makeLinkItem() -> LinkItem {
-            LinkItem(
-                title: title,
-                urlString: "https://\(SeedData.urlHost(for: host))/\(pathHint)",
-                host: host, initial: initial, colorHex: colorHex, dateAdded: Date(),
-                sourceApp: sourceApp, excerpt: excerpt, hasThumbnail: hasThumbnail
-            )
-        }
-    }
-
-    static let pool: [PoolEntry] = [
-        PoolEntry(title: "Apple Music Adds Lossless Spatial Audio Mixing for User Playlists", host: macrumors, pathHint: "apple-music-lossless-spatial-mixing", excerpt: "The feature rolls out gradually starting with iOS 26.1.", colorHex: macrumorsColor, initial: "M", sourceApp: "Safari", hasThumbnail: true),
-        PoolEntry(title: "This Tiny USB-C Dongle Fixed My Biggest Travel Annoyance", host: theverge, pathHint: "usbc-dongle-travel-review", excerpt: "A $19 accessory that finally does what it promises.", colorHex: thevergeColor, initial: "V", sourceApp: "Safari", hasThumbnail: false),
-        PoolEntry(title: "Regulators Weigh New Rules for AI-Generated Content Labeling", host: reuters, pathHint: "technology/ai-content-labeling-rules", excerpt: "A draft proposal could require disclosure on synthetic media.", colorHex: reutersColor, initial: "R", sourceApp: "Safari", hasThumbnail: false),
-    ]
-
     /// The 6 test sources' own content templates, cycled to fill each
     /// source's randomly assigned quota below.
     private static var sourceTemplates: [[SeedEntry]] {

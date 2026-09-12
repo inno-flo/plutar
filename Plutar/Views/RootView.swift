@@ -60,18 +60,28 @@ private struct DeletedSnapshot {
     /// brought the link back as unread, i.e. into Date rather than the view
     /// the user was actually looking at.
     let isRead: Bool
+    /// Without these two, undoing the delete of a real shared link reset it
+    /// to pre-enrichment state — no thumbnail, and queued to be re-fetched
+    /// as if it were brand new.
+    let thumbnailFileName: String?
+    let metadataFetched: Bool
+    let excerptFetchAttempted: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
         initial = item.initial; colorHex = item.colorHex; dateAdded = item.dateAdded
         sourceApp = item.sourceApp; excerpt = item.excerpt; hasThumbnail = item.hasThumbnail
         isRead = item.isRead
+        thumbnailFileName = item.thumbnailFileName; metadataFetched = item.metadataFetched
+        excerptFetchAttempted = item.excerptFetchAttempted
     }
 
     func makeLinkItem() -> LinkItem {
         LinkItem(title: title, urlString: urlString, host: host, initial: initial,
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
-                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead)
+                 excerpt: excerpt, hasThumbnail: hasThumbnail, isRead: isRead,
+                 thumbnailFileName: thumbnailFileName, metadataFetched: metadataFetched,
+                 excerptFetchAttempted: excerptFetchAttempted)
     }
 }
 
@@ -102,15 +112,14 @@ struct RootView: View {
     @AppStorage("plutar.font") private var fontRaw = AppFont.rounded.rawValue
     @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage("plutar.showThumbnails") private var showThumbnails = true
-    @AppStorage("plutar.showFavicons") private var showFavicons = true
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
+    @AppStorage("plutar.shakeToChangeTheme") private var shakeToChangeTheme = true
 
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .chrono
     @State private var showSettings = false
-    @State private var pendingShare: SeedData.PoolEntry?
 
     /// Every link deleted inside the current undo window, oldest first — a
     /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
@@ -365,6 +374,10 @@ struct RootView: View {
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
         .tabBarMinimizeBehavior(.onScrollDown)
+        .onShake {
+            guard shakeToChangeTheme else { return }
+            shakeToRandomizeTheme()
+        }
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
                 showSettings = true
@@ -394,12 +407,17 @@ struct RootView: View {
         .preferredColorScheme(appearance.colorScheme)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(
-                // The grid picks the theme family, but tapping a specific
-                // light or soir pill is itself a manual override: it takes
-                // priority over "Apparence" by forcing it to match
-                // (Claire/Sombre) rather than leaving it on Automatique.
+                // The grid highlights whichever pill matches what's actually
+                // on screen right now (`theme`, not the raw `selectedTheme`
+                // stored on disk) — in "Automatique", that pill changes on
+                // its own when the system's light/dark setting does, rather
+                // than staying stuck on whichever pill was last tapped.
+                // Tapping a specific light or soir pill is itself a manual
+                // override, though: it takes priority over "Apparence" by
+                // forcing it to match (Claire/Sombre) rather than leaving it
+                // on Automatique.
                 theme: Binding(
-                    get: { selectedTheme },
+                    get: { theme },
                     set: {
                         themeRaw = $0.rawValue
                         appearanceRaw = ($0.isSoir ? AppAppearance.dark : .light).rawValue
@@ -407,25 +425,14 @@ struct RootView: View {
                 ),
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
                 appFont: Binding(get: { appFont }, set: { fontRaw = $0.rawValue }),
-                showThumbnails: $showThumbnails,
-                showFavicons: $showFavicons,
                 blackSoirBackground: $blackSoirBackground,
+                shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
-                onRegenerate: { regenerateLinks(); showSettings = false },
                 onResetRanking: { resetSourceRanking(); showSettings = false },
                 onClose: { showSettings = false },
                 chipColor: theme.chip
             )
-        }
-        .sheet(item: $pendingShare) { entry in
-            ShareSimulationSheet(
-                entry: entry,
-                onOther: { pendingShare = SeedData.pool.filter { $0.id != entry.id }.randomElement() ?? entry },
-                onSave: { save(entry); pendingShare = nil },
-                onCancel: { pendingShare = nil }
-            )
-            .presentationDetents([.height(220)])
         }
         .alert(
             "Supprimer les liens lus",
@@ -435,7 +442,7 @@ struct RootView: View {
             Button("Supprimer", role: .destructive) { clearRead() }
         }
         .alert(
-            "Marquer les liens comme lus",
+            "Marquer tous les liens comme lus",
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
@@ -499,7 +506,7 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: showFavicons)
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false)
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -516,7 +523,7 @@ struct RootView: View {
                                                 Button {
                                                     markAsUnread(item)
                                                 } label: {
-                                                    Label("Marquer non lu", systemImage: "checkmark.circle")
+                                                    Label("Marquer non lu", systemImage: "checkmark.circle.fill")
                                                 }
                                                 .tint(theme.markUnreadSwipeTint)
                                             } else {
@@ -552,8 +559,6 @@ struct RootView: View {
                             icon: "moon.stars",
                             title: "Aucun lien partagé",
                             text: "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
-                            showsSimulateButton: true,
-                            onSimulateShare: { pendingShare = SeedData.pool.randomElement() },
                             fillHeight: false
                         )
                         .padding(.top, 40)
@@ -575,7 +580,7 @@ struct RootView: View {
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                             }
                         } header: {
-                            Text("Classement des sources")
+                            Text("Sources les plus partagées")
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundStyle(theme.ink(0.55))
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -610,9 +615,7 @@ struct RootView: View {
                             title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
                             text: mode == .read
                                 ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
-                                : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
-                            showsSimulateButton: mode != .read,
-                            onSimulateShare: { pendingShare = SeedData.pool.randomElement() }
+                                : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage."
                         )
                     }
                 }
@@ -760,17 +763,49 @@ struct RootView: View {
             .padding(.trailing, 18)
             .padding(.vertical, 4)
         } else {
-            Text(group.label)
-                .font(appFont.font(size: 16.5, weight: .bold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(theme.chip)
-                .foregroundStyle(theme.chipText)
-                .clipShape(Capsule())
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowInsets(EdgeInsets())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 4)
+            // Date mirrors Sources: the day chip stays a plain non-interactive
+            // label, with its own mark-as-read button trailing it — same
+            // 44pt tap target and icon treatment as Sources' per-source button.
+            HStack(alignment: .center, spacing: 10) {
+                Text(group.label)
+                    .font(appFont.font(size: 16.5, weight: .bold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(theme.chip)
+                    .foregroundStyle(theme.chipText)
+                    .clipShape(Capsule())
+
+                if mode == .chrono {
+                    Spacer(minLength: 0)
+
+                    Button {
+                        markSourceAsRead(group.items)
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                } else if mode == .read {
+                    Spacer(minLength: 0)
+
+                    Button {
+                        requestDeleteGroup(group.items)
+                    } label: {
+                        Image(systemName: "trash.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(theme.ink(0.55))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets())
+            .padding(.leading, 14)
+            .padding(.trailing, 18)
+            .padding(.vertical, 4)
         }
     }
 
@@ -918,6 +953,11 @@ struct RootView: View {
     private func markAsUnread(_ item: LinkItem) {
         withAnimation(.easeInOut(duration: 0.25)) {
             item.isRead = false
+            // A link moved back to unread re-enters Date/Sources, where the
+            // excerpt is worth having again (Éditoriale) — give
+            // LinkMetadataEnricher a fresh try rather than leaving it as it
+            // was left back when it was last unread.
+            item.excerptFetchAttempted = false
             persist()
         }
     }
@@ -936,6 +976,21 @@ struct RootView: View {
         // Each delete restarts the window, so the user always gets the full
         // 1.2 seconds from their own last swipe rather than from the first
         // one in the batch.
+        undoTask?.cancel()
+        undoTask = Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            if !Task.isCancelled { undoSnapshots.removeAll() }
+        }
+    }
+
+    /// Deletes every link in a Lus day group at once, all covered by the
+    /// same undo toast (its count reflects the whole group).
+    private func requestDeleteGroup(_ items: [LinkItem]) {
+        for item in items {
+            undoSnapshots.append(DeletedSnapshot(item))
+            modelContext.delete(item)
+        }
+        persist()
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(1.2))
@@ -973,75 +1028,21 @@ struct RootView: View {
         }
     }
 
-    /// Wipes the store and drops 200 demo links back in, freshly timestamped
-    /// and with each of the 6 test sources' quantity randomized anew.
-    private func regenerateLinks() {
-        for item in allItems { modelContext.delete(item) }
-        let items = SeedData.makeLinkItems()
-        for item in items { modelContext.insert(item) }
-        SourceRank.bump(items.map(\.host), in: modelContext)
-        persist()
-    }
-
-    private func save(_ entry: SeedData.PoolEntry) {
-        let item = entry.makeLinkItem()
-        modelContext.insert(item)
-        SourceRank.bump(item.host, in: modelContext)
-        persist()
-    }
-
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
         persist()
     }
-}
 
-private struct ShareSimulationSheet: View {
-    let entry: SeedData.PoolEntry
-    let onOther: () -> Void
-    let onSave: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Feuille de partage")
-                    .font(.system(size: 12, weight: .semibold))
-                    .tracking(2)
-                    .textCase(.uppercase)
-                Spacer()
-                Button("Annuler", action: onCancel)
-                    .font(.system(size: 11, weight: .medium))
-                    .tracking(1)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(hex: entry.colorHex).opacity(0.25))
-                    .frame(width: 44, height: 44)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.title).font(.system(size: 13.5)).lineLimit(1)
-                    Text(entry.host)
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(1)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(12)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
-
-            HStack(spacing: 10) {
-                Button("Autre page", action: onOther)
-                    .buttonStyle(.bordered)
-                Button("Enregistrer dans Plutar", action: onSave)
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(20)
+    /// Picks a random theme within the currently displayed one's own
+    /// light/soir family — a clear theme shaken from stays clear, a soir one
+    /// stays soir — leaving `appearanceRaw` untouched so "Automatique" keeps
+    /// following the system rather than getting silently pinned to whichever
+    /// variant the new pick happens to be. Font, layout and every other
+    /// Affichage setting are untouched too: only `themeRaw` changes.
+    private func shakeToRandomizeTheme() {
+        let candidates = AppTheme.selectable.filter { $0.isSoir == theme.isSoir && $0 != selectedTheme }
+        guard let next = candidates.randomElement() else { return }
+        themeRaw = next.rawValue
     }
 }

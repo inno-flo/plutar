@@ -1,19 +1,15 @@
 import SwiftUI
 
-/// Shown when the current view/mode has nothing to display. In this
-/// no-Share-Extension phase, "Simuler un partage" is how new links get
-/// added — standing in for the real iOS share sheet. A quiet "moon.stars"
-/// glyph, wider spacing before the title (~2 blank lines) and a single
-/// line's worth before the subtitle, set in the Affichage font instead of
-/// the system font.
+/// Shown when the current view/mode has nothing to display. A quiet
+/// "moon.stars" glyph, wider spacing before the title (~2 blank lines) and a
+/// single line's worth before the subtitle, set in the Affichage font
+/// instead of the system font.
 struct QuietEmptyStateView: View {
     let theme: AppTheme
     let appFont: AppFont
     let icon: String
     let title: String
     let text: String
-    let showsSimulateButton: Bool
-    let onSimulateShare: () -> Void
     /// True (the default) centers the block in the full available height —
     /// the ordinary case, an overlay on an otherwise-empty list. Sources
     /// passes false when the source ranking still has entries: there the
@@ -39,21 +35,6 @@ struct QuietEmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
                 .padding(.top, 20)
-
-            if showsSimulateButton {
-                Button(action: onSimulateShare) {
-                    Text("Simuler un partage")
-                        .font(appFont.font(size: 11, weight: .semibold))
-                        .tracking(1.4)
-                        .textCase(.uppercase)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 12)
-                        .background(theme.ink(1))
-                        .foregroundStyle(theme.background)
-                        .clipShape(Capsule())
-                }
-                .padding(.top, 24)
-            }
         }
         .padding(.horizontal, 46)
         .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)

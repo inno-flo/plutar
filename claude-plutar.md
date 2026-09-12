@@ -209,9 +209,222 @@ Le projet compile avec succès (`xcodebuild -project Plutar.xcodeproj -scheme Pl
 
 ⚠️ **Le Simulateur iOS n'a pas pu être utilisé pour vérifier visuellement l'app** : il ne fonctionne pas avec Xcode 27 bêta actuellement installé sur cette machine. Consigne en cours : ne pas utiliser le Simulateur tant que ce n'est pas résolu. La vérification se limite donc à la compilation ; le lancement réel doit être fait par l'utilisateur depuis Xcode (ou un Simulateur fonctionnel) une fois le problème réglé.
 
+## Share Extension (Phase 2)
+
+Compte développeur payant obtenu → ajout d'une vraie extension de partage iOS,
+cible `PlutarShare` (`PlutarShare/`), en plus de l'app `Plutar`.
+
+- **Stockage partagé :** `Plutar/Persistence/SharedStore.swift` ouvre le même
+  `ModelContainer` (fichier `Plutar.sqlite` dans le conteneur de l'App Group
+  `group.com.innoflo.plutar`) depuis l'app et l'extension, donc un lien ajouté
+  via la feuille de partage apparaît dans l'app sans relancer quoi que ce
+  soit. Entitlement `com.apple.security.application-groups` posé sur les deux
+  cibles (`Plutar/Plutar.entitlements`, `PlutarShare/PlutarShare.entitlements`).
+- **Construction du lien :** `Plutar/Persistence/LinkItemFactory.swift` — un
+  lien réel n'a pas de couleur de source pré-choisie comme les 6 sources
+  factices de `SeedData`, donc sa couleur de badge est dérivée
+  déterministement du nom d'hôte (palette reprise de `SeedData`).
+- **UI :** `PlutarShare/ShareViewController.swift` (`NSExtensionPrincipalClass`)
+  extrait l'URL partagée (type `public.url`, avec repli sur `public.text` si
+  le texte est lui-même une URL), puis présente `PlutarShare/ShareView.swift`
+  — un formulaire minimal (titre modifiable, Annuler/Ajouter) plutôt qu'un
+  reflet de `RootView`, l'extension n'affichant jamais que cet unique écran.
+  `ShareErrorView` couvre l'absence d'URL exploitable ou l'échec d'ouverture
+  du conteneur partagé.
+- **Fichiers partagés entre cibles :** `project.yml` liste explicitement
+  `LinkItem.swift`, `SourceRank.swift` et `Persistence/` dans les sources de
+  `PlutarShare`, en plus de celles de `Plutar` — c'est ce qui garantit que
+  les deux cibles utilisent exactement le même schéma SwiftData.
+- **Config xcodegen à retenir :** pour une cible `app-extension`, tout le
+  contenu de l'`Info.plist` (y compris `NSExtension`) doit passer par
+  `info.properties` dans `project.yml` — xcodegen régénère le fichier depuis
+  ces propriétés et écrase silencieusement tout ce qui aurait été écrit à la
+  main dans le fichier plist lui-même.
+- Le bouton « Simuler un partage » (état vide, feuille de réglages) n'a **pas**
+  été remplacé par la vraie feuille de partage — il reste utile pour peupler
+  rapidement l'app en dev, sans dépendre d'un vrai lien à partager.
+
+Vérifié par compilation (`xcodebuild -scheme Plutar build` → `BUILD
+SUCCEEDED`, `PlutarShare.appex` bien embarquée dans `Plutar.app/PlugIns`) ;
+pas de vérification visuelle possible ici (Simulateur indisponible, voir
+plus bas) — à tester depuis Xcode : partager un lien Safari doit proposer
+« plutar » dans la feuille de partage.
+
+### Suite : compatibilité tierce, extrait et miniature réels
+
+Premiers essais sur appareil : le partage fonctionne, mais trois manques —
+Plutar absent des apps non Apple et des suggestions de la feuille de
+partage ; aucun extrait ni image récupérés (uniquement le titre), ce qui
+prive la mise en page Éditoriale de contenu.
+
+- **Règle d'activation élargie** (`PlutarShare/Info.plist` via
+  `project.yml`) : la forme dictionnaire simplifiée
+  (`NSExtensionActivationSupportsWebURLWithMaxCount`, etc.) ne matche que les
+  items typés strictement `public.url` — plusieurs apps tierces (X,
+  Mastodon, Reddit…) fournissent le lien en `public.plain-text` à la place.
+  Remplacée par la forme **prédicat NSPredicate** libre, qui accepte les
+  deux types ; `ShareViewController` continue de rejeter (via
+  `ShareErrorView`) un texte partagé qui ne serait pas une URL valide.
+  L'apparition dans la **ligne de suggestions** (au-dessus de la liste
+  complète), elle, n'a pas d'API — c'est un classement appris par iOS selon
+  la fréquence d'usage réel, qui se mettra à jour avec le temps.
+- **Extrait et miniature récupérés après coup** — `LinkMetadataEnricher`
+  (nouveau, `Plutar/Persistence/`) tourne dans l'app principale (pas dans
+  l'extension : trop court en temps d'exécution pour un fetch réseau + décodage
+  d'image), déclenché à chaque passage au premier plan (`PlutarApp`,
+  `scenePhase == .active`) pour les liens pas encore traités
+  (`LinkItem.metadataFetched == false`, mis à `false` uniquement par
+  `LinkItemFactory` — les liens de démo restent à `true`, jamais repris) :
+  - `LPMetadataProvider` (LinkPresentation) pour le titre réel et l'image de
+    prévisualisation — mais cette API **n'expose pas** la description de la
+    page, contrairement à ce qu'on pourrait attendre.
+  - donc l'extrait est lu à la main : un `URLSession.data(for:)` capé à 64 Ko
+    sur l'URL, puis une extraction par regex de
+    `<meta property="og:description">` / `<meta name="description">` — ça
+    marche quelle que soit l'app source (pas besoin du préprocesseur
+    JavaScript de Safari, qui de toute façon ne s'exécute que depuis Safari).
+  - la miniature est écrite en JPEG dans le conteneur de l'App Group
+    (`SharedStore.thumbnailsDirectoryURL()`, sous-dossier `Thumbnails/`,
+    nommée par l'UUID du lien) plutôt que dans le `Documents` de l'app, pour
+    rester lisible si l'extension devait un jour l'écrire elle-même.
+  - un lien qui échoue (URL morte, pas de réseau, pas de métadonnées) est
+    quand même marqué `metadataFetched = true` — pas de nouvelle tentative à
+    chaque lancement.
+- **`LinkRowView`** affiche maintenant la vraie image quand
+  `thumbnailFileName` est renseigné (via un `NSCache` en mémoire pour éviter
+  de relire le JPEG à chaque redessin de cellule), et retombe sur le
+  placeholder à rayures sinon — inchangé pour les 200 liens de démo, qui
+  n'ont jamais de fichier réel.
+- `RootView.DeletedSnapshot` (le mécanisme d'annulation à 5 s) a été mis à
+  jour pour conserver `thumbnailFileName`/`metadataFetched` : sans ça,
+  annuler la suppression d'un lien réel remettait à zéro son enrichissement.
+
+**Extrait restreint aux liens non lus** : le fetch HTML (l'extrait) ne
+coûtait rien tant qu'il portait sur peu de liens, mais n'a de sens que dans
+Date/Sources (qui n'affichent que les non lus — voir le filtre `mode ==
+.read ? … : allItems.filter { !$0.isRead }`), pas dans Lus. Séparé du reste
+de l'enrichissement via un second champ dédié,
+`LinkItem.excerptFetchAttempted` (indépendant de `metadataFetched`, qui
+continue de couvrir titre + miniature sans condition de lecture) :
+`LinkMetadataEnricher.enrichExcerpt` ne prend que les liens
+`excerptFetchAttempted == false && isRead == false`. `RootView.markAsUnread`
+remet `excerptFetchAttempted` à `false`, pour qu'un lien qui repasse en non
+lu retente l'extrait plutôt que de rester coincé sur une précédente absence
+de résultat.
+
+Point encore ouvert, volontairement laissé de côté : [[read-cell-render-cost-deferred]]
+attendait justement de vrais liens du Share Extension pour être profilé
+(Instruments, en scrollant Lus) — c'est désormais possible, mais pas fait
+ici (nécessite un appareil/Simulateur fonctionnel, hors de portée de cette
+machine).
+
+## Nettoyage post-Share Extension : réglages « Avancé »
+
+Le partage réel remplaçant définitivement la simulation :
+
+- Supprimé entièrement : le bouton « Simuler un partage » (`EmptyStateView`),
+  sa feuille de confirmation `ShareSimulationSheet` et le pool de 3 liens
+  factices qui l'alimentait (`SeedData.PoolEntry`/`SeedData.pool`).
+- « Regénérer les liens » retiré des réglages (bouton et câblage) — plus
+  aucun appelant, la fonction `regenerateLinks()` a été supprimée avec lui
+  plutôt que laissée mais inutilisée.
+- Nouvel en-tête **Avancé** dans Affichage, avec dans l'ordre
+  « Réinitialiser le classement » puis « Vider le fil » — chacun ouvre
+  désormais une boîte de dialogue de confirmation (`.confirmationDialog`)
+  avant d'agir, bouton de validation en rôle `.destructive` (rouge,
+  comportement standard iOS) contre un « Annuler ».
+
+## Secouer pour changer de thème
+
+Nouveau geste : secouer l'appareil tire un thème au hasard, restreint à la
+famille clair/sombre actuellement affichée (un thème clair reste clair, un
+soir reste soir) — police, mise en page et tous les autres réglages
+d'Affichage restent intacts.
+
+- **`Plutar/Views/ShakeGesture.swift`** — le geste de secousse
+  (`UIEvent.EventSubtype.motionShake`), le même mécanisme système que
+  « Secouer pour annuler », déjà géré par l'accéléromètre côté UIKit sans
+  passer par CoreMotion. Capté en surchargeant `UIWindow.motionEnded`,
+  rediffusé en `Notification`, exposé via `View.onShake { }`. C'est le
+  même principe que le masquage des prix dans l'app PierreVincent.
+- `RootView.shakeToRandomizeTheme()` : tire dans `AppTheme.selectable`
+  filtré sur `isSoir == theme.isSoir` (le thème réellement affiché, pas le
+  brut stocké — voir le correctif Automatique plus haut), en excluant le
+  thème courant. Ne touche qu'à `themeRaw` — jamais `appearanceRaw`, pour
+  ne pas sortir l'Apparence d'Automatique.
+- Activable/désactivable via une bascule « Secouer pour changer de thème »,
+  en tête de la section **Avancé** (`plutar.shakeToChangeTheme`,
+  activée par défaut).
+
+## « via Safari » au lieu de « via Partage »
+
+iOS ne dit jamais à une extension quelle app l'a invoquée — c'est pourquoi
+`sourceApp` valait systématiquement le générique « Partage ». Un cas fait
+exception : **Safari seul** exécute le script JS de préprocessing d'une
+extension de partage (`NSExtensionJavaScriptPreprocessingFile`), les autres
+apps ne l'exécutent jamais. Sa seule présence sert donc de détection fiable.
+
+- **`PlutarShare/SharePreprocessor.js`** — script minimal qui renvoie
+  `document.title` et `document.URL` via `completionFunction`.
+- **`project.yml`** — `NSExtensionJavaScriptPreprocessingFile:
+  SharePreprocessor` dans `NSExtension` (le fichier est repris tel quel
+  comme ressource de l'extension, vérifié dans l'`.appex` généré).
+- **`ShareViewController.extractSharedURL`** — vérifie l'attachment
+  `public.property-list` (`UTType.propertyList`) *avant* `public.url` :
+  quand il est présent, son contenu (`NSExtensionJavaScriptPreprocessingResultsKey`)
+  donne l'URL/titre réels et `sourceApp = "Safari"` ; sinon, retombe sur
+  `public.url`/`public.plain-text` avec `sourceApp = "Partage"` comme avant.
+
+Limite assumée : seul Safari est distingué. Aucune app tierce (Notes,
+Mastodon, Chrome…) ne peut être identifiée par ce biais — c'est une
+restriction du système, pas de l'implémentation.
+
+## Favicons désactivés
+
+Retirés de la même façon que « Regénérer les liens » (fonction masquée
+*et* désactivée, pas seulement cachée) : `LinkRowView` reçoit désormais
+`showFavicons: false` en dur (plus de `@AppStorage("plutar.showFavicons")`,
+qui aurait laissé les favicons actifs pour qui l'avait déjà à `true`), et la
+bascule « Afficher les favicons » a disparu d'Affichage → Présentation des
+liens (qui ne garde que « Afficher les vignettes »).
+
+## Capsules de lien, vignette Détaillée, et le vrai bug du gel/plantage
+
+Trois demandes suite à un usage réel :
+
+- **« via X » retiré des capsules** — `LinkRowView.hostRow` n'affiche plus
+  que `item.host` ; `viaString`/le second `Text` ont disparu. Le champ
+  `LinkItem.sourceApp` (Safari vs Partage générique, voir plus haut) reste
+  en base — il n'était affiché qu'ici.
+- **Vignette réduite de 50 % en Détaillée** — `thumbnail(size: 86)` →
+  `thumbnail(size: 43)` dans `LinkRowView.cardBody`. Éditoriale (150,
+  pleine largeur) inchangée.
+- **Le vrai bug derrière le gel puis plantage observé** : `LinkMetadataEnricher`
+  n'était pinné à aucun acteur. Appelé depuis un `.task` SwiftUI (donc
+  démarré sur le main actor), mais dès le premier `await` dans une fonction
+  `nonisolated` par défaut, l'exécution pouvait reprendre sur un thread
+  d'arrière-plan — et les mutations de `LinkItem`/`ModelContext.mainContext`
+  qui suivaient (assignations de propriétés, `context.save()`) se
+  produisaient alors hors du thread principal, alors que `mainContext`
+  n'est garanti utilisable que depuis là. D'où le tableau observé : gel,
+  puis crash, puis au relancement quelques liens qui avaient bien reçu
+  titre/image malgré tout (l'écriture avait eu le temps de partir avant que
+  ça casse).
+
+  Corrigé en épinglant tout ce qui touche `context`/`item` à `@MainActor`
+  (l'enum entier, sauf les fonctions explicitement `nonisolated` :
+  `fetchLinkMetadata`, `fetchMetaDescription`, `metaDescription`,
+  `decodeHTMLEntities`, `saveThumbnail`). Le `await` sur une fonction
+  `nonisolated` depuis du code `@MainActor` continue de libérer le thread
+  principal pendant l'attente réseau — rien n'est perdu côté « ne bloque pas
+  l'app », seules les écritures sur le modèle sont maintenant garanties sur
+  le bon acteur. `LPMetadataProvider.timeout` fixé à 8 s (aligné sur le
+  fetch HTML), pour ne plus dépendre de son délai par défaut en cas d'hôte
+  qui ne répond jamais.
+
 ## Prochaines étapes possibles
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)
 - Vérifier visuellement l'app une fois le Simulateur disponible, ajuster le rendu par rapport au mockup Claude Design
-- Compte développeur payant → ajouter la vraie Share Extension iOS pour remplacer les données factices
+- Tester la vraie Share Extension sur appareil (App Group à confirmer côté portail développeur si la signature automatique ne suffit pas)
 - Éventuellement reconstruire l'icône dans Icon Composer (`.icon`) à partir des SVG de `Design/AppIcon/`, pour bénéficier du rendu Liquid Glass dynamique (mode « clear », teinte système) plutôt que de PNG figés

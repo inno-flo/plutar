@@ -16,14 +16,14 @@ struct SettingsSheet: View {
     @Binding var theme: AppTheme
     @Binding var appearance: AppAppearance
     @Binding var appFont: AppFont
-    @Binding var showThumbnails: Bool
-    @Binding var showFavicons: Bool
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @Binding var blackSoirBackground: Bool
+    /// Whether shaking the device (see `RootView.shakeToRandomizeTheme`)
+    /// picks a new theme within the current light/soir family.
+    @Binding var shakeToChangeTheme: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
-    let onRegenerate: () -> Void
     let onResetRanking: () -> Void
     let onClose: () -> Void
     /// Same color as the day/source pill and counter badge — applied only
@@ -47,6 +47,8 @@ struct SettingsSheet: View {
     /// tall as it needs to instead of always going full-screen. The value
     /// starts at a reasonable guess and is corrected once layout runs.
     @State private var contentHeight: CGFloat = 480
+    @State private var showResetRankingConfirm = false
+    @State private var showClearFeedConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -95,47 +97,49 @@ struct SettingsSheet: View {
                         }
                     }
 
-                    section("Présentation des liens") {
-                        VStack(spacing: 8) {
-                            Toggle(isOn: $showFavicons) {
-                                Text("Afficher les favicons")
+                    section("Avancé") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle(isOn: $shakeToChangeTheme) {
+                                Text("Secouer pour changer de thème")
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                            Toggle(isOn: $showThumbnails) {
-                                Text("Afficher les vignettes")
+                            Button(role: .destructive) {
+                                showResetRankingConfirm = true
+                            } label: {
+                                Text("Réinitialiser le classement")
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
-                        // Neither toggle has any effect in Simple — that
-                        // layout shows no favicon or thumbnail at all — so
-                        // both are grayed out and inert there, usable again
-                        // for the other two layouts.
-                        .disabled(layout == .rail)
-                        .opacity(layout == .rail ? 0.4 : 1)
-                    }
+                            .buttonStyle(.glass)
+                            .confirmationDialog(
+                                "Réinitialiser le classement ?",
+                                isPresented: $showResetRankingConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Réinitialiser", role: .destructive, action: onResetRanking)
+                                Button("Annuler", role: .cancel) {}
+                            } message: {
+                                Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                            }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Button(role: .destructive, action: onClearAll) {
+                            Button(role: .destructive) {
+                                showClearFeedConfirm = true
+                            } label: {
                                 Text("Vider le fil")
                             }
                             .buttonStyle(.glass)
-
-                            Button(action: onRegenerate) {
-                                Text("Regénérer les liens")
+                            .confirmationDialog(
+                                "Vider le fil ?",
+                                isPresented: $showClearFeedConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Vider", role: .destructive, action: onClearAll)
+                                Button("Annuler", role: .cancel) {}
+                            } message: {
+                                Text("Tous les liens seront supprimés définitivement.")
                             }
-                            .buttonStyle(.glass)
                         }
-
-                        Button(role: .destructive, action: onResetRanking) {
-                            Text("Réinitialiser le classement")
-                        }
-                        .buttonStyle(.glass)
                     }
                     .padding(.top, 6)
                 }
