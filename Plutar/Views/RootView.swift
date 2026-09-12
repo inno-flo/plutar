@@ -506,7 +506,7 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false)
+                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: mode != .chrono)
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -871,10 +871,25 @@ struct RootView: View {
         .frame(height: 44)
     }
 
-    @ViewBuilder
     private var undoToast: some View {
-        if !undoSnapshots.isEmpty {
-            VStack {
+        Group {
+            if !undoSnapshots.isEmpty {
+                undoToastContent
+            }
+        }
+        // On the conditional content itself, this modifier would stop
+        // watching the instant `undoSnapshots.isEmpty` flips true and the
+        // view is removed from the tree — too late to animate its own exit.
+        // Attached to the always-present `Group` wrapping it instead, so the
+        // toast's remove transition is covered by an actual animation
+        // rather than popping out instantly; `requestDelete`/
+        // `requestDeleteGroup`'s auto-dismiss and `performUndo` no longer
+        // need their own `withAnimation` for this.
+        .animation(.easeInOut(duration: 0.3), value: undoSnapshots.isEmpty)
+    }
+
+    private var undoToastContent: some View {
+        VStack {
                 Spacer()
                 HStack {
                     Text(undoSnapshots.count == 1
@@ -907,11 +922,9 @@ struct RootView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .padding(.horizontal, 18)
                 .padding(.bottom, 96)
-            }
-            .zIndex(2)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-            .animation(.easeOut(duration: 0.2), value: undoSnapshots.isEmpty)
         }
+        .zIndex(2)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     // MARK: Actions
@@ -974,11 +987,11 @@ struct RootView: View {
         modelContext.delete(item)
         persist()
         // Each delete restarts the window, so the user always gets the full
-        // 1.2 seconds from their own last swipe rather than from the first
+        // 1.5 seconds from their own last swipe rather than from the first
         // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.2))
+            try? await Task.sleep(for: .seconds(1.5))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }
@@ -993,7 +1006,7 @@ struct RootView: View {
         persist()
         undoTask?.cancel()
         undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.2))
+            try? await Task.sleep(for: .seconds(1.5))
             if !Task.isCancelled { undoSnapshots.removeAll() }
         }
     }

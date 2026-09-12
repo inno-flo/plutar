@@ -10,6 +10,12 @@ struct LinkRowView: View {
     let appFont: AppFont
     let showThumbnails: Bool
     let showFavicons: Bool
+    /// Whether a link with no real image (not fetched yet, or the fetch
+    /// found none) falls back to the striped placeholder, or shows nothing
+    /// at all. Date passes `false` — a wall of placeholders for links still
+    /// waiting on `LinkMetadataEnricher` read as more "broken" than useful
+    /// there; Sources/Lus keep the placeholder.
+    let showsPlaceholderThumbnail: Bool
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
@@ -135,19 +141,23 @@ struct LinkRowView: View {
             .lineLimit(1)
     }
 
+    @ViewBuilder
     private func thumbnail(size: CGFloat, fullWidth: Bool = false) -> some View {
-        Group {
-            if let fileName = item.thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                placeholderThumbnail
-            }
+        if let fileName = item.thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: fullWidth ? nil : size, height: size)
+                .frame(maxWidth: fullWidth ? .infinity : size)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else if showsPlaceholderThumbnail {
+            placeholderThumbnail
+                .frame(width: fullWidth ? nil : size, height: size)
+                .frame(maxWidth: fullWidth ? .infinity : size)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .frame(width: fullWidth ? nil : size, height: size)
-        .frame(maxWidth: fullWidth ? .infinity : size)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        // Neither: no real image, and this row doesn't fall back to the
+        // placeholder — render nothing, reserving no space either.
     }
 
     /// Placeholder for demo links (no real image ever fetched for those)
