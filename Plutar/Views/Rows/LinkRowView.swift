@@ -28,12 +28,47 @@ struct LinkRowView: View {
     /// regardless of what's passed), so titles stay at Regular weight there.
     private var titleWeight: Font.Weight { .bold }
 
+    /// 0→180°, animated in one continuous motion (see `FlipCard`) when
+    /// `LinkMetadataEnricher` turns a bare-URL link into a real title.
+    @State private var flipAngle: Double = 0
+    /// The pre-enrichment title/thumbnail, kept around only for the
+    /// duration of the flip — `FlipCard` shows this face for the first half
+    /// of the turn and the live (enriched) one for the second half.
+    @State private var frozenTitle: String?
+    @State private var frozenThumbnailFileName: String??
+
     var body: some View {
+        FlipCard(angle: flipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
+            cardFace(
+                title: showsNewFace ? item.title : (frozenTitle ?? item.title),
+                thumbnailFileName: showsNewFace ? item.thumbnailFileName : (frozenThumbnailFileName ?? item.thumbnailFileName)
+            )
+        }
+        .onChange(of: item.title) { oldTitle, newTitle in
+            // Only the "acquired a real title" transition flips — a link
+            // whose title was already real doesn't flip again over some
+            // unrelated later edit (there isn't one today, but this keeps
+            // the trigger meaningful rather than "title changed at all").
+            guard oldTitle != newTitle, oldTitle == item.host || oldTitle == item.urlString else { return }
+            frozenTitle = oldTitle
+            frozenThumbnailFileName = item.thumbnailFileName
+            flipAngle = 0
+            withAnimation(.easeInOut(duration: 0.5)) {
+                flipAngle = 180
+            }
+        }
+    }
+
+    /// The whole visible card — background, shape, shadow and all — for
+    /// one specific title/thumbnail pairing. Takes them as parameters
+    /// rather than reading `item` directly so `FlipCard` can render the
+    /// pre- and post-enrichment faces side by side while it turns.
+    private func cardFace(title: String, thumbnailFileName: String?) -> some View {
         Group {
             switch layout {
-            case .rail: railBody
-            case .card: cardBody
-            case .editorial: editorialBody
+            case .rail: railBody(title: title)
+            case .card: cardBody(title: title, thumbnailFileName: thumbnailFileName)
+            case .editorial: editorialBody(title: title, thumbnailFileName: thumbnailFileName)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -69,9 +104,9 @@ struct LinkRowView: View {
 
     // MARK: Rail (default) — just the title, host below, nothing else.
 
-    private var railBody: some View {
+    private func railBody(title: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(item.title)
+            Text(title)
                 .font(appFont.font(size: 18, weight: titleWeight))
                 .lineLimit(3)
             hostRow
@@ -80,13 +115,13 @@ struct LinkRowView: View {
 
     // MARK: Card — favicon + title, host below, thumbnail on the right.
 
-    private var cardBody: some View {
+    private func cardBody(title: String, thumbnailFileName: String?) -> some View {
         HStack(alignment: .top, spacing: 14) {
             if showFavicons {
                 favicon(size: 18)
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text(item.title)
+                Text(title)
                     .font(appFont.font(size: 18, weight: titleWeight))
                     .lineLimit(3)
                 hostRow
@@ -95,13 +130,13 @@ struct LinkRowView: View {
             // Always shown in Détaillée — like Éditoriale below, this
             // layout's premise includes a thumbnail; it's Simple's premise
             // to have none.
-            thumbnail(size: 86)
+            thumbnail(size: 86, thumbnailFileName: thumbnailFileName)
         }
     }
 
     // MARK: Editorial — big thumbnail on top, title, excerpt below.
 
-    private var editorialBody: some View {
+    private func editorialBody(title: String, thumbnailFileName: String?) -> some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(spacing: 7) {
                 if showFavicons {
@@ -112,8 +147,8 @@ struct LinkRowView: View {
             // Always shown — see the comment in cardBody: Détaillée and
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
-            thumbnail(size: 150, fullWidth: true)
-            Text(item.title)
+            thumbnail(size: 150, fullWidth: true, thumbnailFileName: thumbnailFileName)
+            Text(title)
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
             Text(item.excerpt)
@@ -143,8 +178,8 @@ struct LinkRowView: View {
     }
 
     @ViewBuilder
-    private func thumbnail(size: CGFloat, fullWidth: Bool = false) -> some View {
-        if let fileName = item.thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
+    private func thumbnail(size: CGFloat, fullWidth: Bool = false, thumbnailFileName: String?) -> some View {
+        if let fileName = thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -194,6 +229,39 @@ struct LinkRowView: View {
         }
         thumbnailCache.setObject(image, forKey: key)
         return image
+    }
+}
+
+/// Turns `content` continuously from 0° to 180° around `axis`, as if the
+/// card were being physically flipped over to its back face. `Animatable`
+/// makes SwiftUI call `body` for every interpolated frame of the
+/// animation (not just its start/end), which is what lets a single
+/// `withAnimation` drive both the rotation and, exactly at the 90°
+/// midpoint (where the card is edge-on and briefly invisible), the swap
+/// from `content(false)` to `content(true)` — one continuous curve, no
+/// separate staged animations that could visibly stutter at the handoff.
+///
+/// Past 90°, `angle - 180` keeps the second face's own rotation within
+/// ±90° of upright, so it's never drawn mirrored the way a plain 0→180°
+/// `rotation3DEffect` would show it partway through.
+private struct FlipCard<Content: View>: View, Animatable {
+    var angle: Double
+    let axis: (x: CGFloat, y: CGFloat, z: CGFloat)
+    @ViewBuilder let content: (_ showsNewFace: Bool) -> Content
+
+    var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+
+    var body: some View {
+        let showsNewFace = angle > 90
+        content(showsNewFace)
+            .rotation3DEffect(
+                .degrees(showsNewFace ? angle - 180 : angle),
+                axis: axis,
+                perspective: 0.4
+            )
     }
 }
 
