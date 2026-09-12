@@ -27,6 +27,8 @@
 			<key>NSExtensionActivationRule</key>
 			<string>SUBQUERY (extensionItems, $extensionItem, SUBQUERY ($extensionItem.attachments, $attachment, (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.url") || (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.plain-text")).@count &gt;= 1).@count &gt;= 1</string>
 		</dict>
+		<key>NSExtensionJavaScriptPreprocessingFile</key>
+		<string>SharePreprocessor</string>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
 		<key>NSExtensionPrincipalClass</key>

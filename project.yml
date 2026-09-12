@@ -81,6 +81,11 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          # Safari-only: only Safari runs this before invoking the
+          # extension (see ShareViewController.extractSharedURL and
+          # SharePreprocessor.js) — it's how a Safari share gets tagged
+          # "via Safari" instead of the generic "via Partage" fallback.
+          NSExtensionJavaScriptPreprocessingFile: SharePreprocessor
           NSExtensionAttributes:
             # The simplified dictionary form (Supports*WithMaxCount) only
             # matches items typed exactly as public.url — several non-Apple

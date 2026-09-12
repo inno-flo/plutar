@@ -17,7 +17,6 @@ struct SettingsSheet: View {
     @Binding var appearance: AppAppearance
     @Binding var appFont: AppFont
     @Binding var showThumbnails: Bool
-    @Binding var showFavicons: Bool
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
     @Binding var blackSoirBackground: Bool
@@ -101,13 +100,6 @@ struct SettingsSheet: View {
 
                     section("Présentation des liens") {
                         VStack(spacing: 8) {
-                            Toggle(isOn: $showFavicons) {
-                                Text("Afficher les favicons")
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
                             Toggle(isOn: $showThumbnails) {
                                 Text("Afficher les vignettes")
                             }
@@ -115,10 +107,9 @@ struct SettingsSheet: View {
                             .padding(.vertical, 10)
                             .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        // Neither toggle has any effect in Simple — that
-                        // layout shows no favicon or thumbnail at all — so
-                        // both are grayed out and inert there, usable again
-                        // for the other two layouts.
+                        // Has no effect in Simple — that layout shows no
+                        // thumbnail at all — so it's grayed out and inert
+                        // there, usable again for the other two layouts.
                         .disabled(layout == .rail)
                         .opacity(layout == .rail ? 0.4 : 1)
                     }

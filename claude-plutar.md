@@ -356,6 +356,38 @@ d'Affichage restent intacts.
   en tête de la section **Avancé** (`plutar.shakeToChangeTheme`,
   activée par défaut).
 
+## « via Safari » au lieu de « via Partage »
+
+iOS ne dit jamais à une extension quelle app l'a invoquée — c'est pourquoi
+`sourceApp` valait systématiquement le générique « Partage ». Un cas fait
+exception : **Safari seul** exécute le script JS de préprocessing d'une
+extension de partage (`NSExtensionJavaScriptPreprocessingFile`), les autres
+apps ne l'exécutent jamais. Sa seule présence sert donc de détection fiable.
+
+- **`PlutarShare/SharePreprocessor.js`** — script minimal qui renvoie
+  `document.title` et `document.URL` via `completionFunction`.
+- **`project.yml`** — `NSExtensionJavaScriptPreprocessingFile:
+  SharePreprocessor` dans `NSExtension` (le fichier est repris tel quel
+  comme ressource de l'extension, vérifié dans l'`.appex` généré).
+- **`ShareViewController.extractSharedURL`** — vérifie l'attachment
+  `public.property-list` (`UTType.propertyList`) *avant* `public.url` :
+  quand il est présent, son contenu (`NSExtensionJavaScriptPreprocessingResultsKey`)
+  donne l'URL/titre réels et `sourceApp = "Safari"` ; sinon, retombe sur
+  `public.url`/`public.plain-text` avec `sourceApp = "Partage"` comme avant.
+
+Limite assumée : seul Safari est distingué. Aucune app tierce (Notes,
+Mastodon, Chrome…) ne peut être identifiée par ce biais — c'est une
+restriction du système, pas de l'implémentation.
+
+## Favicons désactivés
+
+Retirés de la même façon que « Regénérer les liens » (fonction masquée
+*et* désactivée, pas seulement cachée) : `LinkRowView` reçoit désormais
+`showFavicons: false` en dur (plus de `@AppStorage("plutar.showFavicons")`,
+qui aurait laissé les favicons actifs pour qui l'avait déjà à `true`), et la
+bascule « Afficher les favicons » a disparu d'Affichage → Présentation des
+liens (qui ne garde que « Afficher les vignettes »).
+
 ## Prochaines étapes possibles
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)

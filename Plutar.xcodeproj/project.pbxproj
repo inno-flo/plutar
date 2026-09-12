@@ -27,6 +27,7 @@
 		A4E995208274B43697D90C6C /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		CA1659E01E8E7AA9188ED92F /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		CFCC6003BF3734F5AE8D5CF9 /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */; };
 		E360489DDA0D19A34174505E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CC3F448604493B8E9A7320 /* PlutarApp.swift */; };
 /* End PBXBuildFile section */
@@ -60,6 +61,7 @@
 		0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeGesture.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SharePreprocessor.js; sourceTree = "<group>"; };
 		4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMetadataEnricher.swift; sourceTree = "<group>"; };
 		58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRowView.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 			children = (
 				A1134246047A1EA572CF8858 /* Info.plist */,
 				8D7070AAD03D0D1CA47971AD /* PlutarShare.entitlements */,
+				3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */,
 				F4326D35166D392B8DFBEC59 /* ShareView.swift */,
 				4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */,
 			);
@@ -209,6 +212,7 @@
 			buildConfigurationList = 12630956193C9BF1ABA5AD73 /* Build configuration list for PBXNativeTarget "PlutarShare" */;
 			buildPhases = (
 				2C1EA18D53EC4AFE3E3059C1 /* Sources */,
+				0055C27B3C3F5104E23973DE /* Resources */,
 			);
 			buildRules = (
 			);
@@ -261,6 +265,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0055C27B3C3F5104E23973DE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFCC6003BF3734F5AE8D5CF9 /* SharePreprocessor.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		356F4269D6B7A71E1BBDD1BC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
