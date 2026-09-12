@@ -404,12 +404,17 @@ struct RootView: View {
         .preferredColorScheme(appearance.colorScheme)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(
-                // The grid picks the theme family, but tapping a specific
-                // light or soir pill is itself a manual override: it takes
-                // priority over "Apparence" by forcing it to match
-                // (Claire/Sombre) rather than leaving it on Automatique.
+                // The grid highlights whichever pill matches what's actually
+                // on screen right now (`theme`, not the raw `selectedTheme`
+                // stored on disk) — in "Automatique", that pill changes on
+                // its own when the system's light/dark setting does, rather
+                // than staying stuck on whichever pill was last tapped.
+                // Tapping a specific light or soir pill is itself a manual
+                // override, though: it takes priority over "Apparence" by
+                // forcing it to match (Claire/Sombre) rather than leaving it
+                // on Automatique.
                 theme: Binding(
-                    get: { selectedTheme },
+                    get: { theme },
                     set: {
                         themeRaw = $0.rawValue
                         appearanceRaw = ($0.isSoir ? AppAppearance.dark : .light).rawValue
