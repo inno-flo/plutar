@@ -232,39 +232,6 @@ struct LinkRowView: View {
     }
 }
 
-/// Turns `content` continuously from 0° to 180° around `axis`, as if the
-/// card were being physically flipped over to its back face. `Animatable`
-/// makes SwiftUI call `body` for every interpolated frame of the
-/// animation (not just its start/end), which is what lets a single
-/// `withAnimation` drive both the rotation and, exactly at the 90°
-/// midpoint (where the card is edge-on and briefly invisible), the swap
-/// from `content(false)` to `content(true)` — one continuous curve, no
-/// separate staged animations that could visibly stutter at the handoff.
-///
-/// Past 90°, `angle - 180` keeps the second face's own rotation within
-/// ±90° of upright, so it's never drawn mirrored the way a plain 0→180°
-/// `rotation3DEffect` would show it partway through.
-private struct FlipCard<Content: View>: View, Animatable {
-    var angle: Double
-    let axis: (x: CGFloat, y: CGFloat, z: CGFloat)
-    @ViewBuilder let content: (_ showsNewFace: Bool) -> Content
-
-    var animatableData: Double {
-        get { angle }
-        set { angle = newValue }
-    }
-
-    var body: some View {
-        let showsNewFace = angle > 90
-        content(showsNewFace)
-            .rotation3DEffect(
-                .degrees(showsNewFace ? angle - 180 : angle),
-                axis: axis,
-                perspective: 0.4
-            )
-    }
-}
-
 /// A cheap diagonal-stripe placeholder standing in for a real link preview
 /// image (there is no network fetch — these are demo links).
 private struct StripesShape: Shape {

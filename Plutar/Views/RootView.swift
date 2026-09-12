@@ -116,6 +116,18 @@ struct RootView: View {
     /// its own defined color.
     @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
     @AppStorage("plutar.shakeToChangeTheme") private var shakeToChangeTheme = true
+    /// 0→180°, animated in one continuous motion while a shake-triggered
+    /// theme change plays out — see `triggerShakeThemeFlip`. Every capsule
+    /// affected (link cards, the counter badge, day/source pills) reads
+    /// this same angle, so they all turn in lockstep.
+    @State private var themeFlipAngle: Double = 0
+    /// The theme as it was just before the shake, kept only for the
+    /// duration of the flip — each capsule's `FlipCard` shows this on its
+    /// first face and the live (already-switched) `theme` on its second.
+    @State private var themeFlipOldTheme: AppTheme?
+    /// Toggled inside the same `withAnimation` block as the theme switch —
+    /// see `animatedBackground` and `triggerShakeThemeFlip`.
+    @State private var themeFlipRevealsNewBackground = false
 
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .chrono
@@ -176,11 +188,47 @@ struct RootView: View {
     /// theme's own background when the "Fond noir pour les thèmes nuit"
     /// toggle is on and the current theme is a soir variant; pure white for
     /// Tokyo, across all three views (Date/Sources/Lus).
-    private var effectiveBackground: Color {
+    private var effectiveBackground: Color { effectiveBackground(for: theme) }
+
+    /// Takes `theme` explicitly so `animatedBackground` below can compute
+    /// both the pre- and post-shake colors to cross-fade between.
+    private func effectiveBackground(for theme: AppTheme) -> Color {
         if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
         if theme == .tokyo { return Color(hex: "#FFFFFF") }
         return theme.background
     }
+
+    /// The screen backdrop, cross-fading between the pre- and post-shake
+    /// background color while `triggerShakeThemeFlip` plays out, instead of
+    /// snapping straight to the new one. A plain `Color` change under
+    /// `.background()`/here isn't itself interpolated by `withAnimation` —
+    /// unlike the capsules' rotation (driven by `FlipCard`'s
+    /// `animatableData`), a `.opacity()` fade between two solid layers is
+    /// SwiftUI's standard way to animate between two arbitrary colors.
+    @ViewBuilder
+    private var animatedBackground: some View {
+        ZStack {
+            effectiveBackground(for: themeFlipOldTheme ?? theme)
+            if themeFlipOldTheme != nil {
+                effectiveBackground(for: theme)
+                    .opacity(themeFlipRevealsNewBackground ? 1 : 0)
+            }
+        }
+        // Explicit rather than relying on the ambient `withAnimation` in
+        // `triggerShakeThemeFlip` to propagate down on its own — that left
+        // this fade finishing at a different moment than the capsules'
+        // rotation and the day/source pills' own fade, even though all
+        // three read the same state changed in the same transaction.
+        .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
+    }
+
+    /// Shared by every part of a shake's theme change — the capsule
+    /// rotation (`FlipCard`, driven by `themeFlipAngle`), the backdrop fade
+    /// (`animatedBackground`) and the day/source pills' own fade
+    /// (`fadingDayPill`/`fadingSourceChipLabel`) — so all three start and
+    /// finish at the exact same instant instead of merely sharing a
+    /// `withAnimation` block that each could still resolve on its own timing.
+    private static let themeFlipDuration: Double = 0.6
 
     private var visibleItems: [LinkItem] {
         mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
@@ -206,7 +254,7 @@ struct RootView: View {
     /// — its Sources pastille count badge already falls back to
     /// `chipText.opacity(0.22)` on its own; see
     /// `mainCounterBackgroundOverride` for the top badge.
-    private var counterBackgroundOverride: Color? {
+    private func counterBackgroundOverride(for theme: AppTheme) -> Color? {
         switch theme {
         case .scand: return Color(hex: "#D9A62E")
         case .scandSoir: return Color(hex: "#A67816")
@@ -222,7 +270,7 @@ struct RootView: View {
     /// Overrides the top link-count badge's background specifically (not
     /// the Sources pastille's own count badge) — Cap Canaveral soir uses a
     /// light gray there instead of `counterBackgroundOverride`'s value.
-    private var mainCounterBackgroundOverride: Color? {
+    private func mainCounterBackgroundOverride(for theme: AppTheme) -> Color? {
         theme == .astronauteSoir ? Color(hex: "#6D6D6D") : nil
     }
 
@@ -233,7 +281,7 @@ struct RootView: View {
     /// dark ink instead of the pastille's white (contrast audit: white on
     /// that ochre was ~2.2:1). Nil everywhere else, so callers fall back to
     /// their own default foreground.
-    private var counterForegroundOverride: Color? {
+    private func counterForegroundOverride(for theme: AppTheme) -> Color? {
         switch theme {
         case .astronaute: return Color(hex: "#FF4F00")
         case .astronauteSoir: return theme.chipText
@@ -376,7 +424,7 @@ struct RootView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         .onShake {
             guard shakeToChangeTheme else { return }
-            shakeToRandomizeTheme()
+            triggerShakeThemeFlip()
         }
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .settings {
@@ -473,10 +521,10 @@ struct RootView: View {
     /// and there's nothing there to flash. The empty body below it is
     /// covered by the settings sheet rising over it.
     private var settingsTabPlaceholder: some View {
-        effectiveBackground
+        animatedBackground
             .ignoresSafeArea()
             .safeAreaInset(edge: .top, spacing: 0) {
-                floatingCounterBadge
+                flippingCounterBadge
             }
     }
 
@@ -486,7 +534,7 @@ struct RootView: View {
     private var feedScreen: some View {
         NavigationStack {
             ZStack(alignment: .bottomLeading) {
-                effectiveBackground.ignoresSafeArea()
+                animatedBackground.ignoresSafeArea()
 
                 List {
                     ForEach(groups) { group in
@@ -506,7 +554,9 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
-                                    LinkRowView(item: item, layout: layout, theme: theme, appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: false)
+                                    FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
+                                        LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont, showThumbnails: showThumbnails, showFavicons: false, showsPlaceholderThumbnail: false)
+                                    }
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -654,14 +704,26 @@ struct RootView: View {
             // read button right at the top, and the two were colliding when
             // the counter merely floated on top.
             .safeAreaInset(edge: .top, spacing: 0) {
-                floatingCounterBadge
+                flippingCounterBadge
             }
         }
     }
 
+    /// `floatingCounterBadge` wrapped in the shared shake-flip `FlipCard` —
+    /// this is what both call sites use, so the badge turns in lockstep
+    /// with every other capsule during `triggerShakeThemeFlip`.
+    private var flippingCounterBadge: some View {
+        FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
+            floatingCounterBadge(theme: flippedTheme(showsNewFace: showsNewFace))
+        }
+    }
+
     /// The link-count pill, floating on its own with no surrounding title
-    /// bar, in the same top-trailing spot a header used to place it.
-    private var floatingCounterBadge: some View {
+    /// bar, in the same top-trailing spot a header used to place it. Takes
+    /// `theme` explicitly (rather than reading the property directly) so
+    /// the shake flip can render this badge's pre- and post-shake faces
+    /// side by side while it turns — see `flippingCounterBadge`.
+    private func floatingCounterBadge(theme: AppTheme) -> some View {
         HStack {
             Spacer()
             // A fixed 44×44 slot — the same box `floatingButton` uses —
@@ -690,10 +752,10 @@ struct RootView: View {
                         // ochre yellow in every view (a darker variant for
                         // soir), leaving the day/source pill on its usual
                         // `chip`.
-                        .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chip)
+                        .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chip)
                         // Tokyo soir: same gray as the ranking rows' own
                         // count text.
-                        .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
+                        .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
                         .clipShape(Capsule())
                 }
         }
@@ -753,7 +815,7 @@ struct RootView: View {
                 Button {
                     toggleSource(group.id)
                 } label: {
-                    sourceChipLabel(group)
+                    fadingSourceChipLabel(group)
                 }
                 .buttonStyle(.plain)
 
@@ -793,13 +855,7 @@ struct RootView: View {
             // label, with its own mark-as-read button trailing it — same
             // 44pt tap target and icon treatment as Sources' per-source button.
             HStack(alignment: .center, spacing: 10) {
-                Text(group.label)
-                    .font(appFont.font(size: 16.5, weight: .bold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(theme.chip)
-                    .foregroundStyle(theme.chipText)
-                    .clipShape(Capsule())
+                fadingDayPill(group)
 
                 if mode == .chrono {
                     Spacer(minLength: 0)
@@ -839,18 +895,21 @@ struct RootView: View {
         }
     }
 
-    private func sourceChipLabel(_ group: FeedGroup) -> some View {
+    /// Takes `theme` explicitly (rather than reading the property directly)
+    /// so the shake transition can cross-fade this chip's pre- and
+    /// post-shake colors — see `fadingSourceChipLabel`.
+    private func sourceChipLabel(_ group: FeedGroup, theme: AppTheme) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
                 .font(appFont.font(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(appFont.font(size: 16.5, weight: .bold))
                 // Tokyo soir: same gray as the ranking rows' own count text.
-                .foregroundStyle(counterForegroundOverride ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText))
+                .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText))
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 // Copenhague: same ochre yellow as the other link counters.
-                .background(mainCounterBackgroundOverride ?? counterBackgroundOverride ?? theme.chipText.opacity(0.22))
+                .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
             Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
                 .font(.system(size: 14, weight: .bold))
@@ -861,6 +920,51 @@ struct RootView: View {
         .background(theme.chip)
         .foregroundStyle(theme.chipText)
         .clipShape(Capsule())
+    }
+
+    /// `sourceChipLabel` cross-fading between its pre- and post-shake
+    /// colors during `triggerShakeThemeFlip` — the rotation effect used
+    /// elsewhere (link cards, the counter badge) turned out not to read at
+    /// all on this chip once it shared a stack with a live sibling button,
+    /// even restructured to remove that sibling; a plain fade, the same
+    /// technique `animatedBackground` uses for the screen backdrop, was
+    /// dropped in instead rather than keep chasing the rotation.
+    private func fadingSourceChipLabel(_ group: FeedGroup) -> some View {
+        ZStack {
+            sourceChipLabel(group, theme: themeFlipOldTheme ?? theme)
+            if themeFlipOldTheme != nil {
+                sourceChipLabel(group, theme: theme)
+                    .opacity(themeFlipRevealsNewBackground ? 1 : 0)
+            }
+        }
+        // Explicit, and pinned to the exact same duration as
+        // `animatedBackground`'s — see `Self.themeFlipDuration`.
+        .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
+    }
+
+    /// The day pill ("Aujourd'hui", "Hier", a date) shown in Date/Lus —
+    /// takes `theme` explicitly for the same reason as `sourceChipLabel`.
+    private func dayPill(_ group: FeedGroup, theme: AppTheme) -> some View {
+        Text(group.label)
+            .font(appFont.font(size: 16.5, weight: .bold))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(theme.chip)
+            .foregroundStyle(theme.chipText)
+            .clipShape(Capsule())
+    }
+
+    /// `dayPill` cross-fading between its pre- and post-shake colors — see
+    /// `fadingSourceChipLabel`.
+    private func fadingDayPill(_ group: FeedGroup) -> some View {
+        ZStack {
+            dayPill(group, theme: themeFlipOldTheme ?? theme)
+            if themeFlipOldTheme != nil {
+                dayPill(group, theme: theme)
+                    .opacity(themeFlipRevealsNewBackground ? 1 : 0)
+            }
+        }
+        .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
     }
 
     /// A row's width is proportional to its share of `maxCount` (the
@@ -1105,5 +1209,48 @@ struct RootView: View {
         guard let currentIndex = family.firstIndex(of: theme) else { return }
         let next = family[(currentIndex + 1) % family.count]
         themeRaw = next.rawValue
+    }
+
+    /// The theme a capsule's `FlipCard` should show for one of its two
+    /// faces during a shake flip: the frozen pre-shake theme on the first
+    /// face, the live (already-switched) one on the second.
+    private func flippedTheme(showsNewFace: Bool) -> AppTheme {
+        showsNewFace ? theme : (themeFlipOldTheme ?? theme)
+    }
+
+    /// Snapshots the current theme, switches to the next one, then turns
+    /// link cards and the counter badge from the old to the new in one
+    /// continuous horizontal-axis rotation — the same technique
+    /// `LinkRowView`'s title/image reveal uses — while `animatedBackground`
+    /// and the day/source pills (`fadingDayPill`/`fadingSourceChipLabel`)
+    /// cross-fade their colors in step instead.
+    private func triggerShakeThemeFlip() {
+        themeFlipOldTheme = theme
+        themeFlipAngle = 0
+        themeFlipRevealsNewBackground = false
+        withAnimation(.easeInOut(duration: Self.themeFlipDuration)) {
+            shakeToRandomizeTheme()
+            themeFlipAngle = 180
+            themeFlipRevealsNewBackground = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(Self.themeFlipDuration))
+            // Not resetting `themeFlipRevealsNewBackground` here — it was
+            // the actual bug: flipping it back to false re-triggered the
+            // `.animation(value:)`-driven fade on every fading view (an
+            // unwanted extra 1→0 animation of a layer about to be removed
+            // anyway), which is what made the old theme flash back
+            // momentarily before the new one settled "for good". Clearing
+            // `themeFlipOldTheme` alone removes the old/new overlay
+            // structurally — instantly, no animation needed — and
+            // `triggerShakeThemeFlip` already resets
+            // `themeFlipRevealsNewBackground` to false itself before the
+            // next flip starts.
+            themeFlipOldTheme = nil
+            // 180° and 0° render identically (see FlipCard) — resetting
+            // silently here, rather than leaving it at 180, means the next
+            // shake's animation always has the same 0→180 span to work with.
+            themeFlipAngle = 0
+        }
     }
 }
