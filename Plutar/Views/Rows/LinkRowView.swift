@@ -11,8 +11,6 @@ struct LinkRowView: View {
     let showThumbnails: Bool
     let showFavicons: Bool
 
-    private var showThumbnail: Bool { item.hasThumbnail && showThumbnails }
-
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
     /// per-element tone.
@@ -87,9 +85,10 @@ struct LinkRowView: View {
                 hostRow
             }
             Spacer(minLength: 0)
-            if showThumbnail {
-                thumbnail(size: 86)
-            }
+            // Always shown in Détaillée — like Éditoriale below, this
+            // layout's premise includes a thumbnail; it's Simple's premise
+            // to have none.
+            thumbnail(size: 86)
         }
     }
 
@@ -103,9 +102,10 @@ struct LinkRowView: View {
                 }
                 hostRow
             }
-            if showThumbnail {
-                thumbnail(size: 150, fullWidth: true)
-            }
+            // Always shown — see the comment in cardBody: Détaillée and
+            // Éditoriale both always carry a thumbnail (placeholder or
+            // real), Simple never does.
+            thumbnail(size: 150, fullWidth: true)
             Text(item.title)
                 .font(appFont.font(size: 18, weight: .bold))
                 .lineLimit(3)
