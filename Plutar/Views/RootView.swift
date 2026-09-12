@@ -524,7 +524,7 @@ struct RootView: View {
         animatedBackground
             .ignoresSafeArea()
             .safeAreaInset(edge: .top, spacing: 0) {
-                flippingCounterBadge
+                floatingCounterBadge
             }
     }
 
@@ -704,26 +704,20 @@ struct RootView: View {
             // read button right at the top, and the two were colliding when
             // the counter merely floated on top.
             .safeAreaInset(edge: .top, spacing: 0) {
-                flippingCounterBadge
+                floatingCounterBadge
             }
         }
     }
 
-    /// `floatingCounterBadge` wrapped in the shared shake-flip `FlipCard` —
-    /// this is what both call sites use, so the badge turns in lockstep
-    /// with every other capsule during `triggerShakeThemeFlip`.
-    private var flippingCounterBadge: some View {
-        FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
-            floatingCounterBadge(theme: flippedTheme(showsNewFace: showsNewFace))
-        }
-    }
-
     /// The link-count pill, floating on its own with no surrounding title
-    /// bar, in the same top-trailing spot a header used to place it. Takes
-    /// `theme` explicitly (rather than reading the property directly) so
-    /// the shake flip can render this badge's pre- and post-shake faces
-    /// side by side while it turns — see `flippingCounterBadge`.
-    private func floatingCounterBadge(theme: AppTheme) -> some View {
+    /// bar, in the same top-trailing spot a header used to place it. Only
+    /// `counterBadgeContent` — the actual 44×44 box, not this whole
+    /// `Spacer()`-padded row — is wrapped in `FlipCard`: a `FlipCard`
+    /// spinning/scaling the whole row used to visibly shift the badge
+    /// sideways, because a rotation or `.scaleEffect` transforms a view
+    /// around *its own* center, and this row's center sits out in the
+    /// middle of the `Spacer()`, nowhere near where the badge actually is.
+    private var floatingCounterBadge: some View {
         HStack {
             Spacer()
             // A fixed 44×44 slot — the same box `floatingButton` uses —
@@ -737,31 +731,37 @@ struct RootView: View {
             Color.clear
                 .frame(width: 44, height: 44)
                 .overlay {
-                    Text("\(currentCount)")
-                        .font(appFont.font(size: 20, weight: .bold))
-                        // minWidth used to be 40 — wide enough on its own to
-                        // swallow the width difference between 1 and 2
-                        // digits (both simply clamped to the floor), so the
-                        // badge looked the same size regardless of digit
-                        // count. Lowered so a single digit's natural width
-                        // dictates its own size and 2/3-digit counts
-                        // visibly grow past it instead.
-                        .frame(minWidth: 24, minHeight: 36)
-                        .padding(.horizontal, 8)
-                        // Copenhague: the counter badge alone swaps to an
-                        // ochre yellow in every view (a darker variant for
-                        // soir), leaving the day/source pill on its usual
-                        // `chip`.
-                        .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chip)
-                        // Tokyo soir: same gray as the ranking rows' own
-                        // count text.
-                        .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
-                        .clipShape(Capsule())
+                    FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
+                        counterBadgeContent(theme: flippedTheme(showsNewFace: showsNewFace))
+                    }
                 }
         }
         .padding(.top, 14)
         .padding(.trailing, 18)
         .padding(.bottom, 10)
+    }
+
+    /// Takes `theme` explicitly (rather than reading the property directly)
+    /// so the shake flip can render this badge's pre- and post-shake faces
+    /// side by side while it turns — see `floatingCounterBadge`.
+    private func counterBadgeContent(theme: AppTheme) -> some View {
+        Text("\(currentCount)")
+            .font(appFont.font(size: 20, weight: .bold))
+            // minWidth used to be 40 — wide enough on its own to swallow the
+            // width difference between 1 and 2 digits (both simply clamped
+            // to the floor), so the badge looked the same size regardless
+            // of digit count. Lowered so a single digit's natural width
+            // dictates its own size and 2/3-digit counts visibly grow past
+            // it instead.
+            .frame(minWidth: 24, minHeight: 36)
+            .padding(.horizontal, 8)
+            // Copenhague: the counter badge alone swaps to an ochre yellow
+            // in every view (a darker variant for soir), leaving the
+            // day/source pill on its usual `chip`.
+            .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chip)
+            // Tokyo soir: same gray as the ranking rows' own count text.
+            .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
+            .clipShape(Capsule())
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
