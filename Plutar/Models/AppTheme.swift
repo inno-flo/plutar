@@ -264,6 +264,19 @@ enum AppTheme: String, CaseIterable, Identifiable {
         default: return background
         }
     }
+
+    /// The theme actually displayed: `selected`'s light or soir variant,
+    /// picked according to `appearance` ("Automatique" follows the system's
+    /// own active light/dark setting). Shared by `RootView` (iOS) and
+    /// `MacRootView` (macOS) — both resolve the same raw `AppTheme` +
+    /// `AppAppearance` pair the same way.
+    static func resolved(selected: AppTheme, appearance: AppAppearance, systemColorScheme: ColorScheme) -> AppTheme {
+        switch appearance {
+        case .light: return selected.lightVariant
+        case .dark: return selected.soirVariant
+        case .auto: return systemColorScheme == .dark ? selected.soirVariant : selected.lightVariant
+        }
+    }
 }
 
 /// Light/soir selector from the settings drawer. "Claire" forces the active
@@ -298,7 +311,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 /// Typeface choice from the settings drawer, all available on stock iOS.
 /// SF Pro (`.rounded`) is the default.
 enum AppFont: String, CaseIterable, Identifiable {
-    case rounded, sfCompact, helvetica
+    case rounded, sfCompact, helvetica, helveticaCourant
 
     var id: String { rawValue }
 
@@ -306,7 +319,8 @@ enum AppFont: String, CaseIterable, Identifiable {
         switch self {
         case .rounded: return "SF Pro"
         case .sfCompact: return "SF Compact"
-        case .helvetica: return "Helvetica"
+        case .helvetica: return "Helvetica Neue Bold"
+        case .helveticaCourant: return "Helvetica Neue Courant"
         }
     }
 
@@ -317,6 +331,8 @@ enum AppFont: String, CaseIterable, Identifiable {
         case .sfCompact: return .custom("SFCompactDisplay-Regular", size: size)
         // Helvetica Neue, fixed to its Bold style, ignoring `weight`.
         case .helvetica: return .custom("HelveticaNeue-Bold", size: size)
+        // Same family, its plain (Regular/"Courant") style instead.
+        case .helveticaCourant: return .custom("HelveticaNeue", size: size)
         }
     }
 }
@@ -334,4 +350,19 @@ enum LinkLayout: String, CaseIterable, Identifiable {
         case .editorial: return "Éditoriale"
         }
     }
+
+    /// SF Symbol shown next to `label` in the macOS toolbar's presentation
+    /// menu (`MacFeedList`).
+    var symbolName: String {
+        switch self {
+        case .rail: return "text.justify"
+        case .card: return "square.fill.text.grid.1x2"
+        case .editorial: return "richtext.page"
+        }
+    }
+
+    /// `.card`'s symbol reads better mirrored for this menu — its filled
+    /// half naturally sits on the left, which points the wrong way next to
+    /// leading-aligned text.
+    var symbolIsMirrored: Bool { self == .card }
 }

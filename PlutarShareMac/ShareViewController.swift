@@ -1,16 +1,17 @@
-import UIKit
+import Cocoa
 import SwiftUI
 import SwiftData
 
-/// Entry point of the PlutarShare extension (`NSExtensionPrincipalClass` in
-/// its Info.plist). Pulls the shared URL out of the extension context (via
-/// the shared, platform-agnostic `SharedLinkExtraction`), presents
-/// `ShareView` for a title tweak, then writes straight into the App
-/// Group/CloudKit-backed store the main app reads from. See
-/// `PlutarShareMac/ShareViewController.swift` for the macOS counterpart —
-/// same logic, `NSViewController`/`NSHostingController` instead of
-/// `UIViewController`/`UIHostingController`.
-final class ShareViewController: UIViewController {
+/// Entry point of the PlutarShareMac extension (`NSExtensionPrincipalClass`
+/// in its Info.plist) — the macOS counterpart of
+/// `PlutarShare/ShareViewController.swift`. Same shared
+/// `SharedLinkExtraction`/`ShareView`/`LinkItemFactory` logic, hosted via
+/// AppKit (`NSViewController`/`NSHostingController`) instead of UIKit.
+final class ShareViewController: NSViewController {
+    override func loadView() {
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 160))
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         SharedLinkExtraction.extractSharedURL(from: extensionContext?.inputItems as? [NSExtensionItem]) { [weak self] result in
@@ -38,12 +39,19 @@ final class ShareViewController: UIViewController {
                 onCancel: { [weak self] in self?.finish() }
             ))
         }
-        let hosting = UIHostingController(rootView: content)
+        embed(NSHostingController(rootView: content))
+    }
+
+    /// AppKit's `NSViewController.addChild(_:)` has no `didMove(toParent:)`
+    /// step to call afterwards the way UIKit's does — adding the child and
+    /// its view is enough.
+    private func embed(_ hosting: NSHostingController<AnyView>) {
+        for child in children { child.view.removeFromSuperview() }
+        children.forEach { $0.removeFromParent() }
         addChild(hosting)
         hosting.view.frame = view.bounds
-        hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        hosting.view.autoresizingMask = [.width, .height]
         view.addSubview(hosting.view)
-        hosting.didMove(toParent: self)
     }
 
     private func save(url: URL, title: String, sourceApp: String) {
@@ -52,15 +60,10 @@ final class ShareViewController: UIViewController {
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             finish()
         } catch {
-            let hosting = UIHostingController(rootView: ShareErrorView(
+            embed(NSHostingController(rootView: AnyView(ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",
                 onDismiss: { [weak self] in self?.finish() }
-            ))
-            addChild(hosting)
-            hosting.view.frame = view.bounds
-            hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            view.addSubview(hosting.view)
-            hosting.didMove(toParent: self)
+            ))))
         }
     }
 

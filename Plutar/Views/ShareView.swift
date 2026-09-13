@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// Minimal confirmation screen shown in the share sheet. Deliberately not a
-/// re-skin of `RootView` — the extension process is short-lived and this is
-/// the only screen it ever shows, so it borrows just the accent color and
-/// wordmark treatment rather than pulling in `AppTheme`.
+/// Minimal confirmation screen shown in the share sheet — shared by both
+/// `PlutarShare` (iOS) and `PlutarShareMac` (macOS), each hosting it via
+/// their own `ShareViewController` (`UIHostingController`/`NSHostingController`
+/// respectively). Deliberately not a re-skin of `RootView`/`MacRootView` —
+/// the extension process is short-lived and this is the only screen it ever
+/// shows, so it borrows just the accent color and wordmark treatment rather
+/// than pulling in `AppTheme`.
 struct ShareView: View {
     let host: String
     @State var title: String
@@ -28,7 +31,9 @@ struct ShareView: View {
                 }
             }
             .navigationTitle("plutar")
+            #if os(iOS)
             .toolbarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler", action: onCancel)
@@ -65,7 +70,9 @@ struct ShareErrorView: View {
             }
             .padding()
             .navigationTitle("plutar")
+            #if os(iOS)
             .toolbarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("OK", action: onDismiss)

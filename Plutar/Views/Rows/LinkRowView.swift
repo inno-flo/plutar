@@ -1,5 +1,19 @@
 import SwiftUI
-import UIKit
+
+/// `PlatformImage` (`UIImage`/`NSImage`) itself is defined in
+/// `Persistence/PlatformImage.swift`, shared with the share extensions,
+/// which don't need this SwiftUI-specific wrapper.
+extension Image {
+    /// `Image(uiImage:)` on iOS, `Image(nsImage:)` on macOS — lets
+    /// `LinkRowView` stay a single shared file across both platforms.
+    init(platformImage: PlatformImage) {
+        #if canImport(UIKit)
+        self.init(uiImage: platformImage)
+        #elseif canImport(AppKit)
+        self.init(nsImage: platformImage)
+        #endif
+    }
+}
 
 /// Renders one `LinkItem` in whichever of the three timeline layouts is
 /// currently selected (rail / card / editorial).
@@ -17,6 +31,35 @@ struct LinkRowView: View {
     /// read as more "broken" than useful. Kept as a parameter rather than
     /// deleted outright, in case a future layout wants the placeholder back.
     let showsPlaceholderThumbnail: Bool
+    /// Whether the host/"via" line renders at all — `true` everywhere except
+    /// a macOS single-source detail (`MacFeedList`'s `isSingleSourceDetail`),
+    /// where every row is already known to belong to the one source named in
+    /// the toolbar title, so repeating it on every card is redundant. iOS
+    /// never sets this (always the default `true`).
+    var showHost: Bool = true
+    /// macOS only: whether this row is the `List`'s current selection.
+    /// Native `List` selection on macOS draws its highlight as a plain
+    /// rectangle behind the row, which — since the card itself is inset
+    /// from the row's edges — showed up as a ring *around* the card rather
+    /// than filling it. Instead, `MacFeedList` hides that native highlight
+    /// and this fills the card itself with `theme.chip` (text switching to
+    /// `selectedTextColor` below) when selected instead — the same
+    /// background already used for iOS's link-count counter badge.
+    /// iOS never sets this (always `false`).
+    var isSelected: Bool = false
+
+    /// `theme.chipText` for the selected-link text below, except Copenhague
+    /// nuit and Kamakura nuit: `chipText` falls through to each's own (dark)
+    /// `background` there — fine for the counter badge's own tuned overrides
+    /// elsewhere, but reading dark-on-chip here, unlike every other "nuit"
+    /// theme's white. Keeping the same light text as Cap Canaveral nuit/
+    /// Tokyo nuit instead.
+    private var selectedTextColor: Color {
+        switch theme {
+        case .scandSoir, .blancSoir: return .white
+        default: return theme.chipText
+        }
+    }
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
@@ -28,6 +71,16 @@ struct LinkRowView: View {
     /// regardless of what's passed), so titles stay at Regular weight there.
     private var titleWeight: Font.Weight { .bold }
 
+    /// Smaller on macOS — the mockup's 18pt reads oversized next to the
+    /// window chrome/sidebar there; iOS keeps its original size.
+    private var titleFontSize: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        18
+        #endif
+    }
+
     /// 0→180°, animated in one continuous motion (see `FlipCard`) when
     /// `LinkMetadataEnricher` turns a bare-URL link into a real title.
     @State private var flipAngle: Double = 0
@@ -38,6 +91,10 @@ struct LinkRowView: View {
     @State private var frozenThumbnailFileName: String??
 
     var body: some View {
+        // `FlipCard` is plain SwiftUI (no UIKit dependency, despite the
+        // stale comment that used to sit here) — both platforms get the
+        // same flip when `LinkMetadataEnricher` turns a bare-URL title into
+        // a real one.
         FlipCard(angle: flipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
             cardFace(
                 title: showsNewFace ? item.title : (frozenTitle ?? item.title),
@@ -74,29 +131,30 @@ struct LinkRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
-        .background(item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)
+        .background(isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card))
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title))
+        .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
         // inconsistently from theme to theme; blending toward a color the
         // theme already defines gives a real, consistently muted tone.
         // Skipped when the theme provides its own flat `readCardOverride`
-        // (Cap Canaveral uses a plain medium gray instead).
+        // (Cap Canaveral uses a plain medium gray instead), and when
+        // selected — the accent fill above should read clean, not muted.
         .overlay {
-            if item.isRead && theme.readCardOverride == nil {
+            if item.isRead && theme.readCardOverride == nil && !isSelected {
                 theme.background.opacity(0.6)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // Skipped when the theme provides its own flat `readCardOverride` —
-        // otherwise this desaturates that color too, washing e.g. Cap
-        // Canaveral's light blue down to a gray indistinguishable from
-        // before.
-        .saturation(item.isRead && theme.readCardOverride == nil ? 0 : 1)
+        // Skipped when the theme provides its own flat `readCardOverride`,
+        // or when selected — otherwise this desaturates that color too,
+        // washing e.g. Cap Canaveral's light blue (or the selection accent)
+        // down to a gray indistinguishable from before.
+        .saturation(item.isRead && theme.readCardOverride == nil && !isSelected ? 0 : 1)
         // No shadow on read cells (all of Lus) — it read as too heavy on an
         // already muted/desaturated card.
         .shadow(color: item.isRead ? .clear : .black.opacity(0.08), radius: 9, y: 4)
@@ -107,9 +165,11 @@ struct LinkRowView: View {
     private func railBody(title: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title)
-                .font(appFont.font(size: 18, weight: titleWeight))
+                .font(appFont.font(size: titleFontSize, weight: titleWeight))
                 .lineLimit(3)
-            hostRow
+            if showHost {
+                hostRow
+            }
         }
     }
 
@@ -122,9 +182,11 @@ struct LinkRowView: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(appFont.font(size: 18, weight: titleWeight))
+                    .font(appFont.font(size: titleFontSize, weight: titleWeight))
                     .lineLimit(3)
-                hostRow
+                if showHost {
+                    hostRow
+                }
             }
             Spacer(minLength: 0)
             // Always shown in Détaillée — like Éditoriale below, this
@@ -134,27 +196,38 @@ struct LinkRowView: View {
         }
     }
 
-    // MARK: Editorial — big thumbnail on top, title, excerpt below.
+    // MARK: Editorial — big thumbnail on top, title, excerpt, source at the
+    // bottom (still leading-aligned, like every other line in this stack).
 
     private func editorialBody(title: String, thumbnailFileName: String?) -> some View {
         VStack(alignment: .leading, spacing: 11) {
-            HStack(spacing: 7) {
-                if showFavicons {
-                    favicon(size: 22)
-                }
-                hostRow
-            }
             // Always shown — see the comment in cardBody: Détaillée and
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
             thumbnail(size: 150, fullWidth: true, thumbnailFileName: thumbnailFileName)
             Text(title)
-                .font(appFont.font(size: 18, weight: .bold))
+                .font(appFont.font(size: titleFontSize, weight: .bold))
                 .lineLimit(3)
-            Text(item.excerpt)
-                .font(appFont.font(size: 13))
-                .foregroundStyle(theme.ink(0.5))
-                .lineLimit(3)
+            // Only when there's actually an excerpt to show — an empty
+            // `Text` still claims a row plus the `VStack`'s own spacing on
+            // both sides, leaving a visible gap above the source line for
+            // links `LinkMetadataEnricher` hasn't found a description for.
+            if !item.excerpt.isEmpty {
+                Text(item.excerpt)
+                    .font(appFont.font(size: 13))
+                    .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
+                    .lineLimit(3)
+            }
+            if showFavicons || showHost {
+                HStack(spacing: 7) {
+                    if showFavicons {
+                        favicon(size: 22)
+                    }
+                    if showHost {
+                        hostRow
+                    }
+                }
+            }
         }
     }
 
@@ -173,14 +246,14 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .semibold))
-            .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
+            .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 
     @ViewBuilder
     private func thumbnail(size: CGFloat, fullWidth: Bool = false, thumbnailFileName: String?) -> some View {
         if let fileName = thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
-            Image(uiImage: image)
+            Image(platformImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: fullWidth ? nil : size, height: size)
@@ -217,13 +290,13 @@ struct LinkRowView: View {
     /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
     /// disk on every layout pass — thumbnails are a handful of KB each, but
     /// cells redraw often (theme changes, read-state toggles, swipe).
-    private static let thumbnailCache = NSCache<NSString, UIImage>()
+    private static let thumbnailCache = NSCache<NSString, PlatformImage>()
 
-    private static func cachedThumbnail(_ fileName: String) -> UIImage? {
+    private static func cachedThumbnail(_ fileName: String) -> PlatformImage? {
         let key = fileName as NSString
         if let cached = thumbnailCache.object(forKey: key) { return cached }
         guard let directory = SharedStore.thumbnailsDirectoryURL(),
-              let image = UIImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
+              let image = PlatformImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
         else {
             return nil
         }

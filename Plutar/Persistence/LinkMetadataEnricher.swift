@@ -1,7 +1,11 @@
 import Foundation
 import LinkPresentation
 import SwiftData
+#if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// Fills in what the share extension couldn't get from the source app:
 /// a real title (in place of the host-name fallback), an excerpt, and a
@@ -30,6 +34,7 @@ enum LinkMetadataEnricher {
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
         await enrichTitleAndThumbnail(in: context, limit: limit)
         await enrichExcerpt(in: context, limit: limit)
+        await redownloadMissingThumbnails(in: context, limit: limit)
     }
 
     /// Title (fallback replacement only) and preview image, via
@@ -97,6 +102,42 @@ enum LinkMetadataEnricher {
         item.excerpt = excerpt
     }
 
+    /// `metadataFetched`/`thumbnailFileName` sync via CloudKit like any other
+    /// `LinkItem` field, but the JPEG itself lives only in the App Group
+    /// container of whichever device actually fetched it (see
+    /// `thumbnailFileName`'s doc comment on `LinkItem`) — it's never part of
+    /// the synced record. A link enriched on another device therefore
+    /// arrives here already marked done, with a `thumbnailFileName` that
+    /// resolves to nothing on disk locally, and Détaillée/Éditoriale (the
+    /// two layouts that actually render a thumbnail) show a blank gap where
+    /// it should be. This re-downloads just the image for those — title and
+    /// excerpt, already correct from the other device, are left alone.
+    private static func redownloadMissingThumbnails(in context: ModelContext, limit: Int) async {
+        let descriptor = FetchDescriptor<LinkItem>(
+            predicate: #Predicate { $0.thumbnailFileName != nil }
+        )
+        guard let candidates = try? context.fetch(descriptor), !candidates.isEmpty else { return }
+        let missing = candidates.filter { item in
+            guard let fileName = item.thumbnailFileName else { return false }
+            return !thumbnailFileExists(fileName)
+        }
+        guard !missing.isEmpty else { return }
+        for item in missing.prefix(limit) {
+            guard let url = URL(string: item.urlString),
+                  let meta = await fetchLinkMetadata(for: url),
+                  let provider = meta.imageProvider ?? meta.iconProvider,
+                  let fileName = await saveThumbnail(from: provider, id: item.id)
+            else { continue }
+            item.thumbnailFileName = fileName
+        }
+        try? context.save()
+    }
+
+    private nonisolated static func thumbnailFileExists(_ fileName: String) -> Bool {
+        guard let directory = SharedStore.thumbnailsDirectoryURL() else { return false }
+        return FileManager.default.fileExists(atPath: directory.appendingPathComponent(fileName).path)
+    }
+
     /// `nonisolated`, deliberately: this is the actual slow part (a network
     /// round trip), and must run off the main actor so awaiting it doesn't
     /// pin the wait to the main thread. `.timeout` bounds a hung/slow host
@@ -162,13 +203,13 @@ enum LinkMetadataEnricher {
     /// `nonisolated`: the image load/encode/write below has nothing to do
     /// with `ModelContext` and doesn't need the main actor.
     private nonisolated static func saveThumbnail(from provider: NSItemProvider, id: UUID) async -> String? {
-        guard provider.canLoadObject(ofClass: UIImage.self) else { return nil }
-        let image: UIImage? = await withCheckedContinuation { continuation in
-            _ = provider.loadObject(ofClass: UIImage.self) { object, _ in
-                continuation.resume(returning: object as? UIImage)
+        guard provider.canLoadObject(ofClass: PlatformImage.self) else { return nil }
+        let image: PlatformImage? = await withCheckedContinuation { continuation in
+            _ = provider.loadObject(ofClass: PlatformImage.self) { object, _ in
+                continuation.resume(returning: object as? PlatformImage)
             }
         }
-        guard let image, let data = image.jpegData(compressionQuality: 0.7) else { return nil }
+        guard let image, let data = image.plutarJPEGData(compressionQuality: 0.7) else { return nil }
         guard let directory = SharedStore.thumbnailsDirectoryURL() else { return nil }
         let fileName = "\(id.uuidString).jpg"
         do {

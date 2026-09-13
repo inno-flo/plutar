@@ -54,22 +54,29 @@ struct SettingsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    section("Police") {
-                        HStack(spacing: 8) {
-                            // Displayed as Helvetica / SF Pro / SF Compact,
-                            // not `AppFont.allCases`' declaration order.
-                            ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
-                                pill(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular)) {
+                    SettingsSectionView(title: "Police") {
+                        // A 2-column grid, not a single `HStack` row — four
+                        // options (since "Helvetica Neue Courant" joined
+                        // "Helvetica Neue Bold") no longer fit one row
+                        // without overflowing on iPhone width either.
+                        LazyVGrid(columns: columns, spacing: 8) {
+                            // Displayed as Helvetica Bold / Helvetica
+                            // Courant / SF Pro / SF Compact, not
+                            // `AppFont.allCases`'s declaration order.
+                            ForEach([AppFont.helvetica, .helveticaCourant, .rounded, .sfCompact]) { f in
+                                SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: chipColor) {
                                     appFont = f
                                 }
                             }
                         }
                     }
 
-                    section("Thème") {
+                    SettingsSectionView(title: "Thème") {
                         LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(AppTheme.selectable) { t in
-                                themePill(t)
+                                SettingsThemePillButton(theme: t, isActive: theme == t, chipColor: chipColor) {
+                                    theme = t
+                                }
                             }
                         }
                     }
@@ -81,23 +88,23 @@ struct SettingsSheet: View {
                     .padding(.vertical, 10)
                     .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    section("Apparence") {
+                    SettingsSectionView(title: "Apparence") {
                         HStack(spacing: 8) {
                             ForEach(AppAppearance.allCases) { a in
-                                pill(a.label, isActive: appearance == a) { appearance = a }
+                                SettingsPillButton(a.label, isActive: appearance == a, chipColor: chipColor) { appearance = a }
                             }
                         }
                     }
 
-                    section("Présentation du fil") {
+                    SettingsSectionView(title: "Présentation du fil") {
                         HStack(spacing: 8) {
                             ForEach(LinkLayout.allCases) { l in
-                                pill(l.label, isActive: layout == l) { layout = l }
+                                SettingsPillButton(l.label, isActive: layout == l, chipColor: chipColor) { layout = l }
                             }
                         }
                     }
 
-                    section("Avancé") {
+                    SettingsSectionView(title: "Avancé") {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle(isOn: $shakeToChangeTheme) {
                                 Text("Secouer pour changer de thème")
@@ -174,52 +181,5 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
-    }
-
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            // Sentence case, no forced all-caps.
-            Text(title)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-            content()
-        }
-    }
-
-    // `.glassProminent` reads as "selected", plain `.glass` as "unselected" —
-    // there's no single ButtonStyle value that branches on `isActive`, so the
-    // two cases are two separate buttons under an `if`; SwiftUI's ViewBuilder
-    // erases them to the same opaque return type.
-
-    @ViewBuilder
-    private func pill(_ label: String, isActive: Bool, font: Font? = nil, action: @escaping () -> Void) -> some View {
-        if isActive {
-            Button(action: action) { Text(label).font(font) }
-                .buttonStyle(.glassProminent)
-                .tint(chipColor)
-        } else {
-            Button(action: action) { Text(label).font(font) }
-                .buttonStyle(.glass)
-        }
-    }
-
-    @ViewBuilder
-    private func themePill(_ t: AppTheme) -> some View {
-        if theme == t {
-            Button { theme = t } label: { themeLabel(t) }
-                .buttonStyle(.glassProminent)
-                .tint(chipColor)
-        } else {
-            Button { theme = t } label: { themeLabel(t) }
-                .buttonStyle(.glass)
-        }
-    }
-
-    private func themeLabel(_ t: AppTheme) -> some View {
-        HStack(spacing: 7) {
-            Circle().fill(t.chip).frame(width: 12, height: 12)
-            Text(t.label)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

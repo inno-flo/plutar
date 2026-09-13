@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.innoflo
   deploymentTarget:
     iOS: "17.0"
+    macOS: "14.0"
   createIntermediateGroups: true
   developmentLanguage: fr
 
@@ -21,6 +22,10 @@ targets:
     deploymentTarget: "26.6"
     sources:
       - path: Plutar
+        excludes:
+          # macOS-only screens — see the PlutarMac target below, which adds
+          # this same folder explicitly to its own sources instead.
+          - "Views/macOS/**"
     info:
       path: Plutar/Info.plist
       properties:
@@ -39,8 +44,18 @@ targets:
     entitlements:
       path: Plutar/Plutar.entitlements
       properties:
+        # &appGroupID/&cloudKitContainerID anchor the one spelling of each
+        # id in the whole file — every other target below references it via
+        # *appGroupID/*cloudKitContainerID instead of retyping the literal,
+        # so a rename only has to happen here. `SharedStore.cloudKitContainerID`
+        # (Swift) must still be kept in sync with the value anchored here —
+        # YAML anchors can't reach across into Swift source.
         com.apple.security.application-groups:
-          - group.com.innoflo.plutar
+          - &appGroupID group.com.innoflo.plutar
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - &cloudKitContainerID iCloud.com.innoflo.plutar
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar
@@ -61,6 +76,113 @@ targets:
       - target: PlutarShare
         embed: true
 
+  PlutarMac:
+    type: application
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: PlutarMac
+      - path: Plutar/Models
+      - path: Plutar/Persistence
+      - path: Plutar/ViewModels
+      - path: Plutar/Views/Rows/LinkRowView.swift
+      - path: Plutar/Views/FlipCard.swift
+      - path: Plutar/Views/EmptyStateView.swift
+      - path: Plutar/Views/SettingsSections.swift
+      - path: Plutar/Views/macOS
+      # Shared with the iOS target — see the AppIcon.appiconset's Contents.json,
+      # which now carries both "ios" and "macos" platform entries for the
+      # same three (light/dark/tinted) 1024 images, so PlutarMac gets the
+      # same icon as Plutar instead of the blank default.
+      - path: Plutar/Assets.xcassets
+    info:
+      path: PlutarMac/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleDisplayName: Plutar
+        NSHumanReadableCopyright: "© Innoflo"
+        LSApplicationCategoryType: public.app-category.utilities
+    entitlements:
+      path: PlutarMac/PlutarMac.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - *appGroupID
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - *cloudKitContainerID
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Target itself stays "PlutarMac" (an Xcode/XcodeGen target can't
+        # share the "Plutar" name already taken by the iOS app target) but
+        # the *built* app — its .app filename, Dock/menu-bar name — is
+        # PRODUCT_NAME, which defaults to the target name. Set explicitly so
+        # it reads "Plutar" like CFBundleDisplayName below, instead of
+        # "PlutarMac".
+        PRODUCT_NAME: Plutar
+        SWIFT_EMIT_LOC_STRINGS: YES
+        DEVELOPMENT_TEAM: AQ24F2W59K
+        INFOPLIST_KEY_CFBundleDisplayName: Plutar
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        SUPPORTED_PLATFORMS: "macosx"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+    dependencies:
+      - target: PlutarShareMac
+        embed: true
+
+  PlutarShareMac:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: PlutarShareMac
+      # Shared with PlutarShare (iOS) — same App Group container and
+      # LinkItem-building logic, plus the platform-agnostic
+      # SharedLinkExtraction and the shared ShareView UI. See the comments
+      # atop SharedStore.swift and SharedLinkExtraction.swift.
+      - path: Plutar/Models/LinkItem.swift
+      - path: Plutar/Models/SourceRank.swift
+      - path: Plutar/Persistence
+      - path: Plutar/Views/ShareView.swift
+    info:
+      path: PlutarShareMac/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleDisplayName: Plutar
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          NSExtensionAttributes:
+            # Same predicate as PlutarShare (iOS) — matches either a real
+            # URL attachment or a plain-text one (several apps hand the
+            # share sheet a text attachment containing the link instead of
+            # a proper URL). ShareViewController still rejects plain text
+            # that isn't actually a URL once asked to load it.
+            NSExtensionActivationRule: 'SUBQUERY (extensionItems, $extensionItem, SUBQUERY ($extensionItem.attachments, $attachment, (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.url") || (ANY $attachment.registeredTypeIdentifiers UTI-conforms-to "public.plain-text")).@count >= 1).@count >= 1'
+    entitlements:
+      path: PlutarShareMac/PlutarShareMac.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - *appGroupID
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - *cloudKitContainerID
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.mac.PlutarShareMac
+        SWIFT_EMIT_LOC_STRINGS: YES
+        DEVELOPMENT_TEAM: AQ24F2W59K
+        INFOPLIST_KEY_CFBundleDisplayName: Plutar
+        SUPPORTED_PLATFORMS: "macosx"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+
   PlutarShare:
     type: app-extension
     platform: iOS
@@ -73,6 +195,7 @@ targets:
       - path: Plutar/Models/LinkItem.swift
       - path: Plutar/Models/SourceRank.swift
       - path: Plutar/Persistence
+      - path: Plutar/Views/ShareView.swift
     info:
       path: PlutarShare/Info.plist
       properties:
@@ -99,7 +222,11 @@ targets:
       path: PlutarShare/PlutarShare.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.innoflo.plutar
+          - *appGroupID
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - *cloudKitContainerID
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.PlutarShare
