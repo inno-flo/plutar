@@ -41,7 +41,7 @@ struct MacSettingsView: View {
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
 
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
 
     var body: some View {
         TabView {
@@ -69,7 +69,7 @@ struct MacSettingsView: View {
                     // joined "Helvetica Neue Bold") no longer fit one row at
                     // this window's 420pt width without overflowing.
                     LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach([AppFont.helvetica, .helveticaCourant, .rounded, .sfCompact]) { f in
+                        ForEach([AppFont.helveticaCourant, .helvetica, .sfCompact, .rounded]) { f in
                             SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 13, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
                                 fontRaw = f.rawValue
                             }
