@@ -25,6 +25,17 @@ struct MacSourceRankingView: View {
                 )
             } else {
                 List {
+                    // A normal row, not a real `Section` header — see
+                    // `MacFeedList`'s own group header for why: List pins
+                    // plain-style Section headers to the top while
+                    // scrolling, which reads as UI stuck to the window
+                    // rather than part of the list.
+                    Text("Sources les plus partagées")
+                        .font(appFont.font(size: 13, weight: .semibold))
+                        .foregroundStyle(theme.ink(0.6))
+                        .padding(.horizontal, 18)
+                        .listRowSeparator(.hidden)
+
                     ForEach(Array(ranked.enumerated()), id: \.element.host) { index, rank in
                         rankRow(rank: index + 1, host: rank.host, count: rank.count)
                             .listRowSeparator(.hidden)
