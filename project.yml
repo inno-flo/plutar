@@ -110,6 +110,13 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.mac
+        # Target itself stays "PlutarMac" (an Xcode/XcodeGen target can't
+        # share the "Plutar" name already taken by the iOS app target) but
+        # the *built* app — its .app filename, Dock/menu-bar name — is
+        # PRODUCT_NAME, which defaults to the target name. Set explicitly so
+        # it reads "Plutar" like CFBundleDisplayName below, instead of
+        # "PlutarMac".
+        PRODUCT_NAME: Plutar
         SWIFT_EMIT_LOC_STRINGS: YES
         DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar

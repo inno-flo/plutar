@@ -15,7 +15,7 @@ struct MacFeedList: View {
     let sourceRanks: [SourceRank]
     let theme: AppTheme
     let appFont: AppFont
-    let layout: LinkLayout
+    @Binding var layout: LinkLayout
     let showThumbnails: Bool
     let effectiveBackground: Color
 
@@ -83,7 +83,7 @@ struct MacFeedList: View {
                                 showsPlaceholderThumbnail: false
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture(count: 2) { open(item) }
+                            .onTapGesture { open(item) }
                             .contextMenu { rowContextMenu(item) }
                             .listRowSeparator(.hidden)
                         }
@@ -127,6 +127,13 @@ struct MacFeedList: View {
         .navigationTitle(mode.label)
         .toolbar {
             ToolbarItemGroup {
+                Picker("Présentation", selection: $layout) {
+                    ForEach(LinkLayout.allCases) { l in
+                        Text(l.label).tag(l)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 if mode == .source && !currentGroups.isEmpty {
                     Button {
                         toggleAllSources()
@@ -218,6 +225,12 @@ struct MacFeedList: View {
         }
         .font(appFont.font(size: 13, weight: .semibold))
         .foregroundStyle(theme.ink(0.6))
+        // Matches `LinkRowView.cardFace`'s own `.padding(.horizontal, 18)` —
+        // its card background spans the full row, so the link's title text
+        // sits 18pt in from the row edge; this row has no such background,
+        // so without this padding its text started right at the row edge,
+        // out of line with the title below it.
+        .padding(.horizontal, 18)
     }
 
     private func expandedSourcesButtonVisible(_ group: FeedGroup) -> Bool {

@@ -26,6 +26,16 @@ struct MacRootView: View {
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
+    /// `MacFeedList`'s toolbar picker needs to change the layout, not just
+    /// read it — a plain `LinkLayout` value can't do that, so this wraps
+    /// `layoutRaw` (the actual `@AppStorage` source of truth) as a
+    /// `Binding<LinkLayout>` instead.
+    private var layoutBinding: Binding<LinkLayout> {
+        Binding(
+            get: { layout },
+            set: { layoutRaw = $0.rawValue }
+        )
+    }
 
     /// Same resolution as `RootView.effectiveBackground` — see there for why
     /// Tokyo and the "Fond noir" toggle are special-cased.
@@ -56,7 +66,7 @@ struct MacRootView: View {
                         sourceRanks: sourceRanks,
                         theme: theme,
                         appFont: appFont,
-                        layout: layout,
+                        layout: layoutBinding,
                         showThumbnails: showThumbnails,
                         effectiveBackground: effectiveBackground
                     )
