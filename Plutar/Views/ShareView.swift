@@ -62,6 +62,14 @@ struct ShareView: View {
                 Section {
                     TextField("Titre", text: $title)
                         .font(.system(size: 15))
+                        // macOS's `.formStyle(.grouped)` below renders a
+                        // `TextField`'s title as a permanent leading label
+                        // next to the field, unlike iOS's Form (where it's
+                        // just placeholder text inside the empty field) —
+                        // hidden here so the row is just the field itself.
+                        #if os(macOS)
+                        .labelsHidden()
+                        #endif
                 } header: {
                     Text(host)
                         .font(.system(size: 17, weight: .bold))
