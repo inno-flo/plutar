@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 /// Selection value for the floating bottom `TabView`. Mirrors `FeedMode`
 /// plus a fourth "Affichage" case that isn't a real destination — selecting
@@ -461,6 +462,11 @@ struct RootView: View {
                                         .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                                         .contentShape(Rectangle())
                                         .onTapGesture { open(item) }
+                                        .contextMenu {
+                                            Button("Copier l'URL") {
+                                                UIPasteboard.general.string = item.urlString
+                                            }
+                                        }
                                         .swipeActions(edge: .trailing) {
                                             Button(role: .destructive) { requestDelete(item) } label: {
                                                 Label("Supprimer", systemImage: "trash")
