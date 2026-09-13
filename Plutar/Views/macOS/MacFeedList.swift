@@ -1,28 +1,42 @@
 import SwiftUI
 import SwiftData
 
-/// The macOS feed list for one `FeedMode` (Date/Sources/Lus) — one instance
-/// per `Tab` in `MacRootView`. Mirrors `RootView.feedScreen`'s grouping and
-/// actions (mark read/unread, delete, clear read, mark all read, expand/
-/// collapse sources), but with Mac-idiomatic interactions: a context menu
-/// instead of swipe actions, and toolbar buttons instead of the floating
-/// circular ones iOS uses. No shake-to-theme, no undo toast (macOS's own
-/// Edit > Undo would be the natural fit for that — left for later, deleting
-/// here is a plain confirmation-gated action for now).
+/// The macOS feed list for one detail selection (Date/Lus/a single source) —
+/// one instance per `MacRootView.detailView` case. Mirrors
+/// `RootView.feedScreen`'s grouping and actions (mark read/unread, delete,
+/// clear read, mark all read, expand/collapse sources), but with
+/// Mac-idiomatic interactions: a context menu instead of swipe actions, and
+/// toolbar buttons instead of the floating circular ones iOS uses. No
+/// shake-to-theme, no undo toast (macOS's own Edit > Undo would be the
+/// natural fit for that — left for later, deleting here is a plain
+/// confirmation-gated action for now).
+///
+/// The old "Sources les plus partagées" ranking (backed by `SourceRank`) is
+/// hidden for now — no home in the sidebar-driven layout yet, see
+/// `MacRootView`/`MacSidebarView`. Revisit once it has a place to live.
 struct MacFeedList: View {
     let mode: FeedMode
+    /// Navigation title — `mode.label` for Date/Lus, the source's full host
+    /// name for a single-source detail (`MacRootView` passes both).
+    let title: String
     let allItems: [LinkItem]
-    let sourceRanks: [SourceRank]
     let theme: AppTheme
     let appFont: AppFont
     @Binding var layout: LinkLayout
     let showThumbnails: Bool
     let effectiveBackground: Color
+    /// True when this instance shows one already-selected source's links
+    /// (from the sidebar), as opposed to the merged, expand-per-source
+    /// "Sources" screen `mode == .source` used to mean on its own. Suppresses
+    /// the per-group expand/collapse chevron and the toolbar's "expand all"
+    /// button, since there's always exactly one group here and it should
+    /// just start open.
+    var isSingleSourceDetail: Bool = false
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
 
-    @State private var expandedSources: Set<String> = []
+    @State private var expandedSources: Set<String>
     /// A single click now only selects a row (native macOS List selection,
     /// with its usual highlight color) — it used to open the link directly,
     /// which meant there was no way to select a row first the way iOS lets
@@ -41,11 +55,24 @@ struct MacFeedList: View {
     /// macOS the way a bare log line would leave it.
     @State private var saveFailed = false
 
+    init(
+        mode: FeedMode, title: String, allItems: [LinkItem], theme: AppTheme, appFont: AppFont,
+        layout: Binding<LinkLayout>, showThumbnails: Bool, effectiveBackground: Color,
+        isSingleSourceDetail: Bool = false, initialExpandedSources: Set<String> = []
+    ) {
+        self.mode = mode
+        self.title = title
+        self.allItems = allItems
+        self.theme = theme
+        self.appFont = appFont
+        self._layout = layout
+        self.showThumbnails = showThumbnails
+        self.effectiveBackground = effectiveBackground
+        self.isSingleSourceDetail = isSingleSourceDetail
+        self._expandedSources = State(initialValue: initialExpandedSources)
+    }
+
     private var groups: [FeedGroup] { FeedGrouping.makeGroups(allItems, mode: mode) }
-    /// One entry per host — merges any rows CloudKit sync left sharing the
-    /// same host (see `SourceRank`'s comment) instead of assuming
-    /// `sourceRanks` is already collision-free.
-    private var rankedSources: [(host: String, count: Int)] { SourceRank.aggregated(sourceRanks) }
 
     /// Whether every group in `groups` is expanded — a real set check, not
     /// `expandedSources.count == groups.count` (which used to drive both the
@@ -62,16 +89,14 @@ struct MacFeedList: View {
     }
 
     var body: some View {
-        // Computed once per render and reused below — `groups`/
-        // `rankedSources` are non-memoized computed properties (each a full
-        // `FeedGrouping.makeGroups`/`SourceRank.aggregated` pass), and this
-        // view used to call them repeatedly (`ForEach`, both empty-state
-        // checks, three toolbar conditions) which redid that work up to 6
-        // times per body evaluation — the same waste `RootView.toggleSource`
-        // already guards against on iOS with its own `currentGroups` local.
+        // Computed once per render and reused below — `groups` is a
+        // non-memoized computed property (a full `FeedGrouping.makeGroups`
+        // pass), and this view used to call it repeatedly (`ForEach`, the
+        // empty-state check, toolbar conditions) which redid that work
+        // several times per body evaluation — the same waste
+        // `RootView.toggleSource` already guards against on iOS with its own
+        // `currentGroups` local.
         let currentGroups = groups
-        let ranked = rankedSources
-        let maxRankCount = ranked.map(\.count).max() ?? 1
         let sourcesAllExpanded = allSourcesExpanded(in: currentGroups)
 
         // Not `List(selection:)` — macOS draws that selection as a ring
@@ -93,7 +118,7 @@ struct MacFeedList: View {
                     // everything else.
                     groupHeader(group)
                         .listRowSeparator(.hidden)
-                    if mode != .source || expandedSources.contains(group.id) {
+                    if mode != .source || isSingleSourceDetail || expandedSources.contains(group.id) {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
@@ -130,31 +155,12 @@ struct MacFeedList: View {
                     }
                 }
             }
-
-            if mode == .source && currentGroups.isEmpty && !sourceRanks.isEmpty {
-                QuietEmptyStateView(
-                    theme: theme, appFont: appFont, icon: "moon.stars",
-                    title: "Aucun lien partagé",
-                    text: "Les liens partagés depuis iPhone apparaîtront ici une fois synchronisés.",
-                    fillHeight: false
-                )
-                .listRowSeparator(.hidden)
-            }
-
-            if mode == .source && !sourceRanks.isEmpty {
-                Section("Sources les plus partagées") {
-                    ForEach(Array(ranked.enumerated()), id: \.element.host) { index, rank in
-                        sourceRankRow(rank: index + 1, host: rank.host, count: rank.count, maxCount: maxRankCount)
-                            .listRowSeparator(.hidden)
-                    }
-                }
-            }
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
         .background(effectiveBackground)
         .overlay {
-            if currentGroups.isEmpty && !(mode == .source && !sourceRanks.isEmpty) {
+            if currentGroups.isEmpty {
                 QuietEmptyStateView(
                     theme: theme, appFont: appFont, icon: "moon.stars",
                     title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
@@ -164,40 +170,19 @@ struct MacFeedList: View {
                 )
             }
         }
-        .navigationTitle(mode.label)
+        .navigationTitle(title)
         .toolbar {
+            // Two separate groups — macOS puts a gap between distinct
+            // `ToolbarItemGroup`s on its own. The 3 layout icons render as
+            // one joined segmented block (native chrome, dividers between
+            // icons, a highlight behind the selected one); the mark-as-
+            // read/clear button stays a single plain toolbar button, apart
+            // from that block rather than sharing a background with it.
             ToolbarItemGroup {
-                // A plain `Picker` here would work but its closed-state
-                // button shows the *selected* Label (icon + text), which
-                // reads as an oversized toolbar button next to the others —
-                // wrapping it in `Menu` instead lets the closed button show
-                // just the icon. A hand-built checkmark `Image` alongside
-                // each option's `Label` (tried first) isn't a real selection
-                // state as far as the menu item is concerned, and didn't
-                // reliably show; nesting the actual `Picker` inside `Menu`'s
-                // content does — it renders as the same inline rows, and the
-                // system draws the checkmark itself for whichever option
-                // `layout` matches.
-                Menu {
-                    Picker("Présentation du fil", selection: $layout) {
-                        ForEach(LinkLayout.allCases) { l in
-                            Label {
-                                Text(l.label)
-                            } icon: {
-                                Image(systemName: l.symbolName)
-                                    .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
-                            }
-                            .tag(l)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                } label: {
-                    Image(systemName: layout.symbolName)
-                        .scaleEffect(x: layout.symbolIsMirrored ? -1 : 1, y: 1)
-                }
-                .help("Présentation du fil")
-
-                if mode == .source && !currentGroups.isEmpty {
+                layoutSwitcher
+            }
+            ToolbarItemGroup {
+                if mode == .source && !isSingleSourceDetail && !currentGroups.isEmpty {
                     Button {
                         toggleAllSources()
                     } label: {
@@ -266,6 +251,25 @@ struct MacFeedList: View {
         }
     }
 
+    /// One joined segmented block for the 3 `LinkLayout` icons — a real
+    /// `Picker` in `.segmented` style, not a hand-rolled capsule, so it gets
+    /// macOS's own chrome: dividers between icons and a highlight behind
+    /// whichever one is selected, matching how e.g. Finder's view-mode
+    /// switcher looks. `.help()` on each icon still names its function.
+    private var layoutSwitcher: some View {
+        Picker("Présentation du fil", selection: $layout) {
+            ForEach(LinkLayout.allCases) { l in
+                Image(systemName: l.symbolName)
+                    .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
+                    .help(l.label)
+                    .tag(l)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+
     @ViewBuilder
     private func rowContextMenu(_ item: LinkItem) -> some View {
         if item.isRead {
@@ -278,7 +282,7 @@ struct MacFeedList: View {
 
     private func groupHeader(_ group: FeedGroup) -> some View {
         HStack(spacing: 8) {
-            if mode == .source {
+            if mode == .source && !isSingleSourceDetail {
                 Button {
                     toggleSource(group.id)
                 } label: {
@@ -292,6 +296,8 @@ struct MacFeedList: View {
                     }
                 }
                 .buttonStyle(.plain)
+            } else if mode == .source {
+                Text(group.label)
             } else {
                 Text(group.label)
             }
@@ -323,25 +329,7 @@ struct MacFeedList: View {
     }
 
     private func expandedSourcesButtonVisible(_ group: FeedGroup) -> Bool {
-        mode == .chrono || (mode == .source && expandedSources.contains(group.id))
-    }
-
-    private func sourceRankDisplayName(_ host: String) -> String {
-        host.split(separator: ".").first.map(String.init) ?? host
-    }
-
-    private func sourceRankRow(rank: Int, host: String, count: Int, maxCount: Int) -> some View {
-        HStack(spacing: 12) {
-            Text("\(rank)")
-                .foregroundStyle(theme.ink(0.4))
-                .frame(width: 22, alignment: .leading)
-            Text(sourceRankDisplayName(host))
-                .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
-            Spacer()
-            Text("\(count)")
-                .foregroundStyle(theme.ink(0.5))
-        }
-        .font(.system(size: 14, weight: .bold, design: .rounded))
+        mode == .chrono || isSingleSourceDetail || (mode == .source && expandedSources.contains(group.id))
     }
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.

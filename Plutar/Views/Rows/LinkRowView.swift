@@ -85,11 +85,10 @@ struct LinkRowView: View {
     @State private var frozenThumbnailFileName: String??
 
     var body: some View {
-        // `FlipCard` (the enrichment flip animation) is UIKit-adjacent and
-        // stays iOS-only — see `Views/FlipCard.swift`. macOS renders the
-        // live face directly with no flip; a link's title/thumbnail simply
-        // update in place once `LinkMetadataEnricher` fills them in.
-        #if os(iOS)
+        // `FlipCard` is plain SwiftUI (no UIKit dependency, despite the
+        // stale comment that used to sit here) — both platforms get the
+        // same flip when `LinkMetadataEnricher` turns a bare-URL title into
+        // a real one.
         FlipCard(angle: flipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
             cardFace(
                 title: showsNewFace ? item.title : (frozenTitle ?? item.title),
@@ -109,9 +108,6 @@ struct LinkRowView: View {
                 flipAngle = 180
             }
         }
-        #else
-        cardFace(title: item.title, thumbnailFileName: item.thumbnailFileName)
-        #endif
     }
 
     /// The whole visible card — background, shape, shadow and all — for
@@ -190,16 +186,11 @@ struct LinkRowView: View {
         }
     }
 
-    // MARK: Editorial — big thumbnail on top, title, excerpt below.
+    // MARK: Editorial — big thumbnail on top, title, excerpt, source at the
+    // bottom (still leading-aligned, like every other line in this stack).
 
     private func editorialBody(title: String, thumbnailFileName: String?) -> some View {
         VStack(alignment: .leading, spacing: 11) {
-            HStack(spacing: 7) {
-                if showFavicons {
-                    favicon(size: 22)
-                }
-                hostRow
-            }
             // Always shown — see the comment in cardBody: Détaillée and
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
@@ -207,10 +198,22 @@ struct LinkRowView: View {
             Text(title)
                 .font(appFont.font(size: titleFontSize, weight: .bold))
                 .lineLimit(3)
-            Text(item.excerpt)
-                .font(appFont.font(size: 13))
-                .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
-                .lineLimit(3)
+            // Only when there's actually an excerpt to show — an empty
+            // `Text` still claims a row plus the `VStack`'s own spacing on
+            // both sides, leaving a visible gap above the source line for
+            // links `LinkMetadataEnricher` hasn't found a description for.
+            if !item.excerpt.isEmpty {
+                Text(item.excerpt)
+                    .font(appFont.font(size: 13))
+                    .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
+                    .lineLimit(3)
+            }
+            HStack(spacing: 7) {
+                if showFavicons {
+                    favicon(size: 22)
+                }
+                hostRow
+            }
         }
     }
 

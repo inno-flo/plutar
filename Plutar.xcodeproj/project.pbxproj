@@ -10,11 +10,13 @@
 		00A7B5D88FE83B0A9D0ECFDB /* FeedMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */; };
 		059304ED010B84D0432F0EE7 /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		092152448A3F9FD8669BF0A0 /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
+		0BD6036CF3EA3EF3E27DC0C2 /* FlipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */; };
 		0C87A3C3A14268479E370C70 /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		0CE1A89C3C241ED2FDE1CD1E /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */; };
 		15722182ABAEBE6EE38BA7FA /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
 		1A1C1F92DD86D8575D59848B /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */; };
+		22F6B77A22421AA27C669847 /* SidebarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */; };
 		2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		25ED50D9DD771F175CF58B05 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */; };
 		26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
@@ -36,11 +38,13 @@
 		52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		5A95512EAF531DE979634870 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
+		5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */; };
 		5E664AD3C1E4F4B4EBEB82DD /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		65ED495368EC65787B24EC03 /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		674ED4E4A6BDB2787C4CF500 /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
 		6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		6DC787D35E9FAE7B31A977CA /* MacSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */; };
 		76E0056F01CA8666E8503CF5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
 		885DA4A6A813F4F3B9E1196F /* FlipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */; };
@@ -129,6 +133,7 @@
 		0D9F45E420A4D58CFA444779 /* PlutarLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarLog.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedLinkExtraction.swift; sourceTree = "<group>"; };
+		24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSelection.swift; sourceTree = "<group>"; };
 		2BA348DF969EA5D473CD4C81 /* MacRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRootView.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		38123A3EA945E5E2E936182C /* FeedGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedGrouping.swift; sourceTree = "<group>"; };
@@ -161,6 +166,7 @@
 		D743AACE9F462982DE372A84 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		D78264738FADCAFC3EB4BB75 /* PlutarMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarMac.entitlements; sourceTree = "<group>"; };
 		E06AAF3499A80C9298DB76F9 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
+		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -193,6 +199,7 @@
 				06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */,
 				2BA348DF969EA5D473CD4C81 /* MacRootView.swift */,
 				91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */,
+				EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */,
 			);
 			path = macOS;
 			sourceTree = "<group>";
@@ -204,6 +211,7 @@
 				B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */,
 				FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */,
 				A4949EBEF6B304848C4BEE06 /* LinkItem.swift */,
+				24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */,
 				E06AAF3499A80C9298DB76F9 /* SourceRank.swift */,
 			);
 			path = Models;
@@ -504,6 +512,7 @@
 				309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */,
 				9E3CBC3C85F4D0FDFC897E72 /* FeedGrouping.swift in Sources */,
 				00A7B5D88FE83B0A9D0ECFDB /* FeedMode.swift in Sources */,
+				0BD6036CF3EA3EF3E27DC0C2 /* FlipCard.swift in Sources */,
 				C4BB4037C0F3B3EFEC506CB9 /* LinkItem.swift in Sources */,
 				97719FD63D7F144A5D63336B /* LinkItemFactory.swift in Sources */,
 				2FD2310F3F5FF82707A6D331 /* LinkMetadataEnricher.swift in Sources */,
@@ -511,12 +520,14 @@
 				27BDF2BA9CD4145FDF33B68D /* MacFeedList.swift in Sources */,
 				949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */,
 				B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */,
+				6DC787D35E9FAE7B31A977CA /* MacSidebarView.swift in Sources */,
 				4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */,
 				644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */,
 				D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */,
 				1A1C1F92DD86D8575D59848B /* SettingsSections.swift in Sources */,
 				51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */,
 				26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */,
+				5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */,
 				76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -565,6 +576,7 @@
 				3F1790D2D307757ED9124A03 /* ShareView.swift in Sources */,
 				76E0056F01CA8666E8503CF5 /* SharedLinkExtraction.swift in Sources */,
 				2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */,
+				22F6B77A22421AA27C669847 /* SidebarSelection.swift in Sources */,
 				6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

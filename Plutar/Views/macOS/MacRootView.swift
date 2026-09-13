@@ -1,16 +1,17 @@
 import SwiftUI
 import SwiftData
 
-/// macOS's window content: the three iOS feeds (Date/Sources/Lus) as a
-/// native top-strip `TabView`, per the HIG tab-views pattern — unlike iOS's
-/// floating bottom `TabView` with a decoy 4th "Affichage" tab, macOS has no
-/// 4th tab; display settings live in a real `Settings` scene (Cmd+,) — see
-/// `MacSettingsView`. No shake-to-theme here either (`ShakeGesture`/
-/// `FlipCard` are UIKit-only and stay out of this target's sources).
+/// macOS's window content: a HIG-style sidebar (`MacSidebarView`) driving a
+/// detail column (`MacFeedList`), replacing the old top-strip `TabView`.
+/// "Date" and "Lus" are plain sidebar rows; each source is its own row under
+/// a disclosed "Sources" group, so picking one shows just that source's
+/// links rather than a shared, expand-per-source "Sources" screen. Display
+/// settings live in a real `Settings` scene (Cmd+,) — see `MacSettingsView`.
+/// No shake-to-theme here either (`ShakeGesture`/`FlipCard` are UIKit-only
+/// and stay out of this target's sources).
 struct MacRootView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
-    @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
@@ -18,6 +19,9 @@ struct MacRootView: View {
     @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
     @AppStorage(DisplaySettingsKey.showThumbnails) private var showThumbnails = true
     @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
+
+    @State private var selection: SidebarSelection? = .date
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     private var selectedTheme: AppTheme { AppTheme(rawValue: themeRaw) ?? .scand }
     private var appearance: AppAppearance { AppAppearance(rawValue: appearanceRaw) ?? .auto }
@@ -46,33 +50,50 @@ struct MacRootView: View {
     }
 
     var body: some View {
-        // Each `Tab` owns its own `MacFeedList`, which builds its own
-        // `FeedGrouping.makeGroups` pass for its `mode` — unlike iOS, which
-        // shares one `feedScreen` across tabs by switching a single `mode`
-        // state. That's inherent to macOS's persistent tab strip (all three
-        // tabs are real, addressable destinations here, not a shared
-        // screen + a decoy 4th tab), and the value-based `Tab` API only
-        // builds a tab's content when it's actually selected — so the
-        // per-tab grouping cost is paid at most once per visited tab, not
-        // for all three on every render. `MacFeedList.body` additionally
-        // memoizes its own `groups`/`rankedSources` per render (see there)
-        // so a visited tab's own cost stays a single pass too.
-        TabView {
-            ForEach(FeedMode.allCases, id: \.self) { mode in
-                Tab(mode.label, systemImage: mode.icon) {
-                    MacFeedList(
-                        mode: mode,
-                        allItems: allItems,
-                        sourceRanks: sourceRanks,
-                        theme: theme,
-                        appFont: appFont,
-                        layout: layoutBinding,
-                        showThumbnails: showThumbnails,
-                        effectiveBackground: effectiveBackground
-                    )
-                }
-            }
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            MacSidebarView(selection: $selection, allItems: allItems)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+        } detail: {
+            detailView
         }
+        // No custom sidebar-toggle button: `NavigationSplitView` already
+        // provides one bound to `columnVisibility`, and places it per the
+        // system convention — inside the sidebar itself while it's showing,
+        // in the window toolbar once it's hidden. A hand-built button here
+        // used to just duplicate it.
         .tint(theme.accent)
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch selection {
+        case .date:
+            MacFeedList(
+                mode: .chrono, title: FeedMode.chrono.label, allItems: allItems,
+                theme: theme, appFont: appFont, layout: layoutBinding,
+                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground
+            )
+        case .read:
+            MacFeedList(
+                mode: .read, title: FeedMode.read.label, allItems: allItems,
+                theme: theme, appFont: appFont, layout: layoutBinding,
+                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground
+            )
+        case .source(let host):
+            MacFeedList(
+                mode: .source, title: host,
+                allItems: allItems.filter { $0.host == host },
+                theme: theme, appFont: appFont, layout: layoutBinding,
+                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground,
+                isSingleSourceDetail: true, initialExpandedSources: [host]
+            )
+        case nil:
+            QuietEmptyStateView(
+                theme: theme, appFont: appFont, icon: "sidebar.leading",
+                title: "Aucune sélection",
+                text: "Choisissez Date, Lus ou une source dans la barre latérale."
+            )
+            .background(effectiveBackground)
+        }
     }
 }
