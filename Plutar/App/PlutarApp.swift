@@ -1,3 +1,5 @@
+import Combine
+import CoreData
 import SwiftUI
 import SwiftData
 
@@ -38,6 +40,21 @@ struct PlutarApp: App {
                     // ones the extension left half-done (e.g. app backgrounded
                     // mid-fetch) — not just the cold-start case above.
                     guard newPhase == .active else { return }
+                    Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
+                }
+                // CloudKit merges a remote change straight into the store
+                // without the app doing anything, so a link enriched on
+                // another device (title/thumbnailFileName arriving here) used
+                // to just sit there until the next launch/foreground or a
+                // manual refresh — nothing re-ran `redownloadMissingThumbnails`
+                // to fetch this device's own copy of the image. Debounced
+                // since CloudKit can deliver a burst of remote-change
+                // notifications for a single sync.
+                .onReceive(
+                    NotificationCenter.default
+                        .publisher(for: .NSPersistentStoreRemoteChange)
+                        .debounce(for: .seconds(1), scheduler: RunLoop.main)
+                ) { _ in
                     Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
                 }
         }

@@ -1056,7 +1056,7 @@ struct RootView: View {
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
-            if !Task.isCancelled { undoSnapshots.removeAll() }
+            if !Task.isCancelled { discardUndoSnapshots() }
         }
     }
 
@@ -1071,8 +1071,19 @@ struct RootView: View {
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
-            if !Task.isCancelled { undoSnapshots.removeAll() }
+            if !Task.isCancelled { discardUndoSnapshots() }
         }
+    }
+
+    /// Called once the undo window actually expires without `performUndo`
+    /// — only then is a delete truly final, so only then is it safe to
+    /// remove the thumbnail file each snapshot still points at (undoing
+    /// before this restores the `LinkItem` pointing at that same file).
+    private func discardUndoSnapshots() {
+        for snapshot in undoSnapshots {
+            SharedStore.deleteThumbnailFile(named: snapshot.thumbnailFileName)
+        }
+        undoSnapshots.removeAll()
     }
 
     /// Restores every link deleted in the current window, not just the last.
@@ -1087,12 +1098,18 @@ struct RootView: View {
     }
 
     private func clearAll() {
-        for item in allItems { modelContext.delete(item) }
+        for item in allItems {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            modelContext.delete(item)
+        }
         persist()
     }
 
     private func clearRead() {
-        for item in allItems where item.isRead { modelContext.delete(item) }
+        for item in allItems where item.isRead {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            modelContext.delete(item)
+        }
         persist()
     }
 

@@ -450,17 +450,24 @@ struct MacFeedList: View {
     }
 
     private func delete(_ item: LinkItem) {
+        SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
         modelContext.delete(item)
         persist()
     }
 
     private func deleteGroup(_ items: [LinkItem]) {
-        for item in items { modelContext.delete(item) }
+        for item in items {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            modelContext.delete(item)
+        }
         persist()
     }
 
     private func clearRead() {
-        for item in allItems where item.isRead { modelContext.delete(item) }
+        for item in allItems where item.isRead {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            modelContext.delete(item)
+        }
         persist()
     }
 

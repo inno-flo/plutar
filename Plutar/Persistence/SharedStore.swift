@@ -68,4 +68,13 @@ enum SharedStore {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
     }
+
+    /// Removes a `LinkItem`'s on-disk preview image, once it's actually
+    /// gone for good (not while an undo window could still restore the
+    /// `LinkItem` pointing at this same file). Safe to call with `nil` (no
+    /// thumbnail was ever fetched) or a name that's already gone.
+    static func deleteThumbnailFile(named fileName: String?) {
+        guard let fileName, let directory = thumbnailsDirectoryURL() else { return }
+        try? FileManager.default.removeItem(at: directory.appendingPathComponent(fileName))
+    }
 }

@@ -181,7 +181,10 @@ struct MacSettingsView: View {
     }
 
     private func clearAll() {
-        for item in allItems { modelContext.delete(item) }
+        for item in allItems {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            modelContext.delete(item)
+        }
         persist()
     }
 }

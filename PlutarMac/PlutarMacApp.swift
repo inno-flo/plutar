@@ -1,3 +1,5 @@
+import Combine
+import CoreData
 import SwiftUI
 import SwiftData
 
@@ -33,6 +35,18 @@ struct PlutarMacApp: App {
                 .task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
+                    Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
+                }
+                // See `PlutarApp`'s copy of this: a remote CloudKit change
+                // (e.g. a link enriched on iOS) merges into the store on its
+                // own, so without this the Mac app never noticed there was
+                // now an image to redownload until the next launch/
+                // foreground or a manual refresh.
+                .onReceive(
+                    NotificationCenter.default
+                        .publisher(for: .NSPersistentStoreRemoteChange)
+                        .debounce(for: .seconds(1), scheduler: RunLoop.main)
+                ) { _ in
                     Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
                 }
         }
