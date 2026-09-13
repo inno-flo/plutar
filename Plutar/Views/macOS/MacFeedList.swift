@@ -25,6 +25,12 @@ struct MacFeedList: View {
     @State private var expandedSources: Set<String> = []
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
+    /// Set instead of deleting immediately — both the row context menu's
+    /// "Supprimer" and a source/day group's trash button used to delete
+    /// right away with no confirmation, unlike every other destructive
+    /// action here (`showClearReadConfirm`/`showMarkAllReadConfirm` above).
+    @State private var itemPendingDelete: LinkItem?
+    @State private var groupItemsPendingDelete: [LinkItem]?
     /// Raised by `persist()` when a write to the store fails — mirrors
     /// `RootView.saveFailed`, so a failed save isn't silently swallowed on
     /// macOS the way a bare log line would leave it.
@@ -167,12 +173,14 @@ struct MacFeedList: View {
                     } label: {
                         Label("Vider les lus", systemImage: "trash")
                     }
+                    .help("Tout supprimer")
                 } else if !currentGroups.isEmpty {
                     Button {
                         showMarkAllReadConfirm = true
                     } label: {
                         Label("Tout marquer comme lu", systemImage: "checkmark.circle")
                     }
+                    .help("Tout marquer comme lus")
                 }
             }
         }
@@ -188,7 +196,31 @@ struct MacFeedList: View {
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
-            Button("Marquer comme lus") { markAllAsRead() }
+            Button("Marquer comme lus", role: .destructive) { markAllAsRead() }
+        }
+        .confirmationDialog(
+            "Supprimer ce lien ?",
+            isPresented: Binding(
+                get: { itemPendingDelete != nil },
+                set: { if !$0 { itemPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let item = itemPendingDelete { delete(item) }
+            }
+        }
+        .confirmationDialog(
+            "Supprimer ces liens ?",
+            isPresented: Binding(
+                get: { groupItemsPendingDelete != nil },
+                set: { if !$0 { groupItemsPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let items = groupItemsPendingDelete { deleteGroup(items) }
+            }
         }
         .alert("Enregistrement impossible", isPresented: $saveFailed) {
             Button("OK", role: .cancel) {}
@@ -204,7 +236,7 @@ struct MacFeedList: View {
         } else {
             Button("Marquer lu") { markAsRead(item) }
         }
-        Button("Supprimer", role: .destructive) { delete(item) }
+        Button("Supprimer", role: .destructive) { itemPendingDelete = item }
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
@@ -236,7 +268,7 @@ struct MacFeedList: View {
                 .buttonStyle(.plain)
             } else if mode == .read {
                 Button {
-                    deleteGroup(group.items)
+                    groupItemsPendingDelete = group.items
                 } label: {
                     Image(systemName: "trash")
                 }
