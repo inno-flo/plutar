@@ -36,8 +36,10 @@ struct LinkRowView: View {
     /// rectangle behind the row, which — since the card itself is inset
     /// from the row's edges — showed up as a ring *around* the card rather
     /// than filling it. Instead, `MacFeedList` hides that native highlight
-    /// and this fills the card itself with `theme.accent` (text turning
-    /// white) when selected. iOS never sets this (always `false`).
+    /// and this fills the card itself with `theme.chip` (text switching to
+    /// `theme.chipText`) when selected instead — the same pair already used
+    /// for iOS's link-count counter badge, in both light and "soir" themes.
+    /// iOS never sets this (always `false`).
     var isSelected: Bool = false
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
@@ -114,11 +116,11 @@ struct LinkRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
-        .background(isSelected ? theme.accent : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card))
+        .background(isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card))
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(isSelected ? .white : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
+        .foregroundStyle(isSelected ? theme.chipText : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
@@ -194,7 +196,7 @@ struct LinkRowView: View {
                 .lineLimit(3)
             Text(item.excerpt)
                 .font(appFont.font(size: 13))
-                .foregroundStyle(isSelected ? .white.opacity(0.85) : theme.ink(0.5))
+                .foregroundStyle(isSelected ? theme.chipText.opacity(0.85) : theme.ink(0.5))
                 .lineLimit(3)
         }
     }
@@ -214,7 +216,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .semibold))
-            .foregroundStyle(isSelected ? .white : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
+            .foregroundStyle(isSelected ? theme.chipText : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 
