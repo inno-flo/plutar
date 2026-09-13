@@ -114,6 +114,22 @@ struct LinkRowView: View {
                 flipAngle = 180
             }
         }
+        .onChange(of: item.thumbnailFileName) { oldFileName, newFileName in
+            // Same flip, for the case `LinkMetadataEnricher`'s
+            // `redownloadMissingThumbnails` exists for: a link enriched on
+            // the *other* platform (iOS/macOS) syncs in with its title
+            // already real but no image — the JPEG itself never syncs via
+            // CloudKit, only this filename — and this device fetches its
+            // own copy afterwards. Only the "acquired an image" transition
+            // flips, same reasoning as the title's own case above.
+            guard oldFileName != newFileName, oldFileName == nil, newFileName != nil else { return }
+            frozenTitle = item.title
+            frozenThumbnailFileName = oldFileName
+            flipAngle = 0
+            withAnimation(.easeInOut(duration: 0.5)) {
+                flipAngle = 180
+            }
+        }
     }
 
     /// The whole visible card — background, shape, shadow and all — for

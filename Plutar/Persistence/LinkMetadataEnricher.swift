@@ -59,7 +59,15 @@ enum LinkMetadataEnricher {
         defer { item.metadataFetched = true }
 
         guard let url = URL(string: item.urlString) else { return }
-        guard let meta = await fetchLinkMetadata(for: url) else { return }
+        guard let meta = await fetchLinkMetadata(for: url) else {
+            // Was silent — a site that blocks non-browser fetches (bot
+            // protection like DataDome/Cloudflare, a paywall, geo-blocking)
+            // left no trace anywhere, and since `metadataFetched` above is
+            // set unconditionally, the link is stuck with no thumbnail
+            // forever with nothing in the console explaining why.
+            PlutarLog.store.notice("LinkMetadataEnricher: fetchLinkMetadata returned nil for \(item.host, privacy: .public)")
+            return
+        }
 
         // Only replace the title if it's still one of the fallbacks
         // LinkItemFactory / ShareView used (the bare host, or the raw URL
@@ -74,6 +82,8 @@ enum LinkMetadataEnricher {
            let fileName = await saveThumbnail(from: provider, id: item.id) {
             item.thumbnailFileName = fileName
             item.hasThumbnail = true
+        } else {
+            PlutarLog.store.notice("LinkMetadataEnricher: no image/icon provider for \(item.host, privacy: .public)")
         }
     }
 

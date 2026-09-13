@@ -547,6 +547,16 @@ struct RootView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                // There's no supported API to force CloudKit to pull sooner
+                // — sync itself stays automatic/background, same as before.
+                // What pull-to-refresh actually does here: re-runs the same
+                // enrichment pass `PlutarApp` already does on launch/
+                // foreground, so a link enriched or thumbnailed on the
+                // *other* device doesn't have to wait for this one to
+                // relaunch or background-and-foreground before catching up.
+                .refreshable {
+                    await LinkMetadataEnricher.enrichPendingLinks(in: modelContext)
+                }
                 // No `.animation(_:value: expandedSources)` here: the only
                 // two places that mutate `expandedSources` (`toggleSource`
                 // and `toggleAllSources`) already wrap it in `withAnimation`,
