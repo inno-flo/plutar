@@ -31,6 +31,14 @@ struct LinkRowView: View {
     /// read as more "broken" than useful. Kept as a parameter rather than
     /// deleted outright, in case a future layout wants the placeholder back.
     let showsPlaceholderThumbnail: Bool
+    /// macOS only: whether this row is the `List`'s current selection.
+    /// Native `List` selection on macOS draws its highlight as a plain
+    /// rectangle behind the row, which — since the card itself is inset
+    /// from the row's edges — showed up as a ring *around* the card rather
+    /// than filling it. Instead, `MacFeedList` hides that native highlight
+    /// and this fills the card itself with `theme.accent` (text turning
+    /// white) when selected. iOS never sets this (always `false`).
+    var isSelected: Bool = false
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
@@ -106,29 +114,30 @@ struct LinkRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
-        .background(item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)
+        .background(isSelected ? theme.accent : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card))
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title))
+        .foregroundStyle(isSelected ? .white : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
         // inconsistently from theme to theme; blending toward a color the
         // theme already defines gives a real, consistently muted tone.
         // Skipped when the theme provides its own flat `readCardOverride`
-        // (Cap Canaveral uses a plain medium gray instead).
+        // (Cap Canaveral uses a plain medium gray instead), and when
+        // selected — the accent fill above should read clean, not muted.
         .overlay {
-            if item.isRead && theme.readCardOverride == nil {
+            if item.isRead && theme.readCardOverride == nil && !isSelected {
                 theme.background.opacity(0.6)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // Skipped when the theme provides its own flat `readCardOverride` —
-        // otherwise this desaturates that color too, washing e.g. Cap
-        // Canaveral's light blue down to a gray indistinguishable from
-        // before.
-        .saturation(item.isRead && theme.readCardOverride == nil ? 0 : 1)
+        // Skipped when the theme provides its own flat `readCardOverride`,
+        // or when selected — otherwise this desaturates that color too,
+        // washing e.g. Cap Canaveral's light blue (or the selection accent)
+        // down to a gray indistinguishable from before.
+        .saturation(item.isRead && theme.readCardOverride == nil && !isSelected ? 0 : 1)
         // No shadow on read cells (all of Lus) — it read as too heavy on an
         // already muted/desaturated card.
         .shadow(color: item.isRead ? .clear : .black.opacity(0.08), radius: 9, y: 4)
@@ -185,7 +194,7 @@ struct LinkRowView: View {
                 .lineLimit(3)
             Text(item.excerpt)
                 .font(appFont.font(size: 13))
-                .foregroundStyle(theme.ink(0.5))
+                .foregroundStyle(isSelected ? .white.opacity(0.85) : theme.ink(0.5))
                 .lineLimit(3)
         }
     }
@@ -205,7 +214,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .semibold))
-            .foregroundStyle(isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52))
+            .foregroundStyle(isSelected ? .white : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 

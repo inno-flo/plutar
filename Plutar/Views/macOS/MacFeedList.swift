@@ -91,12 +91,22 @@ struct MacFeedList: View {
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
                                 showThumbnails: showThumbnails, showFavicons: false,
-                                showsPlaceholderThumbnail: false
+                                showsPlaceholderThumbnail: false,
+                                isSelected: selectedItemID == item.id
                             )
                             .contentShape(Rectangle())
                             .onTapGesture(count: 2) { open(item) }
                             .contextMenu { rowContextMenu(item) }
                             .listRowSeparator(.hidden)
+                            // Zeroed out so nothing but the card itself
+                            // occupies the row: with the system's own inset
+                            // margin left in place, native List selection
+                            // painted that margin's blue behind the card,
+                            // showing as a ring around it instead of the
+                            // card's own accent fill (set above) reading as
+                            // the selection.
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) { itemPendingDelete = item } label: {
                                     Label("Supprimer", systemImage: "trash")
