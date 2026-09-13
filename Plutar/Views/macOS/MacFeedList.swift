@@ -36,6 +36,10 @@ struct MacFeedList: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    /// Wires "Marquer lu"/"Tout marquer comme lu" into the window's Edit >
+    /// Annuler — neither had any effect on it before, unlike delete (which
+    /// already gets a confirmation dialog instead).
+    @Environment(\.undoManager) private var undoManager
 
     @State private var expandedSources: Set<String>
     /// A single click now only selects a row (native macOS List selection,
@@ -285,11 +289,11 @@ struct MacFeedList: View {
         } else {
             Button("Marquer lu") { markAsRead(item) }
         }
+        Button("Supprimer", role: .destructive) { itemPendingDelete = item }
         Button("Copier l'URL") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(item.urlString, forType: .string)
         }
-        Button("Supprimer", role: .destructive) { itemPendingDelete = item }
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
@@ -376,9 +380,33 @@ struct MacFeedList: View {
         }
     }
 
-    private func markAsRead(_ item: LinkItem) {
-        item.isRead = true
+    /// Registers `undo` on the environment's `UndoManager` under the given
+    /// menu name, targeting the manager itself — there's no reference-type
+    /// owner here to hang it on the usual way (`MacFeedList` is a `View`
+    /// struct), and the manager is stable across renders, unlike `self`.
+    private func registerUndo(actionName: String, _ undo: @escaping () -> Void) {
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: undoManager) { _ in undo() }
+        undoManager.setActionName(actionName)
+    }
+
+    /// Shared by `markAsRead`/`markAllAsRead` below — registers the reverse
+    /// toggle as this same action's undo, and that reverse toggle registers
+    /// the original as its own undo in turn, so Edit > Annuler/Rétablir both
+    /// keep working no matter how many times either is pressed.
+    private func toggleReadState(for items: [LinkItem], to isRead: Bool, actionName: String) {
+        for item in items {
+            item.isRead = isRead
+            if !isRead { item.excerptFetchAttempted = false }
+        }
         persist()
+        registerUndo(actionName: actionName) {
+            self.toggleReadState(for: items, to: !isRead, actionName: actionName)
+        }
+    }
+
+    private func markAsRead(_ item: LinkItem) {
+        toggleReadState(for: [item], to: true, actionName: "Marquer lu")
     }
 
     private func markAsUnread(_ item: LinkItem) {
@@ -388,8 +416,7 @@ struct MacFeedList: View {
     }
 
     private func markSourceAsRead(_ items: [LinkItem]) {
-        for item in items { item.isRead = true }
-        persist()
+        toggleReadState(for: items, to: true, actionName: "Marquer lu")
     }
 
     private func delete(_ item: LinkItem) {
@@ -408,8 +435,7 @@ struct MacFeedList: View {
     }
 
     private func markAllAsRead() {
-        for item in FeedGrouping.visibleItems(allItems, mode: mode) { item.isRead = true }
-        persist()
+        toggleReadState(for: FeedGrouping.visibleItems(allItems, mode: mode), to: true, actionName: "Tout marquer comme lu")
     }
 
     private func toggleSource(_ id: String) {
