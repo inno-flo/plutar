@@ -37,10 +37,23 @@ struct LinkRowView: View {
     /// from the row's edges — showed up as a ring *around* the card rather
     /// than filling it. Instead, `MacFeedList` hides that native highlight
     /// and this fills the card itself with `theme.chip` (text switching to
-    /// `theme.chipText`) when selected instead — the same pair already used
-    /// for iOS's link-count counter badge, in both light and "soir" themes.
+    /// `selectedTextColor` below) when selected instead — the same
+    /// background already used for iOS's link-count counter badge.
     /// iOS never sets this (always `false`).
     var isSelected: Bool = false
+
+    /// `theme.chipText` for the selected-link text below, except Copenhague
+    /// nuit and Kamakura nuit: `chipText` falls through to each's own (dark)
+    /// `background` there — fine for the counter badge's own tuned overrides
+    /// elsewhere, but reading dark-on-chip here, unlike every other "nuit"
+    /// theme's white. Keeping the same light text as Cap Canaveral nuit/
+    /// Tokyo nuit instead.
+    private var selectedTextColor: Color {
+        switch theme {
+        case .scandSoir, .blancSoir: return .white
+        default: return theme.chipText
+        }
+    }
 
     /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
     /// matches the view's own counter gray instead of each text's usual
@@ -120,7 +133,7 @@ struct LinkRowView: View {
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(isSelected ? theme.chipText : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
+        .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads
@@ -196,7 +209,7 @@ struct LinkRowView: View {
                 .lineLimit(3)
             Text(item.excerpt)
                 .font(appFont.font(size: 13))
-                .foregroundStyle(isSelected ? theme.chipText.opacity(0.85) : theme.ink(0.5))
+                .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
                 .lineLimit(3)
         }
     }
@@ -216,7 +229,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .semibold))
-            .foregroundStyle(isSelected ? theme.chipText : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
+            .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 
