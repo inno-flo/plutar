@@ -23,6 +23,11 @@ struct MacFeedList: View {
     @Environment(\.openURL) private var openURL
 
     @State private var expandedSources: Set<String> = []
+    /// A single click now only selects a row (native macOS List selection,
+    /// with its usual highlight color) — it used to open the link directly,
+    /// which meant there was no way to select a row first the way iOS lets
+    /// you before swiping. Double-click still opens.
+    @State private var selectedItemID: LinkItem.ID?
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     /// Set instead of deleting immediately — both the row context menu's
@@ -69,7 +74,7 @@ struct MacFeedList: View {
         let maxRankCount = ranked.map(\.count).max() ?? 1
         let sourcesAllExpanded = allSourcesExpanded(in: currentGroups)
 
-        List {
+        List(selection: $selectedItemID) {
             ForEach(currentGroups) { group in
                 Section {
                     // Not a real Section header below — List pins plain-style
@@ -89,9 +94,28 @@ struct MacFeedList: View {
                                 showsPlaceholderThumbnail: false
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture { open(item) }
+                            .onTapGesture(count: 2) { open(item) }
                             .contextMenu { rowContextMenu(item) }
                             .listRowSeparator(.hidden)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) { itemPendingDelete = item } label: {
+                                    Label("Supprimer", systemImage: "trash")
+                                }
+                                .tint(theme.deleteSwipeTint)
+                            }
+                            .swipeActions(edge: .leading) {
+                                if item.isRead {
+                                    Button { markAsUnread(item) } label: {
+                                        Label("Marquer non lu", systemImage: "checkmark.circle.fill")
+                                    }
+                                    .tint(theme.markUnreadSwipeTint)
+                                } else {
+                                    Button { markAsRead(item) } label: {
+                                        Label("Marquer lu", systemImage: "checkmark.circle.fill")
+                                    }
+                                    .tint(theme.markReadSwipeTint)
+                                }
+                            }
                         }
                     }
                 }
