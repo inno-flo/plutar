@@ -74,7 +74,14 @@ struct MacFeedList: View {
         let maxRankCount = ranked.map(\.count).max() ?? 1
         let sourcesAllExpanded = allSourcesExpanded(in: currentGroups)
 
-        List(selection: $selectedItemID) {
+        // Not `List(selection:)` — macOS draws that selection as a ring
+        // behind the row regardless of `listRowBackground`/`listRowInsets`
+        // (a distinct highlight layer under the row content, not something
+        // those modifiers reach), which is exactly the ring this was meant
+        // to replace. Tracking `selectedItemID` as plain state instead, set
+        // from a single-tap below, leaves the card's own accent fill (via
+        // `isSelected` on `LinkRowView`) as the only visual for selection.
+        List {
             ForEach(currentGroups) { group in
                 Section {
                     // Not a real Section header below — List pins plain-style
@@ -95,17 +102,10 @@ struct MacFeedList: View {
                                 isSelected: selectedItemID == item.id
                             )
                             .contentShape(Rectangle())
+                            .onTapGesture(count: 1) { selectedItemID = item.id }
                             .onTapGesture(count: 2) { open(item) }
                             .contextMenu { rowContextMenu(item) }
                             .listRowSeparator(.hidden)
-                            // Zeroed out so nothing but the card itself
-                            // occupies the row: with the system's own inset
-                            // margin left in place, native List selection
-                            // painted that margin's blue behind the card,
-                            // showing as a ring around it instead of the
-                            // card's own accent fill (set above) reading as
-                            // the selection.
-                            .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) { itemPendingDelete = item } label: {
