@@ -66,7 +66,16 @@ enum SharedLinkExtraction {
 
         if let attachment = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
             attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { data, error in
+                // Was `data as? URL` only. On iOS a "public.url" attachment
+                // bridges straight to `NSURL`, but macOS's Safari share
+                // host hands back the same URL as raw `Data` (its UTF-8
+                // bytes) instead — the cast silently failed every time,
+                // which is what made every Safari/Firefox share on macOS
+                // fail with "aucun lien n'a été trouvé" despite a perfectly
+                // good URL being right there.
                 if let url = data as? URL {
+                    completion(.success(SharedLink(url: url, title: plainTitle, sourceApp: "Partage")))
+                } else if let raw = data as? Data, let string = String(data: raw, encoding: .utf8), let url = URL(string: string) {
                     completion(.success(SharedLink(url: url, title: plainTitle, sourceApp: "Partage")))
                 } else if let error {
                     completion(.failure(error))

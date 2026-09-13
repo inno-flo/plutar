@@ -13,4 +13,13 @@ enum PlutarLog {
         subsystem: Bundle.main.bundleIdentifier ?? "Plutar",
         category: "store"
     )
+
+    /// Used by both `PlutarShare` and `PlutarShareMac` to log when a share
+    /// couldn't be turned into a link — otherwise the only trace is the
+    /// generic "aucun lien n'a été trouvé" message shown to the user, with
+    /// no way to tell which of several possible causes it was.
+    static let shareExtension = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "Plutar",
+        category: "shareExtension"
+    )
 }
