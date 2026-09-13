@@ -8,6 +8,8 @@ import SwiftData
 
 @main
 struct PlutarApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     let container: ModelContainer
     /// Set when the on-disk store could not be opened and the app fell back
     /// to a throwaway in-memory one, so the UI can say so rather than

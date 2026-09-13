@@ -146,7 +146,13 @@ struct MacFeedList: View {
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) { itemPendingDelete = item } label: {
+                                // Unlike the trash-icon buttons (`itemPendingDelete`,
+                                // confirmed via `confirmationDialog` below), a swipe
+                                // is itself already a deliberate, two-step gesture —
+                                // requiring a second confirmation on top of it is the
+                                // odd one out next to every other swipe-to-delete list
+                                // on the platform, so this deletes straight away.
+                                Button(role: .destructive) { delete(item) } label: {
                                     Label("Supprimer", systemImage: "trash")
                                 }
                                 .tint(theme.deleteSwipeTint)

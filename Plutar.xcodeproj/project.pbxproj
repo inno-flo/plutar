@@ -33,6 +33,7 @@
 		41B07B23D507832A25179785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
 		4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D743AACE9F462982DE372A84 /* SettingsSheet.swift */; };
+		4A52278BA1DF9949ABE61900 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */; };
 		4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -74,6 +75,7 @@
 		CFCC6003BF3734F5AE8D5CF9 /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */; };
 		D2C3CCC1E42975E7952E8F6F /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */; };
+		DEEE614B7191655B6D4E5BDA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E38D7E2C98F8507C74160D /* AppDelegate.swift */; };
 		E360489DDA0D19A34174505E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		E3EA3EF8BDF7CF785B6A39D1 /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		E6C5E73EFD05D2771A8B4AA9 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
@@ -135,6 +137,7 @@
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedLinkExtraction.swift; sourceTree = "<group>"; };
 		24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSelection.swift; sourceTree = "<group>"; };
+		27E38D7E2C98F8507C74160D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2BA348DF969EA5D473CD4C81 /* MacRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRootView.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		38123A3EA945E5E2E936182C /* FeedGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedGrouping.swift; sourceTree = "<group>"; };
@@ -153,7 +156,7 @@
 		8D7070AAD03D0D1CA47971AD /* PlutarShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarShare.entitlements; sourceTree = "<group>"; };
 		8E7A4FD17FC896A77E08563A /* PlutarShareMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarShareMac.entitlements; sourceTree = "<group>"; };
 		91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSettingsView.swift; sourceTree = "<group>"; };
-		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1134246047A1EA572CF8858 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A27C53F13F2719F7848AC15E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
@@ -171,8 +174,9 @@
 		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		FA9914A20B8DFB4F185A86E3 /* Plutar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMode.swift; sourceTree = "<group>"; };
+		FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -282,6 +286,7 @@
 		C6CE028B5CF14F83B8B192B3 /* PlutarMac */ = {
 			isa = PBXGroup;
 			children = (
+				FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */,
 				CE5812411692E7EE8C32F5A7 /* Info.plist */,
 				D78264738FADCAFC3EB4BB75 /* PlutarMac.entitlements */,
 				B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */,
@@ -308,6 +313,7 @@
 		E6AD09F803BBF11AC8131FC9 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				27E38D7E2C98F8507C74160D /* AppDelegate.swift */,
 				89CC3F448604493B8E9A7320 /* PlutarApp.swift */,
 			);
 			path = App;
@@ -325,7 +331,7 @@
 			isa = PBXGroup;
 			children = (
 				A0456B4197E9C3E5CC22F158 /* Plutar.app */,
-				FA9914A20B8DFB4F185A86E3 /* Plutar.app */,
+				FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */,
 				3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */,
 				F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */,
 			);
@@ -372,7 +378,7 @@
 			packageProductDependencies = (
 			);
 			productName = PlutarMac;
-			productReference = FA9914A20B8DFB4F185A86E3 /* Plutar.app */;
+			productReference = FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */;
 			productType = "com.apple.product-type.application";
 		};
 		EA0D9494EABA79AE72BE0438 /* PlutarShare */ = {
@@ -423,7 +429,15 @@
 						DevelopmentTeam = AQ24F2W59K;
 						ProvisioningStyle = Automatic;
 					};
+					C8A869C71FD64EA7BC598BEF = {
+						DevelopmentTeam = AQ24F2W59K;
+						ProvisioningStyle = Automatic;
+					};
 					EA0D9494EABA79AE72BE0438 = {
+						DevelopmentTeam = AQ24F2W59K;
+						ProvisioningStyle = Automatic;
+					};
+					EC1DC21A79533BC6EBA289C6 = {
 						DevelopmentTeam = AQ24F2W59K;
 						ProvisioningStyle = Automatic;
 					};
@@ -502,6 +516,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C5F16A6A1762C5C3A864E72B /* AppContainerBootstrap.swift in Sources */,
+				4A52278BA1DF9949ABE61900 /* AppDelegate.swift in Sources */,
 				2CF2232B8E91364361488352 /* AppTheme.swift in Sources */,
 				2CB96EB00608A930D891158F /* DisplaySettingsKey.swift in Sources */,
 				309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */,
@@ -551,6 +566,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C87A3C3A14268479E370C70 /* AppContainerBootstrap.swift in Sources */,
+				DEEE614B7191655B6D4E5BDA /* AppDelegate.swift in Sources */,
 				E360489DDA0D19A34174505E /* AppTheme.swift in Sources */,
 				C4BF5373A6E35F2EA3D7E754 /* DisplaySettingsKey.swift in Sources */,
 				A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */,
@@ -681,8 +697,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarShareMac/Info.plist;
@@ -694,7 +708,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -706,8 +719,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarMac/Info.plist;
@@ -720,7 +731,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
 				PRODUCT_NAME = Plutar;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -732,8 +742,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarMac/Info.plist;
@@ -746,7 +754,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
 				PRODUCT_NAME = Plutar;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -764,7 +771,7 @@
 				INFOPLIST_FILE = Plutar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -875,8 +882,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
 				INFOPLIST_FILE = PlutarShareMac/Info.plist;
@@ -888,7 +893,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -906,7 +910,7 @@
 				INFOPLIST_FILE = Plutar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

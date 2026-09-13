@@ -41,6 +41,13 @@ targets:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
+        # Lets NSPersistentCloudKitContainer (behind SharedStore's
+        # `cloudKitDatabase:` config) receive its CloudKit database-change
+        # push while the app is foregrounded and pull the change in right
+        # away, instead of only noticing on the next launch/foreground —
+        # see `AppDelegate.application(_:didReceiveRemoteNotification:...)`.
+        UIBackgroundModes:
+          - remote-notification
     entitlements:
       path: Plutar/Plutar.entitlements
       properties:
@@ -56,6 +63,14 @@ targets:
           - CloudKit
         com.apple.developer.icloud-container-identifiers:
           - &cloudKitContainerID iCloud.com.innoflo.plutar
+        # Pairs with UIBackgroundModes above — needed for
+        # `registerForRemoteNotifications()` to succeed so CloudKit's
+        # silent push can reach the app. NOTE: on a real device this also
+        # needs "Push Notifications" turned on in Xcode's Signing &
+        # Capabilities so the provisioning profile actually supports it —
+        # this entitlements value alone isn't enough there (same class of
+        # issue as the Mac Share Extension App Groups provisioning gap).
+        com.apple.developer.aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar
@@ -113,6 +128,10 @@ targets:
           - CloudKit
         com.apple.developer.icloud-container-identifiers:
           - *cloudKitContainerID
+        # Same as Plutar (iOS) above — lets the Mac app receive CloudKit's
+        # database-change push while foregrounded instead of only picking
+        # up remote changes on next launch/foreground.
+        com.apple.developer.aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.mac
