@@ -23,7 +23,8 @@ final class ShareViewController: UIViewController {
     private func present(_ result: Result<SharedLink, Error>) {
         let content: AnyView
         switch result {
-        case .failure:
+        case .failure(let error):
+            PlutarLog.shareExtension.error("extractSharedURL failed: \(error.localizedDescription, privacy: .public)")
             content = AnyView(ShareErrorView(
                 message: "Ce contenu ne peut pas être ajouté à Plutar : aucun lien n'a été trouvé.",
                 onDismiss: { [weak self] in self?.finish() }
@@ -32,6 +33,7 @@ final class ShareViewController: UIViewController {
             content = AnyView(ShareView(
                 host: shared.url.host ?? shared.url.absoluteString,
                 title: shared.title ?? shared.url.absoluteString,
+                url: shared.url,
                 onSave: { [weak self] editedTitle in
                     self?.save(url: shared.url, title: editedTitle, sourceApp: shared.sourceApp)
                 },
