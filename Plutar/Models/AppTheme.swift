@@ -311,7 +311,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 /// Typeface choice from the settings drawer, all available on stock iOS.
 /// SF Pro (`.rounded`) is the default.
 enum AppFont: String, CaseIterable, Identifiable {
-    case rounded, sfCompact, helvetica
+    case rounded, sfCompact, helvetica, helveticaCourant
 
     var id: String { rawValue }
 
@@ -319,7 +319,8 @@ enum AppFont: String, CaseIterable, Identifiable {
         switch self {
         case .rounded: return "SF Pro"
         case .sfCompact: return "SF Compact"
-        case .helvetica: return "Helvetica"
+        case .helvetica: return "Helvetica Neue Bold"
+        case .helveticaCourant: return "Helvetica Neue Courant"
         }
     }
 
@@ -330,6 +331,8 @@ enum AppFont: String, CaseIterable, Identifiable {
         case .sfCompact: return .custom("SFCompactDisplay-Regular", size: size)
         // Helvetica Neue, fixed to its Bold style, ignoring `weight`.
         case .helvetica: return .custom("HelveticaNeue-Bold", size: size)
+        // Same family, its plain (Regular/"Courant") style instead.
+        case .helveticaCourant: return .custom("HelveticaNeue", size: size)
         }
     }
 }

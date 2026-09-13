@@ -167,27 +167,30 @@ struct MacFeedList: View {
         .navigationTitle(mode.label)
         .toolbar {
             ToolbarItemGroup {
-                // A `Picker` here would work but its closed-state button
-                // shows the *selected* Label (icon + text), which reads as
-                // an oversized toolbar button next to the others — a `Menu`
-                // instead lets the closed button show just the icon, with
-                // the full icon+text+checkmark rows only in the open list.
+                // A plain `Picker` here would work but its closed-state
+                // button shows the *selected* Label (icon + text), which
+                // reads as an oversized toolbar button next to the others —
+                // wrapping it in `Menu` instead lets the closed button show
+                // just the icon. A hand-built checkmark `Image` alongside
+                // each option's `Label` (tried first) isn't a real selection
+                // state as far as the menu item is concerned, and didn't
+                // reliably show; nesting the actual `Picker` inside `Menu`'s
+                // content does — it renders as the same inline rows, and the
+                // system draws the checkmark itself for whichever option
+                // `layout` matches.
                 Menu {
-                    ForEach(LinkLayout.allCases) { l in
-                        Button {
-                            layout = l
-                        } label: {
+                    Picker("Présentation du fil", selection: $layout) {
+                        ForEach(LinkLayout.allCases) { l in
                             Label {
                                 Text(l.label)
                             } icon: {
                                 Image(systemName: l.symbolName)
                                     .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
                             }
-                            if l == layout {
-                                Image(systemName: "checkmark")
-                            }
+                            .tag(l)
                         }
                     }
+                    .pickerStyle(.inline)
                 } label: {
                     Image(systemName: layout.symbolName)
                         .scaleEffect(x: layout.symbolIsMirrored ? -1 : 1, y: 1)

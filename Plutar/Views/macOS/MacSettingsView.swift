@@ -64,8 +64,12 @@ struct MacSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 SettingsSectionView(title: "Police", titleWeight: .regular) {
-                    HStack(spacing: 8) {
-                        ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
+                    // A 2-column grid, not the single `HStack` row this used
+                    // to be — four options (since "Helvetica Neue Courant"
+                    // joined "Helvetica Neue Bold") no longer fit one row at
+                    // this window's 420pt width without overflowing.
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach([AppFont.helvetica, .helveticaCourant, .rounded, .sfCompact]) { f in
                             SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 13, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
                                 fontRaw = f.rawValue
                             }

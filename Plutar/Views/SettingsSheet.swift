@@ -55,10 +55,15 @@ struct SettingsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     SettingsSectionView(title: "Police") {
-                        HStack(spacing: 8) {
-                            // Displayed as Helvetica / SF Pro / SF Compact,
-                            // not `AppFont.allCases`' declaration order.
-                            ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
+                        // A 2-column grid, not a single `HStack` row — four
+                        // options (since "Helvetica Neue Courant" joined
+                        // "Helvetica Neue Bold") no longer fit one row
+                        // without overflowing on iPhone width either.
+                        LazyVGrid(columns: columns, spacing: 8) {
+                            // Displayed as Helvetica Bold / Helvetica
+                            // Courant / SF Pro / SF Compact, not
+                            // `AppFont.allCases`'s declaration order.
+                            ForEach([AppFont.helvetica, .helveticaCourant, .rounded, .sfCompact]) { f in
                                 SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: chipColor) {
                                     appFont = f
                                 }
