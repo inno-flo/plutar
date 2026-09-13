@@ -49,6 +49,19 @@ struct PlutarMacApp: App {
                         .publisher(for: .NSPersistentStoreRemoteChange)
                         .debounce(for: .seconds(1), scheduler: RunLoop.main)
                 ) { _ in
+                    // `@Query` is supposed to notice a store-level remote
+                    // change on its own, but a link that arrives already
+                    // fully enriched (the common case: iOS did all the
+                    // enrichment before this device synced) leaves
+                    // `enrichPendingLinks` below with nothing to save — and
+                    // with no save, nothing nudges this already-running
+                    // context to refetch, which is exactly the "shows up
+                    // only after quitting and relaunching" symptom (a fresh
+                    // context fetches from scratch). `rollback()` has no
+                    // unsaved local changes to lose here — every mutation in
+                    // this app calls `persist()` synchronously right after —
+                    // and forces that refetch.
+                    container.mainContext.rollback()
                     Task { await LinkMetadataEnricher.enrichPendingLinks(in: container.mainContext) }
                 }
         }
