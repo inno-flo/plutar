@@ -66,6 +66,15 @@ struct MacFeedList: View {
         List {
             ForEach(currentGroups) { group in
                 Section {
+                    // Not a real Section header below — List pins plain-style
+                    // Section headers to the top while scrolling, which for a
+                    // date/source label swapping in and out on every scroll
+                    // reads as UI stuck at the top of the window rather than
+                    // part of the feed. Placed as a normal row instead, like
+                    // iOS's `RootView.feedScreen`, so it scrolls by with
+                    // everything else.
+                    groupHeader(group)
+                        .listRowSeparator(.hidden)
                     if mode != .source || expandedSources.contains(group.id) {
                         ForEach(group.items) { item in
                             LinkRowView(
@@ -79,8 +88,6 @@ struct MacFeedList: View {
                             .listRowSeparator(.hidden)
                         }
                     }
-                } header: {
-                    groupHeader(group)
                 }
             }
 

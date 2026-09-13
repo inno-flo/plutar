@@ -8,12 +8,13 @@ import SwiftUI
 /// A titled group of settings controls — sentence case, no forced all-caps.
 struct SettingsSectionView<Content: View>: View {
     let title: String
+    var titleWeight: Font.Weight = .semibold
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(title)
-                .fontWeight(.semibold)
+                .fontWeight(titleWeight)
                 .foregroundStyle(.secondary)
             content()
         }

@@ -34,6 +34,7 @@ enum LinkMetadataEnricher {
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
         await enrichTitleAndThumbnail(in: context, limit: limit)
         await enrichExcerpt(in: context, limit: limit)
+        await redownloadMissingThumbnails(in: context, limit: limit)
     }
 
     /// Title (fallback replacement only) and preview image, via
@@ -99,6 +100,42 @@ enum LinkMetadataEnricher {
         guard let url = URL(string: item.urlString) else { return }
         guard let excerpt = await fetchMetaDescription(for: url), !excerpt.isEmpty else { return }
         item.excerpt = excerpt
+    }
+
+    /// `metadataFetched`/`thumbnailFileName` sync via CloudKit like any other
+    /// `LinkItem` field, but the JPEG itself lives only in the App Group
+    /// container of whichever device actually fetched it (see
+    /// `thumbnailFileName`'s doc comment on `LinkItem`) — it's never part of
+    /// the synced record. A link enriched on another device therefore
+    /// arrives here already marked done, with a `thumbnailFileName` that
+    /// resolves to nothing on disk locally, and Détaillée/Éditoriale (the
+    /// two layouts that actually render a thumbnail) show a blank gap where
+    /// it should be. This re-downloads just the image for those — title and
+    /// excerpt, already correct from the other device, are left alone.
+    private static func redownloadMissingThumbnails(in context: ModelContext, limit: Int) async {
+        let descriptor = FetchDescriptor<LinkItem>(
+            predicate: #Predicate { $0.thumbnailFileName != nil }
+        )
+        guard let candidates = try? context.fetch(descriptor), !candidates.isEmpty else { return }
+        let missing = candidates.filter { item in
+            guard let fileName = item.thumbnailFileName else { return false }
+            return !thumbnailFileExists(fileName)
+        }
+        guard !missing.isEmpty else { return }
+        for item in missing.prefix(limit) {
+            guard let url = URL(string: item.urlString),
+                  let meta = await fetchLinkMetadata(for: url),
+                  let provider = meta.imageProvider ?? meta.iconProvider,
+                  let fileName = await saveThumbnail(from: provider, id: item.id)
+            else { continue }
+            item.thumbnailFileName = fileName
+        }
+        try? context.save()
+    }
+
+    private nonisolated static func thumbnailFileExists(_ fileName: String) -> Bool {
+        guard let directory = SharedStore.thumbnailsDirectoryURL() else { return false }
+        return FileManager.default.fileExists(atPath: directory.appendingPathComponent(fileName).path)
     }
 
     /// `nonisolated`, deliberately: this is the actual slow part (a network

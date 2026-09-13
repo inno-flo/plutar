@@ -63,17 +63,17 @@ struct MacSettingsView: View {
     private var generalTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                SettingsSectionView(title: "Police") {
+                SettingsSectionView(title: "Police", titleWeight: .regular) {
                     HStack(spacing: 8) {
                         ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
-                            SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
+                            SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 13, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
                                 fontRaw = f.rawValue
                             }
                         }
                     }
                 }
 
-                SettingsSectionView(title: "Thème") {
+                SettingsSectionView(title: "Thème", titleWeight: .regular) {
                     LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(AppTheme.selectable) { t in
                             SettingsThemePillButton(theme: t, isActive: theme == t, chipColor: theme.chip) {
@@ -87,11 +87,8 @@ struct MacSettingsView: View {
                 Toggle(isOn: $blackSoirBackground) {
                     Text("Fond noir pour les thèmes nuit")
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                SettingsSectionView(title: "Apparence") {
+                SettingsSectionView(title: "Apparence", titleWeight: .regular) {
                     HStack(spacing: 8) {
                         ForEach(AppAppearance.allCases) { a in
                             SettingsPillButton(a.label, isActive: appearance == a, chipColor: theme.chip) { appearanceRaw = a.rawValue }
@@ -99,7 +96,7 @@ struct MacSettingsView: View {
                     }
                 }
 
-                SettingsSectionView(title: "Présentation du fil") {
+                SettingsSectionView(title: "Présentation du fil", titleWeight: .regular) {
                     HStack(spacing: 8) {
                         ForEach(LinkLayout.allCases) { l in
                             SettingsPillButton(l.label, isActive: layout == l, chipColor: theme.chip) { layoutRaw = l.rawValue }
@@ -113,39 +110,51 @@ struct MacSettingsView: View {
 
     private var advancedTab: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                Button(role: .destructive) {
-                    showResetRankingConfirm = true
-                } label: {
-                    Text("Réinitialiser le classement")
-                }
-                .buttonStyle(.glass)
-                .confirmationDialog(
-                    "Réinitialiser le classement ?",
-                    isPresented: $showResetRankingConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Réinitialiser", role: .destructive, action: resetSourceRanking)
-                    Button("Annuler", role: .cancel) {}
-                } message: {
-                    Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(role: .destructive) {
+                        showResetRankingConfirm = true
+                    } label: {
+                        Text("Réinitialiser le classement")
+                    }
+                    .buttonStyle(.glass)
+                    .confirmationDialog(
+                        "Réinitialiser le classement ?",
+                        isPresented: $showResetRankingConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Réinitialiser", role: .destructive, action: resetSourceRanking)
+                        Button("Annuler", role: .cancel) {}
+                    } message: {
+                        Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                    }
+
+                    Text("Le classement des sources les plus partagées sera remis à zéro")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
                 }
 
-                Button(role: .destructive) {
-                    showClearFeedConfirm = true
-                } label: {
-                    Text("Vider le fil")
-                }
-                .buttonStyle(.glass)
-                .confirmationDialog(
-                    "Vider le fil ?",
-                    isPresented: $showClearFeedConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Vider", role: .destructive, action: clearAll)
-                    Button("Annuler", role: .cancel) {}
-                } message: {
-                    Text("Tous les liens seront supprimés définitivement.")
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(role: .destructive) {
+                        showClearFeedConfirm = true
+                    } label: {
+                        Text("Vider le fil")
+                    }
+                    .buttonStyle(.glass)
+                    .confirmationDialog(
+                        "Vider le fil ?",
+                        isPresented: $showClearFeedConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Vider", role: .destructive, action: clearAll)
+                        Button("Annuler", role: .cancel) {}
+                    } message: {
+                        Text("Tous les liens seront supprimés définitivement.")
+                    }
+
+                    Text("Les liens non-lus et lus seront supprimés")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(20)

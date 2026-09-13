@@ -42,6 +42,16 @@ struct LinkRowView: View {
     /// regardless of what's passed), so titles stay at Regular weight there.
     private var titleWeight: Font.Weight { .bold }
 
+    /// Smaller on macOS — the mockup's 18pt reads oversized next to the
+    /// window chrome/sidebar there; iOS keeps its original size.
+    private var titleFontSize: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        18
+        #endif
+    }
+
     /// 0→180°, animated in one continuous motion (see `FlipCard`) when
     /// `LinkMetadataEnricher` turns a bare-URL link into a real title.
     @State private var flipAngle: Double = 0
@@ -129,7 +139,7 @@ struct LinkRowView: View {
     private func railBody(title: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title)
-                .font(appFont.font(size: 18, weight: titleWeight))
+                .font(appFont.font(size: titleFontSize, weight: titleWeight))
                 .lineLimit(3)
             hostRow
         }
@@ -144,7 +154,7 @@ struct LinkRowView: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(appFont.font(size: 18, weight: titleWeight))
+                    .font(appFont.font(size: titleFontSize, weight: titleWeight))
                     .lineLimit(3)
                 hostRow
             }
@@ -171,7 +181,7 @@ struct LinkRowView: View {
             // real), Simple never does.
             thumbnail(size: 150, fullWidth: true, thumbnailFileName: thumbnailFileName)
             Text(title)
-                .font(appFont.font(size: 18, weight: .bold))
+                .font(appFont.font(size: titleFontSize, weight: .bold))
                 .lineLimit(3)
             Text(item.excerpt)
                 .font(appFont.font(size: 13))
