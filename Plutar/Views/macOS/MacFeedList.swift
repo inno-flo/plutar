@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 /// The macOS feed list for one detail selection (Date/Lus/a single source) —
 /// one instance per `MacRootView.detailView` case. Mirrors
@@ -284,6 +285,10 @@ struct MacFeedList: View {
         } else {
             Button("Marquer lu") { markAsRead(item) }
         }
+        Button("Copier l'URL") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.urlString, forType: .string)
+        }
         Button("Supprimer", role: .destructive) { itemPendingDelete = item }
     }
 
@@ -350,10 +355,25 @@ struct MacFeedList: View {
         }
     }
 
+    /// Bundle id for Firefox — forced open (below) needs the app's own URL,
+    /// which `NSWorkspace` only hands out by bundle id, not by name.
+    private static let firefoxBundleID = "org.mozilla.firefox"
+
     private func open(_ item: LinkItem) {
         item.isRead = true
         persist()
-        if let url = URL(string: item.urlString) { openURL(url) }
+        guard let url = URL(string: item.urlString) else { return }
+        // The Verge's own site renders its article pages oddly in whatever
+        // this Mac's default browser is — forced to Firefox regardless,
+        // rather than leaving it to `openURL`'s system default. Falls back
+        // to that default if Firefox isn't installed, rather than silently
+        // doing nothing.
+        if item.host == "theverge.com",
+           let firefoxURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.firefoxBundleID) {
+            NSWorkspace.shared.open([url], withApplicationAt: firefoxURL, configuration: NSWorkspace.OpenConfiguration())
+        } else {
+            openURL(url)
+        }
     }
 
     private func markAsRead(_ item: LinkItem) {
