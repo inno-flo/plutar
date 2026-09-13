@@ -9,4 +9,8 @@ enum SidebarSelection: Hashable {
     case date
     case read
     case source(String)
+    /// The standing "most shared sources" ranking (`SourceRank`) — its own
+    /// row inside the Sources disclosure group, alongside the individual
+    /// hosts rather than one of them.
+    case ranking
 }

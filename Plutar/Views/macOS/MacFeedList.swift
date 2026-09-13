@@ -116,14 +116,21 @@ struct MacFeedList: View {
                     // part of the feed. Placed as a normal row instead, like
                     // iOS's `RootView.feedScreen`, so it scrolls by with
                     // everything else.
-                    groupHeader(group)
-                        .listRowSeparator(.hidden)
+                    //
+                    // Skipped entirely for a single-source detail: its own
+                    // name is already the toolbar title, and its "mark as
+                    // read" icon just duplicates the toolbar's own button.
+                    if !isSingleSourceDetail {
+                        groupHeader(group)
+                            .listRowSeparator(.hidden)
+                    }
                     if mode != .source || isSingleSourceDetail || expandedSources.contains(group.id) {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
                                 showThumbnails: showThumbnails, showFavicons: false,
                                 showsPlaceholderThumbnail: false,
+                                showHost: !isSingleSourceDetail,
                                 isSelected: selectedItemID == item.id
                             )
                             .contentShape(Rectangle())

@@ -6,8 +6,9 @@ import SwiftUI
 /// unread count, so a source is its own navigation destination instead of
 /// one row inside a shared, expand-per-source "Sources" screen.
 ///
-/// The old "Sources les plus partagées" ranking has no home here — it's
-/// hidden for now (see `MacFeedList`), not ported into the sidebar.
+/// "Classement" is its own row inside the Sources group — the standing,
+/// all-time `SourceRank` tally (see `MacSourceRankingView`), not one of the
+/// individual per-host rows below it.
 ///
 /// A gear button pinned to the bottom-left opens the `Settings` scene
 /// (Cmd+,) — see `MacSettingsView`.
@@ -37,6 +38,8 @@ struct MacSidebarView: View {
                     .tag(SidebarSelection.read)
             }
             DisclosureGroup(isExpanded: $sourcesExpanded) {
+                sidebarRow(label: "Classement", systemImage: "chart.bar.horizontal.page")
+                    .tag(SidebarSelection.ranking)
                 ForEach(sourceGroups) { group in
                     sidebarRow(
                         label: group.label,
@@ -76,13 +79,17 @@ struct MacSidebarView: View {
         }
     }
 
-    private func sidebarRow(label: String, systemImage: String, count: Int) -> some View {
+    /// `count` is `nil` for "Classement" — it has no live link count of its
+    /// own to show, unlike every other row here.
+    private func sidebarRow(label: String, systemImage: String, count: Int? = nil) -> some View {
         Label {
             HStack {
                 Text(label)
-                Spacer()
-                Text("\(count)")
-                    .foregroundStyle(.secondary)
+                if let count {
+                    Spacer()
+                    Text("\(count)")
+                        .foregroundStyle(.secondary)
+                }
             }
         } icon: {
             Image(systemName: systemImage)

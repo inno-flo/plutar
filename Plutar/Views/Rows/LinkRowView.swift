@@ -31,6 +31,12 @@ struct LinkRowView: View {
     /// read as more "broken" than useful. Kept as a parameter rather than
     /// deleted outright, in case a future layout wants the placeholder back.
     let showsPlaceholderThumbnail: Bool
+    /// Whether the host/"via" line renders at all — `true` everywhere except
+    /// a macOS single-source detail (`MacFeedList`'s `isSingleSourceDetail`),
+    /// where every row is already known to belong to the one source named in
+    /// the toolbar title, so repeating it on every card is redundant. iOS
+    /// never sets this (always the default `true`).
+    var showHost: Bool = true
     /// macOS only: whether this row is the `List`'s current selection.
     /// Native `List` selection on macOS draws its highlight as a plain
     /// rectangle behind the row, which — since the card itself is inset
@@ -161,7 +167,9 @@ struct LinkRowView: View {
             Text(title)
                 .font(appFont.font(size: titleFontSize, weight: titleWeight))
                 .lineLimit(3)
-            hostRow
+            if showHost {
+                hostRow
+            }
         }
     }
 
@@ -176,7 +184,9 @@ struct LinkRowView: View {
                 Text(title)
                     .font(appFont.font(size: titleFontSize, weight: titleWeight))
                     .lineLimit(3)
-                hostRow
+                if showHost {
+                    hostRow
+                }
             }
             Spacer(minLength: 0)
             // Always shown in Détaillée — like Éditoriale below, this
@@ -208,11 +218,15 @@ struct LinkRowView: View {
                     .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
                     .lineLimit(3)
             }
-            HStack(spacing: 7) {
-                if showFavicons {
-                    favicon(size: 22)
+            if showFavicons || showHost {
+                HStack(spacing: 7) {
+                    if showFavicons {
+                        favicon(size: 22)
+                    }
+                    if showHost {
+                        hostRow
+                    }
                 }
-                hostRow
             }
         }
     }

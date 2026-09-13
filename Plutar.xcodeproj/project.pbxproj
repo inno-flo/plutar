@@ -36,6 +36,7 @@
 		4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5544D658EB8A18E4464746A7 /* MacSourceRankingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998D53AEDAC729D7BBC824E /* MacSourceRankingView.swift */; };
 		5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		5A95512EAF531DE979634870 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */; };
@@ -165,6 +166,7 @@
 		D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlipCard.swift; sourceTree = "<group>"; };
 		D743AACE9F462982DE372A84 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		D78264738FADCAFC3EB4BB75 /* PlutarMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarMac.entitlements; sourceTree = "<group>"; };
+		D998D53AEDAC729D7BBC824E /* MacSourceRankingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSourceRankingView.swift; sourceTree = "<group>"; };
 		E06AAF3499A80C9298DB76F9 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
 		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				2BA348DF969EA5D473CD4C81 /* MacRootView.swift */,
 				91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */,
 				EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */,
+				D998D53AEDAC729D7BBC824E /* MacSourceRankingView.swift */,
 			);
 			path = macOS;
 			sourceTree = "<group>";
@@ -521,6 +524,7 @@
 				949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */,
 				B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */,
 				6DC787D35E9FAE7B31A977CA /* MacSidebarView.swift in Sources */,
+				5544D658EB8A18E4464746A7 /* MacSourceRankingView.swift in Sources */,
 				4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */,
 				644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */,
 				D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */,

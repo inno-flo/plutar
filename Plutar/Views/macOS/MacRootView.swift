@@ -5,13 +5,18 @@ import SwiftData
 /// detail column (`MacFeedList`), replacing the old top-strip `TabView`.
 /// "Date" and "Lus" are plain sidebar rows; each source is its own row under
 /// a disclosed "Sources" group, so picking one shows just that source's
-/// links rather than a shared, expand-per-source "Sources" screen. Display
-/// settings live in a real `Settings` scene (Cmd+,) — see `MacSettingsView`.
+/// links rather than a shared, expand-per-source "Sources" screen. The
+/// Sources group also carries a "Classement" row (`MacSourceRankingView`) for
+/// the standing, all-time `SourceRank` tally. Display settings live in a
+/// real `Settings` scene (Cmd+,) — see `MacSettingsView`.
 /// No shake-to-theme here either (`ShakeGesture`/`FlipCard` are UIKit-only
 /// and stay out of this target's sources).
 struct MacRootView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
+    /// Only fetched for the sidebar's "Classement" row — see
+    /// `MacSourceRankingView`.
+    @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
     @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
@@ -49,6 +54,20 @@ struct MacRootView: View {
         return theme.background
     }
 
+    /// Matches exactly the themes where `theme.title` is white/near-white
+    /// (see `AppTheme.title`) — every nuit variant, plus Cap Canaveral
+    /// clair, whose toolbar sits on a dark-blue background despite being
+    /// the "light" variant. Forcing the window's own appearance to follow
+    /// is the only way to recolor macOS's native title-bar/toolbar text:
+    /// SwiftUI exposes no direct modifier for it (a hand-drawn `Text` we
+    /// tried instead just duplicated the title as its own stray pill in the
+    /// middle of the toolbar). A dark `NSWindow` appearance draws its
+    /// system-provided title in light text on its own, which is what
+    /// actually recolors it here.
+    private var windowAppearanceIsDark: Bool {
+        theme.isSoir || theme == .astronaute
+    }
+
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             MacSidebarView(selection: $selection, allItems: allItems)
@@ -62,6 +81,7 @@ struct MacRootView: View {
         // in the window toolbar once it's hidden. A hand-built button here
         // used to just duplicate it.
         .tint(theme.accent)
+        .preferredColorScheme(windowAppearanceIsDark ? .dark : .light)
     }
 
     @ViewBuilder
@@ -86,6 +106,11 @@ struct MacRootView: View {
                 theme: theme, appFont: appFont, layout: layoutBinding,
                 showThumbnails: showThumbnails, effectiveBackground: effectiveBackground,
                 isSingleSourceDetail: true, initialExpandedSources: [host]
+            )
+        case .ranking:
+            MacSourceRankingView(
+                sourceRanks: sourceRanks, theme: theme, appFont: appFont,
+                effectiveBackground: effectiveBackground
             )
         case nil:
             QuietEmptyStateView(
