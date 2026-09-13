@@ -127,12 +127,32 @@ struct MacFeedList: View {
         .navigationTitle(mode.label)
         .toolbar {
             ToolbarItemGroup {
-                Picker("Présentation", selection: $layout) {
+                // A `Picker` here would work but its closed-state button
+                // shows the *selected* Label (icon + text), which reads as
+                // an oversized toolbar button next to the others — a `Menu`
+                // instead lets the closed button show just the icon, with
+                // the full icon+text+checkmark rows only in the open list.
+                Menu {
                     ForEach(LinkLayout.allCases) { l in
-                        Text(l.label).tag(l)
+                        Button {
+                            layout = l
+                        } label: {
+                            Label {
+                                Text(l.label)
+                            } icon: {
+                                Image(systemName: l.symbolName)
+                                    .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
+                            }
+                            if l == layout {
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
+                } label: {
+                    Image(systemName: layout.symbolName)
+                        .scaleEffect(x: layout.symbolIsMirrored ? -1 : 1, y: 1)
                 }
-                .pickerStyle(.menu)
+                .help("Présentation du fil")
 
                 if mode == .source && !currentGroups.isEmpty {
                     Button {

@@ -347,4 +347,19 @@ enum LinkLayout: String, CaseIterable, Identifiable {
         case .editorial: return "Éditoriale"
         }
     }
+
+    /// SF Symbol shown next to `label` in the macOS toolbar's presentation
+    /// menu (`MacFeedList`).
+    var symbolName: String {
+        switch self {
+        case .rail: return "text.justify"
+        case .card: return "square.fill.text.grid.1x2"
+        case .editorial: return "richtext.page"
+        }
+    }
+
+    /// `.card`'s symbol reads better mirrored for this menu — its filled
+    /// half naturally sits on the left, which points the wrong way next to
+    /// leading-aligned text.
+    var symbolIsMirrored: Bool { self == .card }
 }

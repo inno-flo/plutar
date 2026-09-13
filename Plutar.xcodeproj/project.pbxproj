@@ -54,6 +54,7 @@
 		A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		A4C75E7B66953DC73D07DFB0 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		A4E995208274B43697D90C6C /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */; };
+		A55A81BDAFD38C03C9B4FDB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		AFFDA7D7E31A76D35C5FB5F8 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */; };
@@ -348,6 +349,7 @@
 			buildConfigurationList = 655185C2D694979837CE4357 /* Build configuration list for PBXNativeTarget "PlutarMac" */;
 			buildPhases = (
 				BC6AB234E887C4619AAB0FA6 /* Sources */,
+				8700C087DCCDB3F57DC103B4 /* Resources */,
 				23D2415EBFF0D668F1554613 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -460,6 +462,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				41B07B23D507832A25179785 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8700C087DCCDB3F57DC103B4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A55A81BDAFD38C03C9B4FDB8 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
