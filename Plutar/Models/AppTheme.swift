@@ -264,6 +264,19 @@ enum AppTheme: String, CaseIterable, Identifiable {
         default: return background
         }
     }
+
+    /// The theme actually displayed: `selected`'s light or soir variant,
+    /// picked according to `appearance` ("Automatique" follows the system's
+    /// own active light/dark setting). Shared by `RootView` (iOS) and
+    /// `MacRootView` (macOS) — both resolve the same raw `AppTheme` +
+    /// `AppAppearance` pair the same way.
+    static func resolved(selected: AppTheme, appearance: AppAppearance, systemColorScheme: ColorScheme) -> AppTheme {
+        switch appearance {
+        case .light: return selected.lightVariant
+        case .dark: return selected.soirVariant
+        case .auto: return systemColorScheme == .dark ? selected.soirVariant : selected.lightVariant
+        }
+    }
 }
 
 /// Light/soir selector from the settings drawer. "Claire" forces the active

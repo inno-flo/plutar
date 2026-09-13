@@ -1,7 +1,11 @@
 import Foundation
 import LinkPresentation
 import SwiftData
+#if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// Fills in what the share extension couldn't get from the source app:
 /// a real title (in place of the host-name fallback), an excerpt, and a
@@ -162,13 +166,13 @@ enum LinkMetadataEnricher {
     /// `nonisolated`: the image load/encode/write below has nothing to do
     /// with `ModelContext` and doesn't need the main actor.
     private nonisolated static func saveThumbnail(from provider: NSItemProvider, id: UUID) async -> String? {
-        guard provider.canLoadObject(ofClass: UIImage.self) else { return nil }
-        let image: UIImage? = await withCheckedContinuation { continuation in
-            _ = provider.loadObject(ofClass: UIImage.self) { object, _ in
-                continuation.resume(returning: object as? UIImage)
+        guard provider.canLoadObject(ofClass: PlatformImage.self) else { return nil }
+        let image: PlatformImage? = await withCheckedContinuation { continuation in
+            _ = provider.loadObject(ofClass: PlatformImage.self) { object, _ in
+                continuation.resume(returning: object as? PlatformImage)
             }
         }
-        guard let image, let data = image.jpegData(compressionQuality: 0.7) else { return nil }
+        guard let image, let data = image.plutarJPEGData(compressionQuality: 0.7) else { return nil }
         guard let directory = SharedStore.thumbnailsDirectoryURL() else { return nil }
         let fileName = "\(id.uuidString).jpg"
         do {

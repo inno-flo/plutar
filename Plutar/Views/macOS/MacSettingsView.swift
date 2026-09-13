@@ -1,0 +1,174 @@
+import SwiftUI
+import SwiftData
+
+/// The macOS Settings window (Cmd+, / menu Plutar > Réglages), opened via
+/// the app's `Settings { }` Scene — see `PlutarMacApp`. Two tabs:
+///
+/// - "Général": the same display settings as iOS's "Affichage" sheet
+///   (`SettingsSheet`) minus its "Avancé" section, and minus the shake
+///   toggle entirely (macOS has no shake gesture — `ShakeGesture`/
+///   `FlipCard` are UIKit-only and aren't part of this target).
+/// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
+///   just "Réinitialiser le classement" and "Vider le fil".
+///
+/// Reads/writes the same `@AppStorage` keys as iOS — display settings are
+/// per-device UI preferences, not synced content, so this is deliberately
+/// not part of the CloudKit-synced `LinkItem`/`SourceRank` store.
+struct MacSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var systemColorScheme
+    @Query private var allItems: [LinkItem]
+    @Query private var sourceRanks: [SourceRank]
+
+    @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
+    @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
+    @AppStorage(DisplaySettingsKey.font) private var fontRaw = AppFont.rounded.rawValue
+    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
+    @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
+
+    @State private var showResetRankingConfirm = false
+    @State private var showClearFeedConfirm = false
+    /// Raised by `persist()` when a write to the store fails — mirrors
+    /// `RootView.saveFailed`. Matters here specifically because both actions
+    /// in the Avancé tab are presented as irreversible.
+    @State private var saveFailed = false
+
+    private var selectedTheme: AppTheme { AppTheme(rawValue: themeRaw) ?? .scand }
+    private var appearance: AppAppearance { AppAppearance(rawValue: appearanceRaw) ?? .auto }
+    private var theme: AppTheme {
+        AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemColorScheme)
+    }
+    private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
+    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        TabView {
+            Tab("Général", systemImage: "paintbrush") {
+                generalTab
+            }
+            Tab("Avancé", systemImage: "gearshape.2") {
+                advancedTab
+            }
+        }
+        .frame(width: 420, height: 480)
+        .alert("Enregistrement impossible", isPresented: $saveFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
+        }
+    }
+
+    private var generalTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                SettingsSectionView(title: "Police") {
+                    HStack(spacing: 8) {
+                        ForEach([AppFont.helvetica, .rounded, .sfCompact]) { f in
+                            SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
+                                fontRaw = f.rawValue
+                            }
+                        }
+                    }
+                }
+
+                SettingsSectionView(title: "Thème") {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(AppTheme.selectable) { t in
+                            SettingsThemePillButton(theme: t, isActive: theme == t, chipColor: theme.chip) {
+                                themeRaw = t.rawValue
+                                appearanceRaw = (t.isSoir ? AppAppearance.dark : .light).rawValue
+                            }
+                        }
+                    }
+                }
+
+                Toggle(isOn: $blackSoirBackground) {
+                    Text("Fond noir pour les thèmes nuit")
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                SettingsSectionView(title: "Apparence") {
+                    HStack(spacing: 8) {
+                        ForEach(AppAppearance.allCases) { a in
+                            SettingsPillButton(a.label, isActive: appearance == a, chipColor: theme.chip) { appearanceRaw = a.rawValue }
+                        }
+                    }
+                }
+
+                SettingsSectionView(title: "Présentation du fil") {
+                    HStack(spacing: 8) {
+                        ForEach(LinkLayout.allCases) { l in
+                            SettingsPillButton(l.label, isActive: layout == l, chipColor: theme.chip) { layoutRaw = l.rawValue }
+                        }
+                    }
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    private var advancedTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Button(role: .destructive) {
+                    showResetRankingConfirm = true
+                } label: {
+                    Text("Réinitialiser le classement")
+                }
+                .buttonStyle(.glass)
+                .confirmationDialog(
+                    "Réinitialiser le classement ?",
+                    isPresented: $showResetRankingConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Réinitialiser", role: .destructive, action: resetSourceRanking)
+                    Button("Annuler", role: .cancel) {}
+                } message: {
+                    Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                }
+
+                Button(role: .destructive) {
+                    showClearFeedConfirm = true
+                } label: {
+                    Text("Vider le fil")
+                }
+                .buttonStyle(.glass)
+                .confirmationDialog(
+                    "Vider le fil ?",
+                    isPresented: $showClearFeedConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Vider", role: .destructive, action: clearAll)
+                    Button("Annuler", role: .cancel) {}
+                } message: {
+                    Text("Tous les liens seront supprimés définitivement.")
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func persist() {
+        do {
+            try modelContext.save()
+        } catch {
+            PlutarLog.store.error("Save failed (macOS settings): \(String(describing: error), privacy: .public)")
+            saveFailed = true
+        }
+    }
+
+    private func resetSourceRanking() {
+        for rank in sourceRanks { modelContext.delete(rank) }
+        persist()
+    }
+
+    private func clearAll() {
+        for item in allItems { modelContext.delete(item) }
+        persist()
+    }
+}

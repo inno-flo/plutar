@@ -1,26 +1,6 @@
 import SwiftUI
 import SwiftData
 
-private enum FeedMode: String, CaseIterable {
-    case chrono, source, read
-
-    var label: String {
-        switch self {
-        case .chrono: return "Date"
-        case .source: return "Sources"
-        case .read: return "Lus"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .chrono: return "calendar"
-        case .source: return "globe"
-        case .read: return "checkmark.circle"
-        }
-    }
-}
-
 /// Selection value for the floating bottom `TabView`. Mirrors `FeedMode`
 /// plus a fourth "Affichage" case that isn't a real destination — selecting
 /// it just presents the settings sheet and bounces the selection back (see
@@ -85,19 +65,6 @@ private struct DeletedSnapshot {
     }
 }
 
-/// One section of the feed — a day in Date/Lus, a host in Sources.
-///
-/// `id` is deliberately *not* `label`. Two days a year apart both render as
-/// "3 mars", so keying `ForEach` on the displayed text made them collide on
-/// one identifier, which SwiftUI resolves by dropping or mis-animating rows.
-/// In Sources the two are the same string (the host), which is why the
-/// expansion state in `expandedSources` round-trips unchanged.
-private struct FeedGroup: Identifiable {
-    let id: String
-    let label: String
-    let items: [LinkItem]
-}
-
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
@@ -107,15 +74,15 @@ struct RootView: View {
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
     @Query(sort: \SourceRank.count, order: .reverse) private var sourceRanks: [SourceRank]
 
-    @AppStorage("plutar.theme") private var themeRaw = AppTheme.scand.rawValue
-    @AppStorage("plutar.appearance") private var appearanceRaw = AppAppearance.auto.rawValue
-    @AppStorage("plutar.font") private var fontRaw = AppFont.rounded.rawValue
-    @AppStorage("plutar.layout") private var layoutRaw = LinkLayout.rail.rawValue
-    @AppStorage("plutar.showThumbnails") private var showThumbnails = true
+    @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
+    @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
+    @AppStorage(DisplaySettingsKey.font) private var fontRaw = AppFont.rounded.rawValue
+    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
+    @AppStorage(DisplaySettingsKey.showThumbnails) private var showThumbnails = true
     /// Forces every "soir" theme's view background to pure black instead of
     /// its own defined color.
-    @AppStorage("plutar.blackSoirBackground") private var blackSoirBackground = false
-    @AppStorage("plutar.shakeToChangeTheme") private var shakeToChangeTheme = true
+    @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
+    @AppStorage(DisplaySettingsKey.shakeToChangeTheme) private var shakeToChangeTheme = true
     /// 0→180°, animated in one continuous motion while a shake-triggered
     /// theme change plays out — see `triggerShakeThemeFlip`. Every capsule
     /// affected (link cards, the counter badge, day/source pills) reads
@@ -173,11 +140,7 @@ struct RootView: View {
     /// picked according to `appearance` ("Automatique" follows the system's
     /// own active light/dark setting).
     private var theme: AppTheme {
-        switch appearance {
-        case .light: return selectedTheme.lightVariant
-        case .dark: return selectedTheme.soirVariant
-        case .auto: return systemColorScheme == .dark ? selectedTheme.soirVariant : selectedTheme.lightVariant
-        }
+        AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemColorScheme)
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout {
@@ -231,7 +194,7 @@ struct RootView: View {
     private static let themeFlipDuration: Double = 0.6
 
     private var visibleItems: [LinkItem] {
-        mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
+        FeedGrouping.visibleItems(allItems, mode: mode)
     }
 
     /// Count shown in the header badge — the number of links in the current view
@@ -239,9 +202,14 @@ struct RootView: View {
     /// link is added and shrinks when one is marked read (leaving Date/Sources).
     private var currentCount: Int { visibleItems.count }
 
+    /// One entry per host — merges any rows CloudKit sync left sharing the
+    /// same host (see `SourceRank`'s comment) instead of assuming
+    /// `sourceRanks` is already collision-free.
+    private var rankedSources: [(host: String, count: Int)] { SourceRank.aggregated(sourceRanks) }
+
     /// Highest tally in the source ranking — the reference each row's width
     /// is scaled against (see `sourceRankRow`).
-    private var maxSourceRankCount: Int { sourceRanks.map(\.count).max() ?? 1 }
+    private var maxSourceRankCount: Int { rankedSources.map(\.count).max() ?? 1 }
 
     /// Per-theme override for the link-count counters' background — nil
     /// everywhere else, so callers fall back to their own default
@@ -295,32 +263,7 @@ struct RootView: View {
     }
 
     private var groups: [FeedGroup] {
-        let list = visibleItems
-        switch mode {
-        case .chrono, .read:
-            let calendar = Calendar.current
-            var order: [Date] = []
-            var buckets: [Date: [LinkItem]] = [:]
-            for item in list {
-                let day = calendar.startOfDay(for: item.dateAdded)
-                if buckets[day] == nil { buckets[day] = []; order.append(day) }
-                buckets[day]!.append(item)
-            }
-            return order.map { day in
-                FeedGroup(id: Self.dayKeyFormatter.string(from: day),
-                          label: dayLabel(day),
-                          items: buckets[day]!)
-            }
-        case .source:
-            let byHost = Dictionary(grouping: list, by: \.host)
-            let hosts = byHost.keys.sorted { a, b in
-                let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
-                return ca != cb ? ca > cb : a < b
-            }
-            return hosts.map { host in
-                FeedGroup(id: host, label: host, items: byHost[host] ?? [])
-            }
-        }
+        FeedGrouping.makeGroups(allItems, mode: mode)
     }
 
     private func toggleSource(_ id: String) {
@@ -352,50 +295,6 @@ struct RootView: View {
             allSourcesExpandedIcon.toggle()
             expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.id)) : []
         }
-    }
-
-    /// Built once instead of per call: `groups` is a computed property with
-    /// no memoization, re-evaluated several times per `feedScreen` body, and
-    /// it labels every day bucket — so a per-call `DateFormatter()` (one of
-    /// the most expensive objects in Foundation to construct) was being
-    /// allocated hundreds of times per render pass. Safe to share because
-    /// `RootView`, like every `View`, is `@MainActor`-isolated.
-    /// Collision-free identity for a day bucket — unlike the displayed
-    /// label, which repeats from one year to the next. See `FeedGroup`.
-    private static let dayKeyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMMM"
-        return f
-    }()
-
-    private func dayLabel(_ day: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(day) { return "Aujourd'hui" }
-        if calendar.isDateInYesterday(day) { return "Hier" }
-        // Only the first letter gets a capital, French-style — "3 mars",
-        // not "3 Mars" (`.capitalized` would capitalize every word).
-        let raw = Self.dayFormatter.string(from: day)
-        let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
-        // French uses the ordinal "1er" for the first of the month, not "1"
-        // — e.g. "1er avril", not "1 avril". Applied after the capitalization
-        // above so it stays "1er", not "1Er".
-        let label = calendar.component(.day, from: day) == 1
-            ? formatted.replacingOccurrences(of: "1 ", with: "1er ")
-            : formatted
-        // Links accumulate for years in a read-later app, so a bare "3 mars"
-        // would read identically for two different years. Shown only when it
-        // isn't the current year, so the common case stays short.
-        let year = calendar.component(.year, from: day)
-        guard year != calendar.component(.year, from: Date()) else { return label }
-        return "\(label) \(year)"
     }
 
     var body: some View {
@@ -623,8 +522,8 @@ struct RootView: View {
                     // survives clearing the feed.
                     if mode == .source && !sourceRanks.isEmpty {
                         Section {
-                            ForEach(Array(sourceRanks.enumerated()), id: \.element.host) { index, rank in
-                                sourceRankRow(rank: index + 1, entry: rank, maxCount: maxSourceRankCount)
+                            ForEach(Array(rankedSources.enumerated()), id: \.element.host) { index, rank in
+                                sourceRankRow(rank: index + 1, host: rank.host, count: rank.count, maxCount: maxSourceRankCount)
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
@@ -978,16 +877,16 @@ struct RootView: View {
         host.split(separator: ".").first.map(String.init) ?? host
     }
 
-    private func sourceRankRow(rank: Int, entry: SourceRank, maxCount: Int) -> some View {
+    private func sourceRankRow(rank: Int, host: String, count: Int, maxCount: Int) -> some View {
         GeometryReader { proxy in
-            let ratio = maxCount > 0 ? CGFloat(entry.count) / CGFloat(maxCount) : 1
+            let ratio = maxCount > 0 ? CGFloat(count) / CGFloat(maxCount) : 1
             let width = max(proxy.size.width * ratio, 140)
             HStack(spacing: 12) {
                 Text("\(rank)")
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.ink(0.4))
                     .frame(width: 22, alignment: .leading)
-                Text(sourceRankDisplayName(entry.host))
+                Text(sourceRankDisplayName(host))
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     // Soir themes: match the rank/count's own muted ink tone
                     // instead of the full-strength title color.
@@ -995,12 +894,12 @@ struct RootView: View {
                     .lineLimit(1)
                     // Never truncated: readability of the name outranks the
                     // capsule's width staying strictly proportional to
-                    // `entry.count`. `width` below is a floor, not a cap —
-                    // a name that doesn't fit at the proportional width
-                    // grows the capsule past it instead of clipping/eliding.
+                    // `count`. `width` below is a floor, not a cap — a name
+                    // that doesn't fit at the proportional width grows the
+                    // capsule past it instead of clipping/eliding.
                     .fixedSize()
                 Spacer(minLength: 8)
-                Text("\(entry.count)")
+                Text("\(count)")
                     .font(.system(size: 16.5, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.ink(0.5))
             }

@@ -1,5 +1,19 @@
 import SwiftUI
-import UIKit
+
+/// `PlatformImage` (`UIImage`/`NSImage`) itself is defined in
+/// `Persistence/PlatformImage.swift`, shared with the share extensions,
+/// which don't need this SwiftUI-specific wrapper.
+extension Image {
+    /// `Image(uiImage:)` on iOS, `Image(nsImage:)` on macOS — lets
+    /// `LinkRowView` stay a single shared file across both platforms.
+    init(platformImage: PlatformImage) {
+        #if canImport(UIKit)
+        self.init(uiImage: platformImage)
+        #elseif canImport(AppKit)
+        self.init(nsImage: platformImage)
+        #endif
+    }
+}
 
 /// Renders one `LinkItem` in whichever of the three timeline layouts is
 /// currently selected (rail / card / editorial).
@@ -38,6 +52,11 @@ struct LinkRowView: View {
     @State private var frozenThumbnailFileName: String??
 
     var body: some View {
+        // `FlipCard` (the enrichment flip animation) is UIKit-adjacent and
+        // stays iOS-only — see `Views/FlipCard.swift`. macOS renders the
+        // live face directly with no flip; a link's title/thumbnail simply
+        // update in place once `LinkMetadataEnricher` fills them in.
+        #if os(iOS)
         FlipCard(angle: flipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
             cardFace(
                 title: showsNewFace ? item.title : (frozenTitle ?? item.title),
@@ -57,6 +76,9 @@ struct LinkRowView: View {
                 flipAngle = 180
             }
         }
+        #else
+        cardFace(title: item.title, thumbnailFileName: item.thumbnailFileName)
+        #endif
     }
 
     /// The whole visible card — background, shape, shadow and all — for
@@ -180,7 +202,7 @@ struct LinkRowView: View {
     @ViewBuilder
     private func thumbnail(size: CGFloat, fullWidth: Bool = false, thumbnailFileName: String?) -> some View {
         if let fileName = thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
-            Image(uiImage: image)
+            Image(platformImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: fullWidth ? nil : size, height: size)
@@ -217,13 +239,13 @@ struct LinkRowView: View {
     /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
     /// disk on every layout pass — thumbnails are a handful of KB each, but
     /// cells redraw often (theme changes, read-state toggles, swipe).
-    private static let thumbnailCache = NSCache<NSString, UIImage>()
+    private static let thumbnailCache = NSCache<NSString, PlatformImage>()
 
-    private static func cachedThumbnail(_ fileName: String) -> UIImage? {
+    private static func cachedThumbnail(_ fileName: String) -> PlatformImage? {
         let key = fileName as NSString
         if let cached = thumbnailCache.object(forKey: key) { return cached }
         guard let directory = SharedStore.thumbnailsDirectoryURL(),
-              let image = UIImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
+              let image = PlatformImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
         else {
             return nil
         }

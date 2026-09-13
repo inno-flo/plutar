@@ -7,33 +7,85 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00A7B5D88FE83B0A9D0ECFDB /* FeedMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */; };
+		059304ED010B84D0432F0EE7 /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
+		092152448A3F9FD8669BF0A0 /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
+		0C87A3C3A14268479E370C70 /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
+		0CE1A89C3C241ED2FDE1CD1E /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */; };
+		15722182ABAEBE6EE38BA7FA /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		1A1C1F92DD86D8575D59848B /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */; };
 		2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
+		25ED50D9DD771F175CF58B05 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */; };
+		26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
+		27BDF2BA9CD4145FDF33B68D /* MacFeedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */; };
 		2BA5C1FB212524164BC56EE2 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
+		2CB96EB00608A930D891158F /* DisplaySettingsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */; };
+		2CF2232B8E91364361488352 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83289D1D4214A472A453D921 /* RootView.swift */; };
+		2FD2310F3F5FF82707A6D331 /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
+		309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		358C6588B1777EF955EE379D /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
+		381D8FED81693360B61FC95A /* FeedGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38123A3EA945E5E2E936182C /* FeedGrouping.swift */; };
+		3F1790D2D307757ED9124A03 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
 		41B07B23D507832A25179785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
+		4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D743AACE9F462982DE372A84 /* SettingsSheet.swift */; };
+		4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
+		51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
+		52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
+		5A95512EAF531DE979634870 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		5E664AD3C1E4F4B4EBEB82DD /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
-		65373E31D8C2F742421EB0A6 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4326D35166D392B8DFBEC59 /* ShareView.swift */; };
+		644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		65ED495368EC65787B24EC03 /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		674ED4E4A6BDB2787C4CF500 /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
 		6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		76E0056F01CA8666E8503CF5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
+		76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
 		885DA4A6A813F4F3B9E1196F /* FlipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */; };
+		894CE17352614F9F642533DE /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */; };
 		8AB0AF4BF8FB73C85969A814 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
 		8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BDB1017E51147DD32031A2 /* SeedData.swift */; };
+		949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA348DF969EA5D473CD4C81 /* MacRootView.swift */; };
+		97719FD63D7F144A5D63336B /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
 		9CA1251CC89A30C0FD7EF5B5 /* PlutarShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9E3CBC3C85F4D0FDFC897E72 /* FeedGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38123A3EA945E5E2E936182C /* FeedGrouping.swift */; };
 		A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		A4C75E7B66953DC73D07DFB0 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		A4E995208274B43697D90C6C /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
+		AFFDA7D7E31A76D35C5FB5F8 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
+		B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */; };
+		B6BD8C0775B2746D172F3A95 /* FeedMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */; };
+		BC0C6BCD74BE278B854E791C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
+		C37D241874185B30F72F6D9C /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
+		C4BB4037C0F3B3EFEC506CB9 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
+		C4BF5373A6E35F2EA3D7E754 /* DisplaySettingsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */; };
+		C5F16A6A1762C5C3A864E72B /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		CA1659E01E8E7AA9188ED92F /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		CDA22110C565F4128C2A91C3 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		CFCC6003BF3734F5AE8D5CF9 /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */; };
+		D2C3CCC1E42975E7952E8F6F /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
+		D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */; };
 		E360489DDA0D19A34174505E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
+		E3EA3EF8BDF7CF785B6A39D1 /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
+		E6C5E73EFD05D2771A8B4AA9 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
+		ED5669F536632DCF43747E5D /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CC3F448604493B8E9A7320 /* PlutarApp.swift */; };
+		EFFC5871E04445A3F60B43C4 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
+		F8FAAF5BC6EF76AC72E3EF53 /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
+		FDB2DB7B2FB957445552638E /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C6666D7DBF438A72083CE7CC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFFE2CF42001D3FF73CC5BA6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EC1DC21A79533BC6EBA289C6;
+			remoteInfo = PlutarShareMac;
+		};
 		CE0F62BF9EFB22910156E69A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AFFE2CF42001D3FF73CC5BA6 /* Project object */;
@@ -44,6 +96,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		23D2415EBFF0D668F1554613 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		627268912465CFF671A7DAF5 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -58,30 +121,49 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacFeedList.swift; sourceTree = "<group>"; };
 		07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		0B7EB35215D35C3E2317CACC /* PlatformImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformImage.swift; sourceTree = "<group>"; };
 		0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeGesture.swift; sourceTree = "<group>"; };
+		0D9F45E420A4D58CFA444779 /* PlutarLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarLog.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedLinkExtraction.swift; sourceTree = "<group>"; };
+		2BA348DF969EA5D473CD4C81 /* MacRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRootView.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		38123A3EA945E5E2E936182C /* FeedGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedGrouping.swift; sourceTree = "<group>"; };
+		3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainerBootstrap.swift; sourceTree = "<group>"; };
 		3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SharePreprocessor.js; sourceTree = "<group>"; };
 		4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMetadataEnricher.swift; sourceTree = "<group>"; };
 		58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRowView.swift; sourceTree = "<group>"; };
 		72BDB1017E51147DD32031A2 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		758D1CEE221F39C1052F8ED8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		78455A8E442E405794252CA7 /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		83289D1D4214A472A453D921 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		89026185FF840D288774DDD0 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		89CC3F448604493B8E9A7320 /* PlutarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarApp.swift; sourceTree = "<group>"; };
 		8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItemFactory.swift; sourceTree = "<group>"; };
 		8D7070AAD03D0D1CA47971AD /* PlutarShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarShare.entitlements; sourceTree = "<group>"; };
+		8E7A4FD17FC896A77E08563A /* PlutarShareMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarShareMac.entitlements; sourceTree = "<group>"; };
+		91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSettingsView.swift; sourceTree = "<group>"; };
 		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1134246047A1EA572CF8858 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A27C53F13F2719F7848AC15E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
 		AE8F832831F7C825B208B963 /* Plutar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Plutar.entitlements; sourceTree = "<group>"; };
+		B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarMacApp.swift; sourceTree = "<group>"; };
+		B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySettingsKey.swift; sourceTree = "<group>"; };
+		C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
 		CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CE5812411692E7EE8C32F5A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlipCard.swift; sourceTree = "<group>"; };
 		D743AACE9F462982DE372A84 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
+		D78264738FADCAFC3EB4BB75 /* PlutarMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlutarMac.entitlements; sourceTree = "<group>"; };
 		E06AAF3499A80C9298DB76F9 /* SourceRank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRank.swift; sourceTree = "<group>"; };
-		F4326D35166D392B8DFBEC59 /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
+		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -91,16 +173,35 @@
 				A1134246047A1EA572CF8858 /* Info.plist */,
 				8D7070AAD03D0D1CA47971AD /* PlutarShare.entitlements */,
 				3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */,
-				F4326D35166D392B8DFBEC59 /* ShareView.swift */,
 				4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */,
 			);
 			path = PlutarShare;
+			sourceTree = "<group>";
+		};
+		33562666713422A5F91E0DE8 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				38123A3EA945E5E2E936182C /* FeedGrouping.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		486B71AB182B4E9BA4C534AC /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */,
+				2BA348DF969EA5D473CD4C81 /* MacRootView.swift */,
+				91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */,
+			);
+			path = macOS;
 			sourceTree = "<group>";
 		};
 		6EF9302A5F50ADE9541A9E24 /* Models */ = {
 			isa = PBXGroup;
 			children = (
 				89026185FF840D288774DDD0 /* AppTheme.swift */,
+				B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */,
+				FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */,
 				A4949EBEF6B304848C4BEE06 /* LinkItem.swift */,
 				E06AAF3499A80C9298DB76F9 /* SourceRank.swift */,
 			);
@@ -111,7 +212,9 @@
 			isa = PBXGroup;
 			children = (
 				79ABD2EA2FFC171106D16619 /* Plutar */,
+				C6CE028B5CF14F83B8B192B3 /* PlutarMac */,
 				002D544030E640163915709F /* PlutarShare */,
+				88908B192E97EFF1FA9DA6D4 /* PlutarShareMac */,
 				EEC607FC4B6D3917BFDC638C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -126,16 +229,31 @@
 				EE9D9BA59138EDAC4735F4D4 /* Data */,
 				6EF9302A5F50ADE9541A9E24 /* Models */,
 				8EFA6CD7E18F96CCA4D3E705 /* Persistence */,
+				33562666713422A5F91E0DE8 /* ViewModels */,
 				E3B8418DC6BFE9DED9CF0888 /* Views */,
 			);
 			path = Plutar;
 			sourceTree = "<group>";
 		};
+		88908B192E97EFF1FA9DA6D4 /* PlutarShareMac */ = {
+			isa = PBXGroup;
+			children = (
+				A27C53F13F2719F7848AC15E /* Info.plist */,
+				8E7A4FD17FC896A77E08563A /* PlutarShareMac.entitlements */,
+				F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */,
+			);
+			path = PlutarShareMac;
+			sourceTree = "<group>";
+		};
 		8EFA6CD7E18F96CCA4D3E705 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
+				3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */,
 				8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */,
 				558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */,
+				0B7EB35215D35C3E2317CACC /* PlatformImage.swift */,
+				0D9F45E420A4D58CFA444779 /* PlutarLog.swift */,
+				21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */,
 				130BA757B663FC9008041306 /* SharedStore.swift */,
 			);
 			path = Persistence;
@@ -149,14 +267,27 @@
 			path = Rows;
 			sourceTree = "<group>";
 		};
+		C6CE028B5CF14F83B8B192B3 /* PlutarMac */ = {
+			isa = PBXGroup;
+			children = (
+				CE5812411692E7EE8C32F5A7 /* Info.plist */,
+				D78264738FADCAFC3EB4BB75 /* PlutarMac.entitlements */,
+				B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */,
+			);
+			path = PlutarMac;
+			sourceTree = "<group>";
+		};
 		E3B8418DC6BFE9DED9CF0888 /* Views */ = {
 			isa = PBXGroup;
 			children = (
 				07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */,
 				D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */,
 				83289D1D4214A472A453D921 /* RootView.swift */,
+				C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */,
 				D743AACE9F462982DE372A84 /* SettingsSheet.swift */,
 				0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */,
+				78455A8E442E405794252CA7 /* ShareView.swift */,
+				486B71AB182B4E9BA4C534AC /* macOS */,
 				B16AB1A94CABFC818AB790D6 /* Rows */,
 			);
 			path = Views;
@@ -182,7 +313,9 @@
 			isa = PBXGroup;
 			children = (
 				A0456B4197E9C3E5CC22F158 /* Plutar.app */,
+				FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */,
 				3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */,
+				F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -210,6 +343,25 @@
 			productReference = A0456B4197E9C3E5CC22F158 /* Plutar.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C8A869C71FD64EA7BC598BEF /* PlutarMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 655185C2D694979837CE4357 /* Build configuration list for PBXNativeTarget "PlutarMac" */;
+			buildPhases = (
+				BC6AB234E887C4619AAB0FA6 /* Sources */,
+				23D2415EBFF0D668F1554613 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B60F8A9C9840513E3FA6B086 /* PBXTargetDependency */,
+			);
+			name = PlutarMac;
+			packageProductDependencies = (
+			);
+			productName = PlutarMac;
+			productReference = FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */;
+			productType = "com.apple.product-type.application";
+		};
 		EA0D9494EABA79AE72BE0438 /* PlutarShare */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 12630956193C9BF1ABA5AD73 /* Build configuration list for PBXNativeTarget "PlutarShare" */;
@@ -228,6 +380,23 @@
 			productReference = 3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		EC1DC21A79533BC6EBA289C6 /* PlutarShareMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B4FB1970F04D57E3C342C85 /* Build configuration list for PBXNativeTarget "PlutarShareMac" */;
+			buildPhases = (
+				D8B8E850A3E84A299199B560 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PlutarShareMac;
+			packageProductDependencies = (
+			);
+			productName = PlutarShareMac;
+			productReference = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -241,7 +410,15 @@
 						DevelopmentTeam = AQ24F2W59K;
 						ProvisioningStyle = Automatic;
 					};
+					C8A869C71FD64EA7BC598BEF = {
+						DevelopmentTeam = AQ24F2W59K;
+						ProvisioningStyle = Automatic;
+					};
 					EA0D9494EABA79AE72BE0438 = {
+						DevelopmentTeam = AQ24F2W59K;
+						ProvisioningStyle = Automatic;
+					};
+					EC1DC21A79533BC6EBA289C6 = {
 						DevelopmentTeam = AQ24F2W59K;
 						ProvisioningStyle = Automatic;
 					};
@@ -262,6 +439,8 @@
 			projectRoot = "";
 			targets = (
 				8238E248FD48C4263B97FC08 /* Plutar */,
+				C8A869C71FD64EA7BC598BEF /* PlutarMac */,
+				EC1DC21A79533BC6EBA289C6 /* PlutarShareMac */,
 				EA0D9494EABA79AE72BE0438 /* PlutarShare */,
 			);
 		};
@@ -291,13 +470,62 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CE1A89C3C241ED2FDE1CD1E /* AppContainerBootstrap.swift in Sources */,
 				A4C75E7B66953DC73D07DFB0 /* LinkItem.swift in Sources */,
 				358C6588B1777EF955EE379D /* LinkItemFactory.swift in Sources */,
 				5E664AD3C1E4F4B4EBEB82DD /* LinkMetadataEnricher.swift in Sources */,
-				65373E31D8C2F742421EB0A6 /* ShareView.swift in Sources */,
+				E3EA3EF8BDF7CF785B6A39D1 /* PlatformImage.swift in Sources */,
+				092152448A3F9FD8669BF0A0 /* PlutarLog.swift in Sources */,
+				FDB2DB7B2FB957445552638E /* ShareView.swift in Sources */,
 				A4E995208274B43697D90C6C /* ShareViewController.swift in Sources */,
+				AFFDA7D7E31A76D35C5FB5F8 /* SharedLinkExtraction.swift in Sources */,
 				2BA5C1FB212524164BC56EE2 /* SharedStore.swift in Sources */,
 				CA1659E01E8E7AA9188ED92F /* SourceRank.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC6AB234E887C4619AAB0FA6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C5F16A6A1762C5C3A864E72B /* AppContainerBootstrap.swift in Sources */,
+				2CF2232B8E91364361488352 /* AppTheme.swift in Sources */,
+				2CB96EB00608A930D891158F /* DisplaySettingsKey.swift in Sources */,
+				309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */,
+				9E3CBC3C85F4D0FDFC897E72 /* FeedGrouping.swift in Sources */,
+				00A7B5D88FE83B0A9D0ECFDB /* FeedMode.swift in Sources */,
+				C4BB4037C0F3B3EFEC506CB9 /* LinkItem.swift in Sources */,
+				97719FD63D7F144A5D63336B /* LinkItemFactory.swift in Sources */,
+				2FD2310F3F5FF82707A6D331 /* LinkMetadataEnricher.swift in Sources */,
+				E6C5E73EFD05D2771A8B4AA9 /* LinkRowView.swift in Sources */,
+				27BDF2BA9CD4145FDF33B68D /* MacFeedList.swift in Sources */,
+				949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */,
+				B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */,
+				4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */,
+				644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */,
+				D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */,
+				1A1C1F92DD86D8575D59848B /* SettingsSections.swift in Sources */,
+				51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */,
+				26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */,
+				76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8B8E850A3E84A299199B560 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */,
+				5A95512EAF531DE979634870 /* LinkItem.swift in Sources */,
+				F8FAAF5BC6EF76AC72E3EF53 /* LinkItemFactory.swift in Sources */,
+				C37D241874185B30F72F6D9C /* LinkMetadataEnricher.swift in Sources */,
+				059304ED010B84D0432F0EE7 /* PlatformImage.swift in Sources */,
+				D2C3CCC1E42975E7952E8F6F /* PlutarLog.swift in Sources */,
+				EFFC5871E04445A3F60B43C4 /* ShareView.swift in Sources */,
+				894CE17352614F9F642533DE /* ShareViewController.swift in Sources */,
+				CDA22110C565F4128C2A91C3 /* SharedLinkExtraction.swift in Sources */,
+				5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */,
+				15722182ABAEBE6EE38BA7FA /* SourceRank.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,18 +533,27 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C87A3C3A14268479E370C70 /* AppContainerBootstrap.swift in Sources */,
 				E360489DDA0D19A34174505E /* AppTheme.swift in Sources */,
+				C4BF5373A6E35F2EA3D7E754 /* DisplaySettingsKey.swift in Sources */,
 				A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */,
+				381D8FED81693360B61FC95A /* FeedGrouping.swift in Sources */,
+				B6BD8C0775B2746D172F3A95 /* FeedMode.swift in Sources */,
 				885DA4A6A813F4F3B9E1196F /* FlipCard.swift in Sources */,
 				A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */,
 				674ED4E4A6BDB2787C4CF500 /* LinkItemFactory.swift in Sources */,
 				65ED495368EC65787B24EC03 /* LinkMetadataEnricher.swift in Sources */,
 				8AB0AF4BF8FB73C85969A814 /* LinkRowView.swift in Sources */,
+				BC0C6BCD74BE278B854E791C /* PlatformImage.swift in Sources */,
 				ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */,
+				ED5669F536632DCF43747E5D /* PlutarLog.swift in Sources */,
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
 				8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */,
+				25ED50D9DD771F175CF58B05 /* SettingsSections.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,
 				0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */,
+				3F1790D2D307757ED9124A03 /* ShareView.swift in Sources */,
+				76E0056F01CA8666E8503CF5 /* SharedLinkExtraction.swift in Sources */,
 				2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */,
 				6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */,
 			);
@@ -329,6 +566,11 @@
 			isa = PBXTargetDependency;
 			target = EA0D9494EABA79AE72BE0438 /* PlutarShare */;
 			targetProxy = CE0F62BF9EFB22910156E69A /* PBXContainerItemProxy */;
+		};
+		B60F8A9C9840513E3FA6B086 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EC1DC21A79533BC6EBA289C6 /* PlutarShareMac */;
+			targetProxy = C6666D7DBF438A72083CE7CC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -382,11 +624,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -414,6 +656,71 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		51090017EE6C629C869395E3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AQ24F2W59K;
+				INFOPLIST_FILE = PlutarShareMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		5168AB338811DCD291FED57C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AQ24F2W59K;
+				INFOPLIST_FILE = PlutarMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		6FC607311A5866BA4CC4A4EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AQ24F2W59K;
+				INFOPLIST_FILE = PlutarMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
 		};
@@ -523,15 +830,36 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C50F592361916FDB8985EC8B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AQ24F2W59K;
+				INFOPLIST_FILE = PlutarShareMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
 		};
@@ -579,6 +907,24 @@
 			buildConfigurations = (
 				AA70126CB14BF93D196C03E9 /* Debug */,
 				2EC987DB6B5298A70E033E44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3B4FB1970F04D57E3C342C85 /* Build configuration list for PBXNativeTarget "PlutarShareMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C50F592361916FDB8985EC8B /* Debug */,
+				51090017EE6C629C869395E3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		655185C2D694979837CE4357 /* Build configuration list for PBXNativeTarget "PlutarMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5168AB338811DCD291FED57C /* Debug */,
+				6FC607311A5866BA4CC4A4EA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
