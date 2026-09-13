@@ -32,7 +32,7 @@ struct MacSidebarView: View {
     var body: some View {
         List(selection: $selection) {
             Section("Liens partagés") {
-                sidebarRow(label: "Date", systemImage: "calendar", count: unreadCount)
+                sidebarRow(label: "À lire", systemImage: "calendar", count: unreadCount)
                     .tag(SidebarSelection.date)
                 sidebarRow(label: "Lus", systemImage: "checkmark.circle", count: readCount)
                     .tag(SidebarSelection.read)

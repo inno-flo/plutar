@@ -8,7 +8,7 @@ enum FeedMode: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .chrono: return "Date"
+        case .chrono: return "À lire"
         case .source: return "Sources"
         case .read: return "Lus"
         }
