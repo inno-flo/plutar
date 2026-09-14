@@ -131,8 +131,6 @@ struct MacFeedList: View {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
-                                showFavicons: false,
-                                showsPlaceholderThumbnail: false,
                                 showHost: !isSingleSourceDetail,
                                 isSelected: selectedItemID == item.id
                             )

@@ -457,7 +457,7 @@ struct RootView: View {
                             if mode != .source || expandedSources.contains(group.id) {
                                 ForEach(group.items) { item in
                                     FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
-                                        LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont, showFavicons: false, showsPlaceholderThumbnail: false)
+                                        LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont)
                                     }
                                         .listRowSeparator(.hidden)
                                         .listRowBackground(Color.clear)

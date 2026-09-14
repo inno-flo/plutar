@@ -25,14 +25,6 @@ struct LinkRowView: View {
     let layout: LinkLayout
     let theme: AppTheme
     let appFont: AppFont
-    let showFavicons: Bool
-    /// Whether a link with no real image (not fetched yet, or the fetch
-    /// found none) falls back to the striped placeholder, or shows nothing
-    /// at all. All three tabs (Date, Sources, Lus) now pass `false` — a wall
-    /// of placeholders for links still waiting on `LinkMetadataEnricher`
-    /// read as more "broken" than useful. Kept as a parameter rather than
-    /// deleted outright, in case a future layout wants the placeholder back.
-    let showsPlaceholderThumbnail: Bool
     /// Whether the host/"via" line renders at all — `true` everywhere except
     /// a macOS single-source detail (`MacFeedList`'s `isSingleSourceDetail`),
     /// where every row is already known to belong to the one source named in
@@ -191,13 +183,10 @@ struct LinkRowView: View {
         }
     }
 
-    // MARK: Card — favicon + title, host below, thumbnail on the right.
+    // MARK: Card — title, host below, thumbnail on the right.
 
     private func cardBody(title: String, thumbnailFileName: String?) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            if showFavicons {
-                favicon(size: 18)
-            }
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(appFont.font(size: titleFontSize, weight: titleWeight))
@@ -247,30 +236,13 @@ struct LinkRowView: View {
                     .foregroundStyle(isSelected ? selectedTextColor.opacity(0.85) : theme.ink(0.5))
                     .lineLimit(3)
             }
-            if showFavicons || showHost {
-                HStack(spacing: 7) {
-                    if showFavicons {
-                        favicon(size: 22)
-                    }
-                    if showHost {
-                        hostRow
-                    }
-                }
+            if showHost {
+                hostRow
             }
         }
     }
 
     // MARK: Shared pieces
-
-    /// Stand-in for the link's site favicon (there is no network fetch — this
-    /// is just the same colored initial badge used everywhere else).
-    private func favicon(size: CGFloat) -> some View {
-        Text(item.initial)
-            .font(.system(size: size * 0.42, weight: .heavy))
-            .foregroundStyle(theme.background)
-            .frame(width: size, height: size)
-            .background(Circle().fill(Color(hex: item.colorHex)))
-    }
 
     private var hostRow: some View {
         Text(item.host)
@@ -288,32 +260,8 @@ struct LinkRowView: View {
                 .frame(width: fullWidth ? nil : size, height: size)
                 .frame(maxWidth: fullWidth ? .infinity : size)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        } else if showsPlaceholderThumbnail {
-            placeholderThumbnail
-                .frame(width: fullWidth ? nil : size, height: size)
-                .frame(maxWidth: fullWidth ? .infinity : size)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        // Neither: no real image, and this row doesn't fall back to the
-        // placeholder — render nothing, reserving no space either.
-    }
-
-    /// Placeholder for a link still waiting on `LinkMetadataEnricher` to
-    /// fetch (or find) a real preview image.
-    private var placeholderThumbnail: some View {
-        let stripes = theme.thumbnailStripes
-        return ZStack(alignment: .bottomLeading) {
-            StripesShape()
-                .fill(stripes.0)
-            StripesShape(phase: 8)
-                .fill(stripes.1)
-                .opacity(0.6)
-            Text("aperçu · \(item.host.split(separator: ".").first.map(String.init) ?? item.host)")
-                .font(.system(size: 6.5, design: .monospaced))
-                .foregroundStyle(theme.ink(0.5))
-                .padding(5)
-                .hidden()
-        }
+        // No real image: render nothing, reserving no space either.
     }
 
     /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
@@ -331,24 +279,5 @@ struct LinkRowView: View {
         }
         thumbnailCache.setObject(image, forKey: key)
         return image
-    }
-}
-
-/// A cheap diagonal-stripe placeholder standing in for a real link preview
-/// image while `LinkMetadataEnricher` hasn't fetched one yet.
-private struct StripesShape: Shape {
-    var phase: CGFloat = 0
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let spacing: CGFloat = 10
-        let span = rect.width + rect.height
-        var offset = -rect.height + phase
-        while offset < span {
-            path.move(to: CGPoint(x: rect.minX + offset, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.minX + offset + rect.height, y: rect.maxY))
-            offset += spacing
-        }
-        return path.strokedPath(StrokeStyle(lineWidth: 5))
     }
 }

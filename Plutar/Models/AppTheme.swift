@@ -121,20 +121,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         Color(hex: "#FFA366")
     }
 
-    /// Diagonal-stripe thumbnail placeholder colors.
-    var thumbnailStripes: (Color, Color) {
-        switch self {
-        case .scand: return (Color(hex: "#DCD5C6"), Color(hex: "#CFC7B6"))
-        case .scandSoir: return (Color(hex: "#3A3F46"), Color(hex: "#2D3138"))
-        case .blanc: return (Color(hex: "#E4E9F2"), Color(hex: "#D2DAE8"))
-        case .blancSoir: return (Color(hex: "#16243A"), Color(hex: "#0F1B2C"))
-        case .astronaute: return (Color(hex: "#3A6DA5"), Color(hex: "#27547F"))
-        case .astronauteSoir: return (Color(hex: "#1B3350"), Color(hex: "#122740"))
-        case .tokyo: return (Color(hex: "#F7F5F1"), Color(hex: "#EFEBE4"))
-        case .tokyoSoir: return (Color(hex: "#1E1E1E"), Color(hex: "#171717"))
-        }
-    }
-
     var card: Color {
         switch self {
         case .scand: return Color(hex: "#FBF8F3")
