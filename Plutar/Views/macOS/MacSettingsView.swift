@@ -9,7 +9,10 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture`/
 ///   `FlipCard` are UIKit-only and aren't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   just "Réinitialiser le classement" and "Vider le fil".
+///   "Réinitialiser le classement", "Vider le fil", and "Actualiser" (moved
+///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
+///   really "sync now" any more now that CloudKit push keeps the app caught
+///   up on its own; see `PlutarMacApp`/`AppDelegate`).
 ///
 /// Reads/writes the same `@AppStorage` keys as iOS — display settings are
 /// per-device UI preferences, not synced content, so this is deliberately
@@ -28,6 +31,7 @@ struct MacSettingsView: View {
 
     @State private var showResetRankingConfirm = false
     @State private var showClearFeedConfirm = false
+    @State private var isRefreshing = false
     /// Raised by `persist()` when a write to the store fails — mirrors
     /// `RootView.saveFailed`. Matters here specifically because both actions
     /// in the Avancé tab are presented as irreversible.
@@ -134,7 +138,7 @@ struct MacSettingsView: View {
                     }
 
                     Text("Le classement des sources les plus partagées sera remis à zéro")
-                        .font(.system(size: 10))
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
 
@@ -160,6 +164,32 @@ struct MacSettingsView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        Task { await refresh() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("Actualiser")
+                            if isRefreshing {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(isRefreshing)
+
+                    // No supported API forces CloudKit to pull sooner —
+                    // sync itself stays automatic/background. This re-runs
+                    // the same enrichment pass PlutarMacApp already does on
+                    // launch/foreground, so a link enriched or thumbnailed
+                    // on iOS doesn't have to wait for this Mac to relaunch
+                    // or background-and-foreground before catching up.
+                    Text("Relance la récupération des titres et vignettes en attente")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -173,6 +203,12 @@ struct MacSettingsView: View {
             PlutarLog.store.error("Save failed (macOS settings): \(String(describing: error), privacy: .public)")
             saveFailed = true
         }
+    }
+
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await LinkMetadataEnricher.enrichPendingLinks(in: modelContext)
     }
 
     private func resetSourceRanking() {

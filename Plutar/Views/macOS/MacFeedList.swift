@@ -24,7 +24,6 @@ struct MacFeedList: View {
     let theme: AppTheme
     let appFont: AppFont
     @Binding var layout: LinkLayout
-    let showThumbnails: Bool
     let effectiveBackground: Color
     /// True when this instance shows one already-selected source's links
     /// (from the sidebar), as opposed to the merged, expand-per-source
@@ -59,11 +58,10 @@ struct MacFeedList: View {
     /// `RootView.saveFailed`, so a failed save isn't silently swallowed on
     /// macOS the way a bare log line would leave it.
     @State private var saveFailed = false
-    @State private var isRefreshing = false
 
     init(
         mode: FeedMode, title: String, allItems: [LinkItem], theme: AppTheme, appFont: AppFont,
-        layout: Binding<LinkLayout>, showThumbnails: Bool, effectiveBackground: Color,
+        layout: Binding<LinkLayout>, effectiveBackground: Color,
         isSingleSourceDetail: Bool = false, initialExpandedSources: Set<String> = []
     ) {
         self.mode = mode
@@ -72,7 +70,6 @@ struct MacFeedList: View {
         self.theme = theme
         self.appFont = appFont
         self._layout = layout
-        self.showThumbnails = showThumbnails
         self.effectiveBackground = effectiveBackground
         self.isSingleSourceDetail = isSingleSourceDetail
         self._expandedSources = State(initialValue: initialExpandedSources)
@@ -134,7 +131,7 @@ struct MacFeedList: View {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
-                                showThumbnails: showThumbnails, showFavicons: false,
+                                showFavicons: false,
                                 showsPlaceholderThumbnail: false,
                                 showHost: !isSingleSourceDetail,
                                 isSelected: selectedItemID == item.id
@@ -197,29 +194,6 @@ struct MacFeedList: View {
             // icons, a highlight behind the selected one); the mark-as-
             // read/clear button stays a single plain toolbar button, apart
             // from that block rather than sharing a background with it.
-            ToolbarItemGroup {
-                // No supported API forces CloudKit to pull sooner — sync
-                // itself stays automatic/background. This re-runs the same
-                // enrichment pass `PlutarMacApp` already does on launch/
-                // foreground, so a link enriched or thumbnailed on iOS
-                // doesn't have to wait for this Mac to relaunch or
-                // background-and-foreground before catching up — the
-                // closest thing to "sync now" available here. There's no
-                // pull-to-refresh gesture on macOS's `List` worth relying
-                // on for discoverability, hence a plain toolbar button.
-                Button {
-                    Task { await refresh() }
-                } label: {
-                    if isRefreshing {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
-                .disabled(isRefreshing)
-                .help("Actualiser")
-            }
             ToolbarItemGroup {
                 layoutSwitcher
             }
@@ -379,12 +353,6 @@ struct MacFeedList: View {
     }
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.
-
-    private func refresh() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
-        await LinkMetadataEnricher.enrichPendingLinks(in: modelContext)
-    }
 
     private func persist() {
         do {
