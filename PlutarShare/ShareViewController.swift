@@ -1,6 +1,5 @@
 import UIKit
 import SwiftUI
-import SwiftData
 
 /// Entry point of the PlutarShare extension (`NSExtensionPrincipalClass` in
 /// its Info.plist). Pulls the shared URL out of the extension context (via

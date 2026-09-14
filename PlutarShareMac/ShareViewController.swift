@@ -1,6 +1,5 @@
 import Cocoa
 import SwiftUI
-import SwiftData
 
 /// Entry point of the PlutarShareMac extension (`NSExtensionPrincipalClass`
 /// in its Info.plist) — the macOS counterpart of
