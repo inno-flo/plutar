@@ -9,7 +9,7 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture`/
 ///   `FlipCard` are UIKit-only and aren't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   "Réinitialiser le classement", "Vider le fil", and "Actualiser" (moved
+///   "Réinitialiser le classement", "Vider le fil", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -170,7 +170,7 @@ struct MacSettingsView: View {
                         Task { await refresh() }
                     } label: {
                         HStack(spacing: 6) {
-                            Text("Actualiser")
+                            Text("Actualiser le fil")
                             if isRefreshing {
                                 ProgressView()
                                     .controlSize(.small)
