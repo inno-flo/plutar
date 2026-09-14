@@ -186,6 +186,17 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Selected-tab tint for the iOS/iPadOS tab bar. Same as `chip`
+    /// everywhere except Tokyo nuit: `chip`'s near-black #2B2B2B reads fine
+    /// as a pill fill but is nearly invisible as a selected-label color on
+    /// the tab bar's own near-black background, so this uses the same dark
+    /// red already assigned to Tokyo nuit's counter badge instead (see
+    /// `counterBackgroundOverride` in RootView) — visible, and still in the
+    /// swapped-red family the theme already uses.
+    var tabTint: Color {
+        self == .tokyoSoir ? Color(hex: "#BC002D") : chip
+    }
+
     /// Text color drawn on top of `chip` (and the counter badge) — white for
     /// Cap Canaveral and Copenhague, whose `background` is too close in
     /// value to `chip` to read well; each other theme's own background

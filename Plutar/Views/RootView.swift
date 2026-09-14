@@ -318,7 +318,7 @@ struct RootView: View {
         // accent color for everything presented from this point on
         // (sheets, alerts), without affecting the tab bar chrome already
         // resolved above.
-        .tint(theme.chip)
+        .tint(theme.tabTint)
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops. Same
         // floating bar on iPad as on iPhone — no sidebar: `sidebarAdaptable`
