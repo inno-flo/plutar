@@ -322,6 +322,13 @@ struct RootView: View {
         // Native iOS 26 floating tab bar: not full width, and shrinks while
         // scrolling the feed then restores once scrolling stops.
         .tabBarMinimizeBehavior(.onScrollDown)
+        // Same TabView/Tab declarations adapt to the idiom on their own:
+        // the floating tab bar above in the compact horizontal size class,
+        // a real sidebar (native collapse/expand affordance included) in
+        // the regular one — iPad, full screen there thanks to
+        // `UIRequiresFullScreen~ipad` in project.yml (see the comment
+        // there for why that's needed). No separate iPad-only view.
+        .tabViewStyle(.sidebarAdaptable)
         .onShake {
             guard shakeToChangeTheme else { return }
             triggerShakeThemeFlip()
