@@ -69,7 +69,7 @@ struct MacSettingsView: View {
                     // joined "Helvetica Neue Bold") no longer fit one row at
                     // this window's 420pt width without overflowing.
                     LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach([AppFont.helveticaCourant, .helvetica, .sfCompact, .rounded]) { f in
+                        ForEach([AppFont.helveticaCourant, .sfCompact, .helvetica, .rounded]) { f in
                             SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 13, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
                                 fontRaw = f.rawValue
                             }

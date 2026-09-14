@@ -32,7 +32,7 @@ struct SettingsSheet: View {
     /// rendering unexpectedly white).
     let chipColor: Color
 
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
 
     /// Room for the inline nav bar and the home-indicator safe area below
     /// the scroll view.
@@ -60,10 +60,11 @@ struct SettingsSheet: View {
                         // "Helvetica Neue Bold") no longer fit one row
                         // without overflowing on iPhone width either.
                         LazyVGrid(columns: columns, spacing: 8) {
-                            // Displayed as Helvetica Bold / Helvetica
-                            // Courant / SF Pro / SF Compact, not
-                            // `AppFont.allCases`'s declaration order.
-                            ForEach([AppFont.helvetica, .helveticaCourant, .rounded, .sfCompact]) { f in
+                            // Left column top-to-bottom: Helvetica Neue
+                            // Courant, Helvetica Neue Bold. Right column:
+                            // SF Compact, SF Pro. Not `AppFont.allCases`'s
+                            // declaration order.
+                            ForEach([AppFont.helveticaCourant, .sfCompact, .helvetica, .rounded]) { f in
                                 SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: chipColor) {
                                     appFont = f
                                 }

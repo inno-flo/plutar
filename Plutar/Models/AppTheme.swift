@@ -320,7 +320,7 @@ enum AppFont: String, CaseIterable, Identifiable {
         case .rounded: return "SF Pro"
         case .sfCompact: return "SF Compact"
         case .helvetica: return "Helvetica Neue Bold"
-        case .helveticaCourant: return "Helvetica Neue Courant"
+        case .helveticaCourant: return "Helvetica Neue"
         }
     }
 
