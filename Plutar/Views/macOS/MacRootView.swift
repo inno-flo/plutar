@@ -12,7 +12,10 @@ import SwiftData
 /// No shake-to-theme here either (`ShakeGesture`/`FlipCard` are UIKit-only
 /// and stay out of this target's sources).
 struct MacRootView: View {
-    @Environment(\.colorScheme) private var systemColorScheme
+    /// Not `@Environment(\.colorScheme)` — see `SystemAppearanceObserver`'s
+    /// doc comment for why that gets corrupted by this same view's own
+    /// `.preferredColorScheme` below.
+    @StateObject private var systemAppearance = SystemAppearanceObserver()
     @Query(sort: \LinkItem.dateAdded, order: .reverse) private var allItems: [LinkItem]
     /// Only fetched for the sidebar's "Classement" row — see
     /// `MacSourceRankingView`.
@@ -30,7 +33,7 @@ struct MacRootView: View {
     private var selectedTheme: AppTheme { AppTheme(rawValue: themeRaw) ?? .scand }
     private var appearance: AppAppearance { AppAppearance(rawValue: appearanceRaw) ?? .auto }
     private var theme: AppTheme {
-        AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemColorScheme)
+        AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemAppearance.colorScheme)
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
