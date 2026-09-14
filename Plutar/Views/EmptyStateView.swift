@@ -18,6 +18,16 @@ struct QuietEmptyStateView: View {
     /// off-screen.
     var fillHeight: Bool = true
 
+    /// 2pt smaller on macOS — the mockup's 18pt reads oversized there next
+    /// to the window chrome/sidebar; iOS keeps its original size.
+    private var textFontSize: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        18
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Image(systemName: icon)
@@ -25,12 +35,12 @@ struct QuietEmptyStateView: View {
                 .foregroundStyle(theme.ink(0.3))
 
             Text(title)
-                .font(appFont.font(size: 18, weight: .semibold))
+                .font(appFont.font(size: textFontSize, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .padding(.top, 40)
 
             Text(text)
-                .font(appFont.font(size: 18))
+                .font(appFont.font(size: textFontSize))
                 .foregroundStyle(theme.ink(0.55))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
