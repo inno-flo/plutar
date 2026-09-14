@@ -10,13 +10,12 @@ import SwiftUI
 /// all-time `SourceRank` tally (see `MacSourceRankingView`), not one of the
 /// individual per-host rows below it.
 ///
-/// A gear button pinned to the bottom-left opens the `Settings` scene
-/// (Cmd+,) — see `MacSettingsView`.
+/// No settings affordance here — `Settings` (Cmd+,) is already reachable
+/// from the app menu on macOS, so a redundant sidebar button was removed.
 struct MacSidebarView: View {
     @Binding var selection: SidebarSelection?
     let allItems: [LinkItem]
 
-    @Environment(\.openSettings) private var openSettings
     @State private var sourcesExpanded = true
 
     private var unreadCount: Int { allItems.lazy.filter { !$0.isRead }.count }
@@ -53,8 +52,19 @@ struct MacSidebarView: View {
                     HStack {
                         Text("Sources")
                         Spacer()
-                        Text("\(unreadCount)")
-                            .foregroundStyle(.secondary)
+                        // Was the unread count — redundant with "À lire"'s
+                        // own count just above — replaced with an explicit
+                        // collapse/expand control in that same trailing spot.
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                sourcesExpanded.toggle()
+                            }
+                        } label: {
+                            Image(systemName: sourcesExpanded ? "chevron.up" : "chevron.down")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help(sourcesExpanded ? "Réduire" : "Développer")
                     }
                 } icon: {
                     Image(systemName: "globe")
@@ -63,20 +73,6 @@ struct MacSidebarView: View {
         }
         .listStyle(.sidebar)
         .navigationTitle("Plutar")
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Button {
-                    openSettings()
-                } label: {
-                    Image(systemName: "gearshape")
-                }
-                .buttonStyle(.plain)
-                .help("Réglages…")
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-        }
     }
 
     /// `count` is `nil` for "Classement" — it has no live link count of its
