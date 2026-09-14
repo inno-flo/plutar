@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// `PlatformImage` (`UIImage`/`NSImage`) itself is defined in
 /// `Persistence/PlatformImage.swift`, shared with the share extensions,
@@ -214,12 +217,23 @@ struct LinkRowView: View {
     // MARK: Editorial — big thumbnail on top, title, excerpt, source at the
     // bottom (still leading-aligned, like every other line in this stack).
 
+    /// 150 everywhere except iPad, where it's 225 (+50%) — Éditoriale's
+    /// full-width thumbnail otherwise reads as squat on the extra width an
+    /// iPad screen gives it.
+    private var editorialThumbnailHeight: CGFloat {
+        #if canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .pad ? 225 : 150
+        #else
+        return 150
+        #endif
+    }
+
     private func editorialBody(title: String, thumbnailFileName: String?) -> some View {
         VStack(alignment: .leading, spacing: 11) {
             // Always shown — see the comment in cardBody: Détaillée and
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
-            thumbnail(size: 150, fullWidth: true, thumbnailFileName: thumbnailFileName)
+            thumbnail(size: editorialThumbnailHeight, fullWidth: true, thumbnailFileName: thumbnailFileName)
             Text(title)
                 .font(appFont.font(size: titleFontSize, weight: .bold))
                 .lineLimit(3)
@@ -249,7 +263,7 @@ struct LinkRowView: View {
     // MARK: Shared pieces
 
     /// Stand-in for the link's site favicon (there is no network fetch — this
-    /// is the same colored initial badge used across the demo data).
+    /// is just the same colored initial badge used everywhere else).
     private func favicon(size: CGFloat) -> some View {
         Text(item.initial)
             .font(.system(size: size * 0.42, weight: .heavy))
@@ -284,8 +298,8 @@ struct LinkRowView: View {
         // placeholder — render nothing, reserving no space either.
     }
 
-    /// Placeholder for demo links (no real image ever fetched for those)
-    /// and for real ones still waiting on `LinkMetadataEnricher`.
+    /// Placeholder for a link still waiting on `LinkMetadataEnricher` to
+    /// fetch (or find) a real preview image.
     private var placeholderThumbnail: some View {
         let stripes = theme.thumbnailStripes
         return ZStack(alignment: .bottomLeading) {
@@ -321,7 +335,7 @@ struct LinkRowView: View {
 }
 
 /// A cheap diagonal-stripe placeholder standing in for a real link preview
-/// image (there is no network fetch — these are demo links).
+/// image while `LinkMetadataEnricher` hasn't fetched one yet.
 private struct StripesShape: Shape {
     var phase: CGFloat = 0
 

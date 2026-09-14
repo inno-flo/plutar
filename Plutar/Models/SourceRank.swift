@@ -35,11 +35,9 @@ final class SourceRank {
     /// Bumps every host in `hosts` — repeats included, one increment each.
     ///
     /// Does a single fetch of the existing entries up front and resolves the
-    /// rest in memory. The per-host version used to run its own predicate
-    /// fetch, so seeding or regenerating the 200 demo links fired 200 round
-    /// trips to the store on the main thread — at first launch, before the
-    /// first frame was ever drawn. There are only ever a handful of hosts,
-    /// so fetching them all at once is cheaper than one lookup.
+    /// rest in memory, rather than running its own predicate fetch per host
+    /// — there are only ever a handful of hosts, so fetching them all at
+    /// once is cheaper than one lookup each.
     static func bump(_ hosts: [String], in context: ModelContext) {
         guard !hosts.isEmpty else { return }
         var known: [String: SourceRank] = [:]

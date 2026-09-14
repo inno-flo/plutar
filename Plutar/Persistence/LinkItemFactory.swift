@@ -53,10 +53,9 @@ enum LinkItemFactory {
         )
     }
 
-    /// Saves the link and bumps its host's cumulative rank, mirroring what
-    /// `PlutarApp.seedIfNeeded()` does for the demo data — kept in one place
-    /// so the app and the share extension can't drift on how a new link is
-    /// recorded.
+    /// Saves the link and bumps its host's cumulative rank — kept in one
+    /// place so the app and the share extension can't drift on how a new
+    /// link is recorded.
     @discardableResult
     static func save(url: URL, title: String?, sourceApp: String = "Partage", in context: ModelContext) throws -> LinkItem {
         let item = makeLinkItem(url: url, title: title, sourceApp: sourceApp)

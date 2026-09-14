@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A single link collected via the share sheet (or, for now, seeded as demo data).
+/// A single link collected via the share sheet.
 // `id`/`host` used to carry `@Attribute(.unique)`. SwiftData's CloudKit
 // integration doesn't support unique constraints (CloudKit has no
 // server-side uniqueness enforcement), so both were dropped when the store
@@ -32,8 +32,7 @@ final class LinkItem {
     /// whether this link has one.
     var thumbnailFileName: String?
     /// Whether `LinkMetadataEnricher` has already tried (successfully or
-    /// not) to fill in title/thumbnail for this link. Demo links are seeded
-    /// with this already `true` so they're never picked up.
+    /// not) to fill in title/thumbnail for this link.
     var metadataFetched: Bool = true
     /// Whether the HTML meta-description fetch (`LinkMetadataEnricher`'s
     /// excerpt step) has already been tried for this link. Kept separate
