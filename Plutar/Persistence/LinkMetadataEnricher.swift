@@ -81,7 +81,6 @@ enum LinkMetadataEnricher {
         if let provider = meta.imageProvider ?? meta.iconProvider,
            let fileName = await saveThumbnail(from: provider, id: item.id) {
             item.thumbnailFileName = fileName
-            item.hasThumbnail = true
         } else {
             PlutarLog.store.notice("LinkMetadataEnricher: no image/icon provider for \(item.host, privacy: .public)")
         }

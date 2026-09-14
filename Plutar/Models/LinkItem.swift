@@ -24,12 +24,12 @@ final class LinkItem {
     /// The app the link was shared from (simulated for now: Safari, Mastodon, Notes…).
     var sourceApp: String = ""
     var excerpt: String = ""
-    var hasThumbnail: Bool = false
     var isRead: Bool = false
     /// File name (not a full path — the App Group container can move
     /// between launches) of the downloaded preview image inside
-    /// `SharedStore.thumbnailsDirectoryURL()`, when `hasThumbnail` came from
-    /// a real fetch rather than demo data.
+    /// `SharedStore.thumbnailsDirectoryURL()`. `nil` means no thumbnail was
+    /// fetched (or the fetch found none) — the sole source of truth for
+    /// whether this link has one.
     var thumbnailFileName: String?
     /// Whether `LinkMetadataEnricher` has already tried (successfully or
     /// not) to fill in title/thumbnail for this link. Demo links are seeded
@@ -53,7 +53,6 @@ final class LinkItem {
         dateAdded: Date,
         sourceApp: String,
         excerpt: String,
-        hasThumbnail: Bool,
         isRead: Bool = false,
         thumbnailFileName: String? = nil,
         metadataFetched: Bool = true,
@@ -68,7 +67,6 @@ final class LinkItem {
         self.dateAdded = dateAdded
         self.sourceApp = sourceApp
         self.excerpt = excerpt
-        self.hasThumbnail = hasThumbnail
         self.isRead = isRead
         self.thumbnailFileName = thumbnailFileName
         self.metadataFetched = metadataFetched

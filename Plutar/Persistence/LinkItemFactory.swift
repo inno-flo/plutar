@@ -48,7 +48,6 @@ enum LinkItemFactory {
             dateAdded: Date(),
             sourceApp: sourceApp,
             excerpt: "",
-            hasThumbnail: false,
             metadataFetched: false,
             excerptFetchAttempted: false
         )
