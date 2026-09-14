@@ -368,9 +368,21 @@ struct RootView: View {
                 // on Automatique.
                 theme: Binding(
                     get: { theme },
-                    set: {
-                        themeRaw = $0.rawValue
-                        appearanceRaw = ($0.isSoir ? AppAppearance.dark : .light).rawValue
+                    set: { newTheme in
+                        themeRaw = newTheme.rawValue
+                        // Left on "Automatique" rather than forced to an
+                        // explicit light/dark when it's already Automatique
+                        // and the picked theme's own light/soir variant
+                        // already matches the live system setting — e.g.
+                        // system in Clair, Automatique selected, picking
+                        // another *light* theme shouldn't silently switch
+                        // Apparence to "Claire". Only an actually mismatched
+                        // pick (or an already-explicit Apparence) still
+                        // forces it.
+                        let matchesAutoAlready = appearance == .auto && newTheme.isSoir == (systemColorScheme == .dark)
+                        if !matchesAutoAlready {
+                            appearanceRaw = (newTheme.isSoir ? AppAppearance.dark : .light).rawValue
+                        }
                     }
                 ),
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
