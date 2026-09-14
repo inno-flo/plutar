@@ -2,15 +2,11 @@ import Foundation
 import SwiftData
 
 /// Builds a real `LinkItem` from a URL shared via the iOS share sheet.
-/// The demo data in `SeedData` hand-picks a color per host; a shared link
-/// can arrive from any host, so its badge color is derived deterministically
-/// from the host name instead — same host always gets the same color, no
-/// lookup table to maintain.
+/// A shared link can arrive from any host, so its badge color is derived
+/// deterministically from the host name instead — same host always gets the
+/// same color, no lookup table to maintain.
 enum LinkItemFactory {
-    /// A handful of colors pulled from the mockup's source palette
-    /// (`SeedData`'s `*Color` constants), reused here so real links land in
-    /// the same visual family as the demo ones rather than introducing a
-    /// second palette.
+    /// A handful of colors from the app's source palette.
     private static let palette = [
         "#E8433D", "#6C5CE7", "#2F5FD0", "#222222",
         "#B01E24", "#FF8000", "#1F9D55", "#C2185B",
@@ -22,8 +18,8 @@ enum LinkItemFactory {
         return palette[index]
     }
 
-    /// Strips a leading "www." the way `SeedData.urlHost` does for the demo
-    /// sources, so `theverge.com` links from either source group the same.
+    /// Strips a leading "www." so `theverge.com` links group the same
+    /// regardless of which variant a source used.
     private static func displayHost(from url: URL) -> String {
         var host = url.host ?? url.absoluteString
         if host.hasPrefix("www.") {

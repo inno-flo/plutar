@@ -19,7 +19,6 @@ enum DisplaySettingsKey {
     static let appearance = "plutar.appearance"
     static let font = "plutar.font"
     static let layout = "plutar.layout"
-    static let showThumbnails = "plutar.showThumbnails"
     static let blackSoirBackground = "plutar.blackSoirBackground"
     /// iOS-only — no shake gesture on macOS, so only `RootView` reads this.
     static let shakeToChangeTheme = "plutar.shakeToChangeTheme"

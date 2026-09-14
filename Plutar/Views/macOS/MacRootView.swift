@@ -22,7 +22,6 @@ struct MacRootView: View {
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
     @AppStorage(DisplaySettingsKey.font) private var fontRaw = AppFont.rounded.rawValue
     @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
-    @AppStorage(DisplaySettingsKey.showThumbnails) private var showThumbnails = true
     @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
 
     @State private var selection: SidebarSelection? = .date
@@ -91,20 +90,20 @@ struct MacRootView: View {
             MacFeedList(
                 mode: .chrono, title: FeedMode.chrono.label, allItems: allItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
-                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground
+                effectiveBackground: effectiveBackground
             )
         case .read:
             MacFeedList(
                 mode: .read, title: FeedMode.read.label, allItems: allItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
-                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground
+                effectiveBackground: effectiveBackground
             )
         case .source(let host):
             MacFeedList(
                 mode: .source, title: host,
                 allItems: allItems.filter { $0.host == host },
                 theme: theme, appFont: appFont, layout: layoutBinding,
-                showThumbnails: showThumbnails, effectiveBackground: effectiveBackground,
+                effectiveBackground: effectiveBackground,
                 isSingleSourceDetail: true, initialExpandedSources: [host]
             )
         case .ranking:

@@ -22,7 +22,6 @@ struct LinkRowView: View {
     let layout: LinkLayout
     let theme: AppTheme
     let appFont: AppFont
-    let showThumbnails: Bool
     let showFavicons: Bool
     /// Whether a link with no real image (not fetched yet, or the fetch
     /// found none) falls back to the striped placeholder, or shows nothing

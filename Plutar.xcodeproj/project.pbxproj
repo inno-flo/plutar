@@ -52,7 +52,6 @@
 		885DA4A6A813F4F3B9E1196F /* FlipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */; };
 		894CE17352614F9F642533DE /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */; };
 		8AB0AF4BF8FB73C85969A814 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
-		8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BDB1017E51147DD32031A2 /* SeedData.swift */; };
 		949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA348DF969EA5D473CD4C81 /* MacRootView.swift */; };
 		97719FD63D7F144A5D63336B /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
 		9CA1251CC89A30C0FD7EF5B5 /* PlutarShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -146,7 +145,6 @@
 		4C718E9EDB04B8D392774EF7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMetadataEnricher.swift; sourceTree = "<group>"; };
 		58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRowView.swift; sourceTree = "<group>"; };
-		72BDB1017E51147DD32031A2 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		758D1CEE221F39C1052F8ED8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		78455A8E442E405794252CA7 /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		83289D1D4214A472A453D921 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -242,7 +240,6 @@
 				758D1CEE221F39C1052F8ED8 /* Info.plist */,
 				AE8F832831F7C825B208B963 /* Plutar.entitlements */,
 				E6AD09F803BBF11AC8131FC9 /* App */,
-				EE9D9BA59138EDAC4735F4D4 /* Data */,
 				6EF9302A5F50ADE9541A9E24 /* Models */,
 				8EFA6CD7E18F96CCA4D3E705 /* Persistence */,
 				33562666713422A5F91E0DE8 /* ViewModels */,
@@ -317,14 +314,6 @@
 				89CC3F448604493B8E9A7320 /* PlutarApp.swift */,
 			);
 			path = App;
-			sourceTree = "<group>";
-		};
-		EE9D9BA59138EDAC4735F4D4 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				72BDB1017E51147DD32031A2 /* SeedData.swift */,
-			);
-			path = Data;
 			sourceTree = "<group>";
 		};
 		EEC607FC4B6D3917BFDC638C /* Products */ = {
@@ -581,7 +570,6 @@
 				ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */,
 				ED5669F536632DCF43747E5D /* PlutarLog.swift in Sources */,
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
-				8BABE09D924E090D15A6B9DC /* SeedData.swift in Sources */,
 				25ED50D9DD771F175CF58B05 /* SettingsSections.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,
 				0E84CAD44D03A6824A438B21 /* ShakeGesture.swift in Sources */,
