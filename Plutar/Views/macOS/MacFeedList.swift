@@ -132,7 +132,8 @@ struct MacFeedList: View {
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
                                 showHost: !isSingleSourceDetail,
-                                isSelected: selectedItemID == item.id
+                                isSelected: selectedItemID == item.id,
+                                plainStyle: mode == .chrono
                             )
                             .contentShape(Rectangle())
                             .onTapGesture(count: 1) { selectedItemID = item.id }
@@ -299,45 +300,57 @@ struct MacFeedList: View {
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
-        HStack(spacing: 8) {
-            if mode == .source && !isSingleSourceDetail {
-                Button {
-                    toggleSource(group.id)
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(group.label)
-                        Text("\(group.items.count)")
-                            .foregroundStyle(theme.ink(0.5))
-                        Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                            .opacity(0.6)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                if mode == .source && !isSingleSourceDetail {
+                    Button {
+                        toggleSource(group.id)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(group.label)
+                            Text("\(group.items.count)")
+                                .foregroundStyle(theme.ink(0.5))
+                            Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 11, weight: .bold))
+                                .opacity(0.6)
+                        }
                     }
+                    .buttonStyle(.plain)
+                } else if mode == .source {
+                    Text(group.label)
+                } else {
+                    Text(group.label)
                 }
-                .buttonStyle(.plain)
-            } else if mode == .source {
-                Text(group.label)
-            } else {
-                Text(group.label)
+                Spacer()
+                if expandedSourcesButtonVisible(group) {
+                    Button {
+                        markSourceAsRead(group.items)
+                    } label: {
+                        Image(systemName: "checkmark.circle")
+                    }
+                    .buttonStyle(.plain)
+                } else if mode == .read {
+                    Button {
+                        groupItemsPendingDelete = group.items
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            Spacer()
-            if expandedSourcesButtonVisible(group) {
-                Button {
-                    markSourceAsRead(group.items)
-                } label: {
-                    Image(systemName: "checkmark.circle")
-                }
-                .buttonStyle(.plain)
-            } else if mode == .read {
-                Button {
-                    groupItemsPendingDelete = group.items
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.plain)
+            .font(appFont.font(size: 13, weight: .semibold))
+            .foregroundStyle(theme.ink(0.6))
+            // "À lire" only (`plainStyle`'s rows have no card to visually
+            // separate the date groups anymore) — a 1pt rule under the date
+            // label, as wide as the card it replaces.
+            if mode == .chrono {
+                Rectangle()
+                    .fill(theme.ink(0.15))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 1)
             }
         }
-        .font(appFont.font(size: 13, weight: .semibold))
-        .foregroundStyle(theme.ink(0.6))
+        .frame(maxWidth: .infinity, alignment: .leading)
         // Matches `LinkRowView.cardFace`'s own `.padding(.horizontal, 18)` —
         // its card background spans the full row, so the link's title text
         // sits 18pt in from the row edge; this row has no such background,

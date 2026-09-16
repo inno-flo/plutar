@@ -41,6 +41,12 @@ struct LinkRowView: View {
     /// background already used for iOS's link-count counter badge.
     /// iOS never sets this (always `false`).
     var isSelected: Bool = false
+    /// macOS "À lire" only: drops the card's white background, rounded
+    /// shape and shadow, leaving just the title, host and thumbnail sitting
+    /// directly on the list background. Selection still fills with
+    /// `theme.chip` like the normal card does — otherwise there'd be no way
+    /// to see which row is selected. iOS never sets this (always `false`).
+    var plainStyle: Bool = false
 
     /// `theme.chipText` for the selected-link text below, except Copenhague
     /// nuit and Kamakura nuit: `chipText` falls through to each's own (dark)
@@ -141,7 +147,7 @@ struct LinkRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, layout == .editorial ? 16 : 16)
         .padding(.horizontal, 18)
-        .background(isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card))
+        .background(plainStyle && !isSelected ? Color.clear : (isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)))
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
@@ -152,10 +158,11 @@ struct LinkRowView: View {
         // inconsistently from theme to theme; blending toward a color the
         // theme already defines gives a real, consistently muted tone.
         // Skipped when the theme provides its own flat `readCardOverride`
-        // (Cap Canaveral uses a plain medium gray instead), and when
-        // selected — the accent fill above should read clean, not muted.
+        // (Cap Canaveral uses a plain medium gray instead), when selected —
+        // the accent fill above should read clean, not muted — and in
+        // `plainStyle`, which has no fill to tint in the first place.
         .overlay {
-            if item.isRead && theme.readCardOverride == nil && !isSelected {
+            if item.isRead && theme.readCardOverride == nil && !isSelected && !plainStyle {
                 theme.background.opacity(0.6)
             }
         }
@@ -165,9 +172,9 @@ struct LinkRowView: View {
         // washing e.g. Cap Canaveral's light blue (or the selection accent)
         // down to a gray indistinguishable from before.
         .saturation(item.isRead && theme.readCardOverride == nil && !isSelected ? 0 : 1)
-        // No shadow on read cells (all of Lus) — it read as too heavy on an
-        // already muted/desaturated card.
-        .shadow(color: item.isRead ? .clear : .black.opacity(0.08), radius: 9, y: 4)
+        // No shadow on read cells (all of Lus), and none at all in
+        // `plainStyle` — there's no card underneath for a shadow to sit on.
+        .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
     }
 
     // MARK: Rail (default) — just the title, host below, nothing else.
