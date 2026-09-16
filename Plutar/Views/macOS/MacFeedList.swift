@@ -318,6 +318,8 @@ struct MacFeedList: View {
                     .buttonStyle(.plain)
                 } else if mode == .source {
                     Text(group.label)
+                } else if mode == .chrono {
+                    Text(group.label)
                 } else {
                     Text(group.label)
                 }
@@ -338,16 +340,17 @@ struct MacFeedList: View {
                     .buttonStyle(.plain)
                 }
             }
-            .font(appFont.font(size: 13, weight: .semibold))
+            // "À lire" only: +4pt over the other modes' date/source labels.
+            .font(appFont.font(size: mode == .chrono ? 17 : 13, weight: .semibold))
             .foregroundStyle(theme.ink(0.6))
             // "À lire" only (`plainStyle`'s rows have no card to visually
-            // separate the date groups anymore) — a 1pt rule under the date
+            // separate the date groups anymore) — a 2pt rule under the date
             // label, as wide as the card it replaces.
             if mode == .chrono {
                 Rectangle()
                     .fill(theme.ink(0.15))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 1)
+                    .frame(height: 2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

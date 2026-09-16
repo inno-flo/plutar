@@ -253,7 +253,7 @@ struct LinkRowView: View {
 
     private var hostRow: some View {
         Text(item.host)
-            .font(appFont.font(size: 13, weight: .semibold))
+            .font(appFont.font(size: 13, weight: .regular))
             .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
