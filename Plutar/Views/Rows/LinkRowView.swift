@@ -145,7 +145,10 @@ struct LinkRowView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, layout == .editorial ? 16 : 16)
+        // `plainStyle` rows have no card padding out an inter-row gap of
+        // their own anymore — halved here so consecutive links in "À lire"
+        // sit closer together than the old card spacing.
+        .padding(.vertical, plainStyle ? 8 : 16)
         .padding(.horizontal, 18)
         .background(plainStyle && !isSelected ? Color.clear : (isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)))
         // In Lus (every cell here is read), the title drops down to the
