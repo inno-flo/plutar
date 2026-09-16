@@ -67,6 +67,11 @@ struct LinkRowView: View {
     /// per-element tone.
     private var isTokyoSoirRead: Bool { item.isRead && theme == .tokyoSoir }
 
+    /// Tokyo clair, in Lus: thumbnails get an extra grayed-out veil on top
+    /// of the row's own saturation/tint treatment, which on this theme's
+    /// bright background isn't muted enough on its own to read as "read".
+    private var isTokyoLightRead: Bool { item.isRead && theme == .tokyo }
+
     /// Read-link title color: unchanged in a light theme, but a "nuit"
     /// theme borrows its light variant's tone instead of its own — a nuit
     /// theme's read title should read the same as the equivalent light
@@ -278,6 +283,11 @@ struct LinkRowView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: fullWidth ? nil : size, height: size)
                 .frame(maxWidth: fullWidth ? .infinity : size)
+                .overlay {
+                    if isTokyoLightRead {
+                        Color.black.opacity(0.35)
+                    }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         // No real image: render nothing, reserving no space either.
