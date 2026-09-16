@@ -71,11 +71,6 @@ struct LinkRowView: View {
     /// dark and unreadable against a nuit theme's own dark background.
     private var isSoirRead: Bool { item.isRead && theme.isSoir }
 
-    /// Tokyo clair, in Lus: thumbnails get an extra grayed-out veil on top
-    /// of the row's own saturation/tint treatment, which on this theme's
-    /// bright background isn't muted enough on its own to read as "read".
-    private var isTokyoLightRead: Bool { item.isRead && theme == .tokyo }
-
     /// Read-link title color: unchanged in a light theme; a "nuit" theme
     /// uses its own (already off-white) ink at full strength instead of
     /// the usual dimmed opacity, so it stays legible against the theme's
@@ -188,13 +183,6 @@ struct LinkRowView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // Skipped when the theme provides its own flat `readCardOverride`,
-        // or when selected — otherwise this desaturates that color too,
-        // washing e.g. Cap Canaveral's light blue (or the selection accent)
-        // down to a gray indistinguishable from before. Also skipped for
-        // every "nuit" theme — their thumbnails stay in color there, with
-        // the black veil in `thumbnail(...)` doing the muting instead.
-        .saturation(item.isRead && theme.readCardOverride == nil && !isSelected && !theme.isSoir ? 0 : 1)
         // No shadow on read cells (all of Lus), and none at all in
         // `plainStyle` — there's no card underneath for a shadow to sit on.
         .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
@@ -290,7 +278,7 @@ struct LinkRowView: View {
                 .frame(width: fullWidth ? nil : size, height: size)
                 .frame(maxWidth: fullWidth ? .infinity : size)
                 .overlay {
-                    if isTokyoLightRead || isSoirRead {
+                    if item.isRead {
                         Color.black.opacity(0.35)
                     }
                 }
