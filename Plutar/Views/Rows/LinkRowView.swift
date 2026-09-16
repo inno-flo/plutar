@@ -73,13 +73,13 @@ struct LinkRowView: View {
 
     /// Read-link title color: unchanged in a light theme, except Tokyo
     /// clair, tuned separately from the base 0.52 (dimmed 25% to 0.39,
-    /// then brought back up 50% to 0.585); a "nuit" theme uses its own
-    /// (already off-white) ink at full strength instead of the usual
+    /// up 50% to 0.585, up another 25% to 0.731); a "nuit" theme uses its
+    /// own (already off-white) ink at full strength instead of the usual
     /// dimmed opacity, so it stays legible against the theme's own dark
     /// background.
     private var readTitleColor: Color {
         if theme.isSoir { return theme.ink(1) }
-        return theme.ink(theme == .tokyo ? 0.585 : 0.52)
+        return theme.ink(theme == .tokyo ? 0.731 : 0.52)
     }
 
     /// Rounded is a real system weight variant and renders this bold fine;
