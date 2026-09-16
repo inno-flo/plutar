@@ -62,23 +62,26 @@ struct LinkRowView: View {
         }
     }
 
-    /// Tokyo soir, in Lus (every cell here is `isRead`): the host line
-    /// borrows Tokyo clair's ink instead of its own, same as `readTitleColor`
-    /// does for the title — a nuit theme's read text should read like the
-    /// equivalent light theme's, not with its own lighter tone.
-    private var isTokyoSoirRead: Bool { item.isRead && theme == .tokyoSoir }
+    /// Any "nuit" theme, in Lus (every cell here is `isRead`): title and
+    /// host both use the theme's own (already light) ink rather than
+    /// anything darker — Cap Canaveral nuit already reads this way by
+    /// accident (its ink is plain white in both variants), this just makes
+    /// every other nuit theme's Lus text behave the same, legibly, instead
+    /// of the light-variant tone `readTitleColor` used to borrow, which was
+    /// dark and unreadable against a nuit theme's own dark background.
+    private var isSoirRead: Bool { item.isRead && theme.isSoir }
 
     /// Tokyo clair, in Lus: thumbnails get an extra grayed-out veil on top
     /// of the row's own saturation/tint treatment, which on this theme's
     /// bright background isn't muted enough on its own to read as "read".
     private var isTokyoLightRead: Bool { item.isRead && theme == .tokyo }
 
-    /// Read-link title color: unchanged in a light theme, but a "nuit"
-    /// theme borrows its light variant's tone instead of its own — a nuit
-    /// theme's read title should read the same as the equivalent light
-    /// theme's, not with its own (typically lighter) muted tone.
+    /// Read-link title color: unchanged in a light theme; a "nuit" theme
+    /// uses its own (already off-white) ink at full strength instead of
+    /// the usual dimmed opacity, so it stays legible against the theme's
+    /// own dark background.
     private var readTitleColor: Color {
-        (theme.isSoir ? theme.lightVariant : theme).ink(0.52)
+        theme.isSoir ? theme.ink(1) : theme.ink(0.52)
     }
 
     /// Rounded is a real system weight variant and renders this bold fine;
@@ -188,8 +191,10 @@ struct LinkRowView: View {
         // Skipped when the theme provides its own flat `readCardOverride`,
         // or when selected — otherwise this desaturates that color too,
         // washing e.g. Cap Canaveral's light blue (or the selection accent)
-        // down to a gray indistinguishable from before.
-        .saturation(item.isRead && theme.readCardOverride == nil && !isSelected ? 0 : 1)
+        // down to a gray indistinguishable from before. Also skipped for
+        // every "nuit" theme — their thumbnails stay in color there, with
+        // the black veil in `thumbnail(...)` doing the muting instead.
+        .saturation(item.isRead && theme.readCardOverride == nil && !isSelected && !theme.isSoir ? 0 : 1)
         // No shadow on read cells (all of Lus), and none at all in
         // `plainStyle` — there's no card underneath for a shadow to sit on.
         .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
@@ -272,7 +277,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .regular))
-            .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.lightVariant.ink(0.5) : theme.ink(0.52)))
+            .foregroundStyle(isSelected ? selectedTextColor : (isSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 
@@ -285,7 +290,7 @@ struct LinkRowView: View {
                 .frame(width: fullWidth ? nil : size, height: size)
                 .frame(maxWidth: fullWidth ? .infinity : size)
                 .overlay {
-                    if isTokyoLightRead {
+                    if isTokyoLightRead || isSoirRead {
                         Color.black.opacity(0.35)
                     }
                 }
