@@ -41,11 +41,12 @@ struct LinkRowView: View {
     /// background already used for iOS's link-count counter badge.
     /// iOS never sets this (always `false`).
     var isSelected: Bool = false
-    /// macOS "À lire" only: drops the card's white background, rounded
-    /// shape and shadow, leaving just the title, host and thumbnail sitting
-    /// directly on the list background. Selection still fills with
-    /// `theme.chip` like the normal card does — otherwise there'd be no way
-    /// to see which row is selected. iOS never sets this (always `false`).
+    /// macOS only (all of À lire/Lus/Sources): drops the card's white
+    /// background, rounded shape and shadow, leaving just the title, host
+    /// and thumbnail sitting directly on the list background. Selection
+    /// still fills with `theme.chip` like the normal card does — otherwise
+    /// there'd be no way to see which row is selected. iOS never sets this
+    /// (always `false`).
     var plainStyle: Bool = false
 
     /// `theme.chipText` for the selected-link text below, except Copenhague
@@ -65,6 +66,14 @@ struct LinkRowView: View {
     /// matches the view's own counter gray instead of each text's usual
     /// per-element tone.
     private var isTokyoSoirRead: Bool { item.isRead && theme == .tokyoSoir }
+
+    /// Read-link title color: unchanged in a light theme, but a "nuit"
+    /// theme borrows its light variant's tone instead of its own — a nuit
+    /// theme's read title should read the same as the equivalent light
+    /// theme's, not with its own (typically lighter) muted tone.
+    private var readTitleColor: Color {
+        (theme.isSoir ? theme.lightVariant : theme).ink(0.52)
+    }
 
     /// Rounded is a real system weight variant and renders this bold fine;
     /// SF Compact ignores it entirely (fixed to its own Regular style
@@ -146,15 +155,15 @@ struct LinkRowView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         // `plainStyle` rows have no card padding out an inter-row gap of
-        // their own anymore — halved here so consecutive links in "À lire"
-        // sit closer together than the old card spacing.
+        // their own anymore — halved here so consecutive links sit closer
+        // together than the old card spacing.
         .padding(.vertical, plainStyle ? 8 : 16)
         .padding(.horizontal, 18)
         .background(plainStyle && !isSelected ? Color.clear : (isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)))
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
-        .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : (item.isRead ? theme.ink(0.52) : theme.title)))
+        .foregroundStyle(isSelected ? selectedTextColor : (item.isRead ? readTitleColor : theme.title))
         // A read cell (i.e. every cell in Lus) is tinted toward the page's
         // own background instead of just made transparent — plain opacity
         // makes the cell blend with whatever scrolls behind it, which reads

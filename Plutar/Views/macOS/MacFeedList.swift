@@ -133,7 +133,7 @@ struct MacFeedList: View {
                                 item: item, layout: layout, theme: theme, appFont: appFont,
                                 showHost: !isSingleSourceDetail,
                                 isSelected: selectedItemID == item.id,
-                                plainStyle: mode == .chrono
+                                plainStyle: true
                             )
                             .contentShape(Rectangle())
                             .onTapGesture(count: 1) { selectedItemID = item.id }
@@ -316,10 +316,6 @@ struct MacFeedList: View {
                         }
                     }
                     .buttonStyle(.plain)
-                } else if mode == .source {
-                    Text(group.label)
-                } else if mode == .chrono {
-                    Text(group.label)
                 } else {
                     Text(group.label)
                 }
@@ -340,18 +336,15 @@ struct MacFeedList: View {
                     .buttonStyle(.plain)
                 }
             }
-            // "À lire" only: +4pt over the other modes' date/source labels.
-            .font(appFont.font(size: mode == .chrono ? 17 : 13, weight: .semibold))
+            .font(appFont.font(size: 17, weight: .semibold))
             .foregroundStyle(theme.ink(0.6))
-            // "À lire" only (`plainStyle`'s rows have no card to visually
-            // separate the date groups anymore) — a 2pt rule under the date
-            // label, as wide as the card it replaces.
-            if mode == .chrono {
-                Rectangle()
-                    .fill(theme.ink(0.15))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 2)
-            }
+            // `plainStyle` rows have no card to visually separate groups
+            // anymore — a 2pt rule under every date/source label instead,
+            // as wide as the card it replaces.
+            Rectangle()
+                .fill(theme.ink(0.15))
+                .frame(maxWidth: .infinity)
+                .frame(height: 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         // Matches `LinkRowView.cardFace`'s own `.padding(.horizontal, 18)` —
