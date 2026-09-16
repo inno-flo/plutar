@@ -62,9 +62,10 @@ struct LinkRowView: View {
         }
     }
 
-    /// Tokyo soir, in Lus (every cell here is `isRead`): every link text
-    /// matches the view's own counter gray instead of each text's usual
-    /// per-element tone.
+    /// Tokyo soir, in Lus (every cell here is `isRead`): the host line
+    /// borrows Tokyo clair's ink instead of its own, same as `readTitleColor`
+    /// does for the title — a nuit theme's read text should read like the
+    /// equivalent light theme's, not with its own lighter tone.
     private var isTokyoSoirRead: Bool { item.isRead && theme == .tokyoSoir }
 
     /// Tokyo clair, in Lus: thumbnails get an extra grayed-out veil on top
@@ -271,7 +272,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .regular))
-            .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
+            .foregroundStyle(isSelected ? selectedTextColor : (isTokyoSoirRead ? theme.lightVariant.ink(0.5) : theme.ink(0.52)))
             .lineLimit(1)
     }
 
