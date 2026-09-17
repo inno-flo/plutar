@@ -292,11 +292,14 @@ struct MacFeedList: View {
         } else {
             Button("Marquer lu") { markAsRead(item) }
         }
-        Button("Supprimer", role: .destructive) { itemPendingDelete = item }
         Button("Copier l'URL") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(item.urlString, forType: .string)
         }
+        // Ellipsis: this doesn't delete outright — it opens the
+        // confirmationDialog below (itemPendingDelete), same convention as
+        // any other menu command needing more input before it completes.
+        Button("Supprimer…", role: .destructive) { itemPendingDelete = item }
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
