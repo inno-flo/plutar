@@ -60,6 +60,13 @@ final class ShareViewController: NSViewController {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             finish()
+            // Dismissing the share sheet above (`finish()`) doesn't mean this
+            // process is about to die — but it often is soon after, before
+            // CloudKit has actually received the save. Off the main thread so
+            // this blocking wait can't be mistaken for the UI hanging.
+            DispatchQueue.global(qos: .utility).async {
+                SharedStore.waitForPendingCloudKitExport()
+            }
         } catch {
             // `SwiftDataError`'s every case bridges to the same NSError code
             // (1), so `localizedDescription` alone can't tell one apart from

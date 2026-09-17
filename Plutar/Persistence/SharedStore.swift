@@ -1,3 +1,4 @@
+import CoreData
 import Foundation
 import SwiftData
 
@@ -76,5 +77,59 @@ enum SharedStore {
     static func deleteThumbnailFile(named fileName: String?) {
         guard let fileName, let directory = thumbnailsDirectoryURL() else { return }
         try? FileManager.default.removeItem(at: directory.appendingPathComponent(fileName))
+    }
+
+    /// Called by both share extensions right after `context.save()`, before
+    /// they call `completeRequest`. `NSPersistentCloudKitContainer` (behind
+    /// `cloudKitDatabase:` above) kicks off the push to CloudKit
+    /// asynchronously once a save happens — it doesn't finish inside
+    /// `save()` itself — but a share extension's process tends to get torn
+    /// down very soon after `completeRequest`, often before that export has
+    /// actually left the device. Left alone, a link shared while Plutar's
+    /// main app hasn't been opened on that device would just sit
+    /// local-only, invisible everywhere else, until the app (or this
+    /// extension again) happened to run and give the container another
+    /// chance to flush it.
+    ///
+    /// On iOS, `ProcessInfo.performExpiringActivity` asks the OS for a short
+    /// grace period of background runtime beyond the extension's own
+    /// lifecycle to do exactly this kind of cleanup — unavailable on macOS,
+    /// which doesn't tear down an extension's process on the same tight
+    /// leash to begin with, so the wait below just runs directly there.
+    /// Either way this blocks (on a background queue — callers dispatch off
+    /// the main thread before calling this) until
+    /// `NSPersistentCloudKitContainer` reports the export finished, or
+    /// `timeout` elapses, whichever comes first. Best effort, not a
+    /// guarantee — a slow network or an already-expiring activity can still
+    /// mean the export doesn't make it out in time, in which case the link
+    /// is caught by the same fallback as before (the next process to touch
+    /// this container).
+    static func waitForPendingCloudKitExport(timeout: TimeInterval = 8) {
+        #if os(iOS)
+        ProcessInfo.processInfo.performExpiringActivity(withReason: "com.innoflo.plutar.cloudkit-export") { expiring in
+            guard !expiring else { return }
+            waitForExportEvent(timeout: timeout)
+        }
+        #else
+        waitForExportEvent(timeout: timeout)
+        #endif
+    }
+
+    private static func waitForExportEvent(timeout: TimeInterval) {
+        let semaphore = DispatchSemaphore(value: 0)
+        var observer: NSObjectProtocol?
+        observer = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: nil
+        ) { note in
+            guard let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
+                as? NSPersistentCloudKitContainer.Event,
+                event.type == .export, event.endDate != nil
+            else { return }
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + timeout)
+        if let observer { NotificationCenter.default.removeObserver(observer) }
     }
 }

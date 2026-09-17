@@ -52,6 +52,13 @@ final class ShareViewController: UIViewController {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             finish()
+            // Dismissing the share sheet above (`finish()`) doesn't mean this
+            // process is about to die — but it often is soon after, before
+            // CloudKit has actually received the save. Off the main thread so
+            // this blocking wait can't be mistaken for the UI hanging.
+            DispatchQueue.global(qos: .utility).async {
+                SharedStore.waitForPendingCloudKitExport()
+            }
         } catch {
             let hosting = UIHostingController(rootView: ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",
