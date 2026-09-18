@@ -123,30 +123,6 @@ struct ShareView: View {
     }
 }
 
-/// Shown in place of `ShareView`'s form the instant a save succeeds, while
-/// `SharedStore.waitForPendingCloudKitExport` still has to run before the
-/// extension calls `completeRequest` (see that function's doc comment: the
-/// process doesn't reliably survive long enough for that wait once
-/// `completeRequest` has already been called, on either platform — so this
-/// gives the user their "done" moment right away without actually finishing
-/// the extension request yet).
-struct ShareSavedView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.green)
-                Text("Ajouté à Plutar")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-            .navigationTitle("plutar")
-        }
-        .tint(Color(red: 1, green: 0.31, blue: 0))
-    }
-}
-
 /// Shown instead of `ShareView` when no URL could be extracted, or when the
 /// shared store (the App Group container) couldn't be opened.
 struct ShareErrorView: View {

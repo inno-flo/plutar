@@ -51,7 +51,21 @@ final class ShareViewController: UIViewController {
         do {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
-            showSavedThenFinish()
+            // See `SharedStore.waitForPendingCloudKitExport`'s doc comment —
+            // on-device testing showed the wait never actually observing a
+            // single CloudKit sync event even across a full timeout kept
+            // alive, meaning it wasn't a process-teardown race to begin
+            // with. Blocking the share sheet open bought nothing but bad
+            // UX, so back to dismissing immediately while the diagnosis
+            // continues.
+            finish()
+            // Fire-and-forget now, purely diagnostic: still logs whatever
+            // CloudKit sync events (if any) show up in the time the process
+            // happens to survive after finish(), without holding the UI up
+            // for it.
+            DispatchQueue.global(qos: .utility).async {
+                SharedStore.waitForPendingCloudKitExport()
+            }
         } catch {
             let hosting = UIHostingController(rootView: ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",
@@ -62,25 +76,6 @@ final class ShareViewController: UIViewController {
             hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             view.addSubview(hosting.view)
             hosting.didMove(toParent: self)
-        }
-    }
-
-    /// Swaps in `ShareSavedView` immediately so the user sees the save
-    /// happened right away, but deliberately does *not* call `finish()`
-    /// yet — the process wasn't surviving long enough after
-    /// `completeRequest` for `waitForPendingCloudKitExport`'s background
-    /// wait to matter, so the wait has to happen first, with the extension
-    /// still "in progress" as far as the host is concerned.
-    private func showSavedThenFinish() {
-        let hosting = UIHostingController(rootView: ShareSavedView())
-        addChild(hosting)
-        hosting.view.frame = view.bounds
-        hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        view.addSubview(hosting.view)
-        hosting.didMove(toParent: self)
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            SharedStore.waitForPendingCloudKitExport()
-            DispatchQueue.main.async { self?.finish() }
         }
     }
 
