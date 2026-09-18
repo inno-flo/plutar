@@ -104,7 +104,7 @@ enum SharedStore {
     /// mean the export doesn't make it out in time, in which case the link
     /// is caught by the same fallback as before (the next process to touch
     /// this container).
-    static func waitForPendingCloudKitExport(timeout: TimeInterval = 8) {
+    static func waitForPendingCloudKitExport(timeout: TimeInterval = 25) {
         #if os(iOS)
         ProcessInfo.processInfo.performExpiringActivity(withReason: "com.innoflo.plutar.cloudkit-export") { expiring in
             guard !expiring else { return }
@@ -124,12 +124,22 @@ enum SharedStore {
             queue: nil
         ) { note in
             guard let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
-                as? NSPersistentCloudKitContainer.Event,
-                event.type == .export, event.endDate != nil
+                as? NSPersistentCloudKitContainer.Event
             else { return }
+            // Diagnostic for whether a container freshly created inside the
+            // extension is stalling on `.setup` (first-run CloudKit zone/
+            // schema handshake) before it ever gets to `.export`, versus the
+            // export itself starting but not finishing in time.
+            PlutarLog.store.notice(
+                "CloudKit event (share extension): type=\(String(describing: event.type), privacy: .public) succeeded=\(event.succeeded) finished=\(event.endDate != nil) error=\(String(describing: event.error), privacy: .public)"
+            )
+            guard event.type == .export, event.endDate != nil else { return }
             semaphore.signal()
         }
-        _ = semaphore.wait(timeout: .now() + timeout)
+        let result = semaphore.wait(timeout: .now() + timeout)
+        if result == .timedOut {
+            PlutarLog.store.notice("CloudKit export wait timed out after \(timeout, privacy: .public)s (share extension)")
+        }
         if let observer { NotificationCenter.default.removeObserver(observer) }
     }
 }
