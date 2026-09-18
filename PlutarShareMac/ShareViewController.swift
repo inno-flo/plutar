@@ -55,25 +55,16 @@ final class ShareViewController: NSViewController {
         view.addSubview(hosting.view)
     }
 
+    /// Bundle id of the main "Plutar" macOS app (`PRODUCT_BUNDLE_IDENTIFIER`
+    /// in `project.yml`'s `PlutarMac` target) — see `launchMainAppInBackground`.
+    private let mainAppBundleID = "com.innoflo.plutar.mac"
+
     private func save(url: URL, title: String, sourceApp: String) {
         do {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
-            // See `SharedStore.waitForPendingCloudKitExport`'s doc comment —
-            // on-device testing showed the wait never actually observing a
-            // single CloudKit sync event even across a full timeout kept
-            // alive, meaning it wasn't a process-teardown race to begin
-            // with. Blocking the share sheet open bought nothing but bad
-            // UX, so back to dismissing immediately while the diagnosis
-            // continues.
             finish()
-            // Fire-and-forget now, purely diagnostic: still logs whatever
-            // CloudKit sync events (if any) show up in the time the process
-            // happens to survive after finish(), without holding the UI up
-            // for it.
-            DispatchQueue.global(qos: .utility).async {
-                SharedStore.waitForPendingCloudKitExport()
-            }
+            launchMainAppInBackground()
         } catch {
             // `SwiftDataError`'s every case bridges to the same NSError code
             // (1), so `localizedDescription` alone can't tell one apart from
@@ -90,5 +81,32 @@ final class ShareViewController: NSViewController {
 
     private func finish() {
         extensionContext?.completeRequest(returningItems: nil)
+    }
+
+    /// The extension's own freshly created `SharedStore.makeContainer()`
+    /// reliably fails to set up CloudKit mirroring here — confirmed via
+    /// Console (`log stream`) across several share attempts, main app
+    /// fully closed beforehand: every single one logs `CoreData+CloudKit:
+    /// Failed to initialize CloudKit metadata` (`NSCocoaErrorDomain` code
+    /// 134407), and not one ever reaches an actual export. The main app's
+    /// own container has never shown that failure — so instead of
+    /// depending on the extension to export, silently wake/launch
+    /// Plutar.app in the background (never taking focus) so its
+    /// already-working container picks up the save just made and does the
+    /// real export. Automates exactly what already reliably fixes sync
+    /// today: the user opening the app by hand.
+    private func launchMainAppInBackground() {
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: mainAppBundleID) else {
+            PlutarLog.shareExtension.error("launchMainAppInBackground: couldn't resolve app URL for \(self.mainAppBundleID, privacy: .public)")
+            return
+        }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { _, error in
+            if let error {
+                PlutarLog.shareExtension.error("launchMainAppInBackground failed: \(String(describing: error), privacy: .public)")
+            }
+        }
     }
 }
