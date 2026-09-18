@@ -54,6 +54,16 @@ targets:
         # see `AppDelegate.application(_:didReceiveRemoteNotification:...)`.
         UIBackgroundModes:
           - remote-notification
+          # Lets NSPersistentCloudKitContainer register its own
+          # BGTaskScheduler continuation for an import/export that's still
+          # running when the app gets suspended, instead of only finishing
+          # whatever fit inside the foreground window. Apple's own
+          # documented identifiers for this — the framework registers and
+          # schedules them internally, nothing to call ourselves.
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.apple.coredata.cloudkit.import
+          - com.apple.coredata.cloudkit.export
     entitlements:
       path: Plutar/Plutar.entitlements
       properties:
