@@ -191,11 +191,20 @@ struct LinkRowView: View {
         .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
     }
 
+    /// The title text, prefixed with a `pin.square` glyph (same size as the
+    /// text, one space before the title) when the link is pinned. A single
+    /// `Text` concatenation rather than a separate `Image` + `Text` `HStack`
+    /// so the glyph flows inline and wraps with the title under `lineLimit`.
+    private func titleText(_ title: String) -> Text {
+        guard item.isPinned else { return Text(title) }
+        return Text(Image(systemName: "pin.square")) + Text(" ") + Text(title)
+    }
+
     // MARK: Rail (default) — just the title, host below, nothing else.
 
     private func railBody(title: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(title)
+            titleText(title)
                 .font(appFont.font(size: titleFontSize, weight: titleWeight))
                 .lineLimit(3)
             if showHost {
@@ -209,7 +218,7 @@ struct LinkRowView: View {
     private func cardBody(title: String, thumbnailFileName: String?) -> some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(title)
+                titleText(title)
                     .font(appFont.font(size: titleFontSize, weight: titleWeight))
                     .lineLimit(3)
                 if showHost {
@@ -244,7 +253,7 @@ struct LinkRowView: View {
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
             thumbnail(size: editorialThumbnailHeight, fullWidth: true, thumbnailFileName: thumbnailFileName)
-            Text(title)
+            titleText(title)
                 .font(appFont.font(size: titleFontSize, weight: .bold))
                 .lineLimit(3)
             // Only when there's actually an excerpt to show — an empty

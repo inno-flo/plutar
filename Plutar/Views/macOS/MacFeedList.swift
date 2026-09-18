@@ -296,6 +296,21 @@ struct MacFeedList: View {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(item.urlString, forType: .string)
         }
+        if item.isPinned {
+            Button {
+                togglePin(item)
+            } label: {
+                Label("Détacher le lien", systemImage: "pin.slash")
+                    .labelStyle(.titleAndIcon)
+            }
+        } else {
+            Button {
+                togglePin(item)
+            } label: {
+                Label("Épingler le lien", systemImage: "pin")
+                    .labelStyle(.titleAndIcon)
+            }
+        }
         // Ellipsis: this doesn't delete outright — it opens the
         // confirmationDialog below (itemPendingDelete), same convention as
         // any other menu command needing more input before it completes.
@@ -325,7 +340,9 @@ struct MacFeedList: View {
                 Spacer()
                 if expandedSourcesButtonVisible(group) {
                     Button {
-                        markSourceAsRead(group.items)
+                        // In Date, pinned links stay in À lire — this button
+                        // only touches the rest of the day's links.
+                        markSourceAsRead(mode == .chrono ? group.items.filter { !$0.isPinned } : group.items)
                     } label: {
                         Image(systemName: "checkmark.circle")
                     }
@@ -378,8 +395,12 @@ struct MacFeedList: View {
     private static let firefoxBundleID = "org.mozilla.firefox"
 
     private func open(_ item: LinkItem) {
-        item.isRead = true
-        persist()
+        // A pinned link stays in À lire on double-click too — only an
+        // explicit "Marquer lu" or delete moves it on.
+        if !item.isPinned {
+            item.isRead = true
+            persist()
+        }
         guard let url = URL(string: item.urlString) else { return }
         // The Verge's own site renders its article pages oddly in whatever
         // this Mac's default browser is — forced to Firefox regardless,
@@ -431,6 +452,11 @@ struct MacFeedList: View {
 
     private func markSourceAsRead(_ items: [LinkItem]) {
         toggleReadState(for: items, to: true, actionName: "Marquer lu")
+    }
+
+    private func togglePin(_ item: LinkItem) {
+        item.isPinned.toggle()
+        persist()
     }
 
     private func delete(_ item: LinkItem) {

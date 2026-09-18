@@ -41,6 +41,11 @@ final class LinkItem {
     /// layout), not in Lus — so `RootView.markAsUnread(_:)` resets this to
     /// give a link moved back to unread a fresh try.
     var excerptFetchAttempted: Bool = true
+    /// Pinned links stay in À lire even when tapped/opened or double-clicked
+    /// (macOS) — a tap normally marks a link read, but a pinned one is
+    /// meant to stick around until explicitly marked read or deleted. The
+    /// per-date "Tout marquer comme lu" button also skips pinned links.
+    var isPinned: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -55,7 +60,8 @@ final class LinkItem {
         isRead: Bool = false,
         thumbnailFileName: String? = nil,
         metadataFetched: Bool = true,
-        excerptFetchAttempted: Bool = true
+        excerptFetchAttempted: Bool = true,
+        isPinned: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -70,5 +76,6 @@ final class LinkItem {
         self.thumbnailFileName = thumbnailFileName
         self.metadataFetched = metadataFetched
         self.excerptFetchAttempted = excerptFetchAttempted
+        self.isPinned = isPinned
     }
 }

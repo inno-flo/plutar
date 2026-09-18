@@ -46,6 +46,7 @@ private struct DeletedSnapshot {
     let thumbnailFileName: String?
     let metadataFetched: Bool
     let excerptFetchAttempted: Bool
+    let isPinned: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
@@ -54,6 +55,7 @@ private struct DeletedSnapshot {
         isRead = item.isRead
         thumbnailFileName = item.thumbnailFileName; metadataFetched = item.metadataFetched
         excerptFetchAttempted = item.excerptFetchAttempted
+        isPinned = item.isPinned
     }
 
     func makeLinkItem() -> LinkItem {
@@ -61,7 +63,7 @@ private struct DeletedSnapshot {
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
                  excerpt: excerpt, isRead: isRead,
                  thumbnailFileName: thumbnailFileName, metadataFetched: metadataFetched,
-                 excerptFetchAttempted: excerptFetchAttempted)
+                 excerptFetchAttempted: excerptFetchAttempted, isPinned: isPinned)
     }
 }
 
@@ -480,6 +482,19 @@ struct RootView: View {
                                             Button("Copier l'URL") {
                                                 UIPasteboard.general.string = item.urlString
                                             }
+                                            if item.isPinned {
+                                                Button {
+                                                    togglePin(item)
+                                                } label: {
+                                                    Label("Détacher le lien", systemImage: "pin.slash")
+                                                }
+                                            } else {
+                                                Button {
+                                                    togglePin(item)
+                                                } label: {
+                                                    Label("Épingler le lien", systemImage: "pin")
+                                                }
+                                            }
                                         }
                                         .swipeActions(edge: .trailing) {
                                             Button(role: .destructive) { requestDelete(item) } label: {
@@ -790,7 +805,9 @@ struct RootView: View {
                     Spacer(minLength: 0)
 
                     Button {
-                        markSourceAsRead(group.items)
+                        // Pinned links stay in À lire — this button only
+                        // touches the rest of the day's links.
+                        markSourceAsRead(group.items.filter { !$0.isPinned })
                     } label: {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .semibold))
@@ -1025,12 +1042,23 @@ struct RootView: View {
     }
 
     private func open(_ item: LinkItem) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            item.isRead = true
-            persist()
+        // A pinned link stays in À lire when opened — only an explicit
+        // "Marquer comme lu" (swipe or context menu) or delete moves it on.
+        if !item.isPinned {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                item.isRead = true
+                persist()
+            }
         }
         if let url = URL(string: item.urlString) {
             openURL(url)
+        }
+    }
+
+    private func togglePin(_ item: LinkItem) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            item.isPinned.toggle()
+            persist()
         }
     }
 
