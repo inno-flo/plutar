@@ -51,14 +51,7 @@ final class ShareViewController: UIViewController {
         do {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
-            finish()
-            // Dismissing the share sheet above (`finish()`) doesn't mean this
-            // process is about to die — but it often is soon after, before
-            // CloudKit has actually received the save. Off the main thread so
-            // this blocking wait can't be mistaken for the UI hanging.
-            DispatchQueue.global(qos: .utility).async {
-                SharedStore.waitForPendingCloudKitExport()
-            }
+            showSavedThenFinish()
         } catch {
             let hosting = UIHostingController(rootView: ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",
@@ -69,6 +62,25 @@ final class ShareViewController: UIViewController {
             hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             view.addSubview(hosting.view)
             hosting.didMove(toParent: self)
+        }
+    }
+
+    /// Swaps in `ShareSavedView` immediately so the user sees the save
+    /// happened right away, but deliberately does *not* call `finish()`
+    /// yet — the process wasn't surviving long enough after
+    /// `completeRequest` for `waitForPendingCloudKitExport`'s background
+    /// wait to matter, so the wait has to happen first, with the extension
+    /// still "in progress" as far as the host is concerned.
+    private func showSavedThenFinish() {
+        let hosting = UIHostingController(rootView: ShareSavedView())
+        addChild(hosting)
+        hosting.view.frame = view.bounds
+        hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(hosting.view)
+        hosting.didMove(toParent: self)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            SharedStore.waitForPendingCloudKitExport()
+            DispatchQueue.main.async { self?.finish() }
         }
     }
 
