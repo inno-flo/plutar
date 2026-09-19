@@ -191,13 +191,44 @@ struct LinkRowView: View {
         .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
     }
 
-    /// The title text, prefixed with a `pin.square` glyph (same size as the
-    /// text, one space before the title) when the link is pinned. A single
-    /// `Text` concatenation rather than a separate `Image` + `Text` `HStack`
-    /// so the glyph flows inline and wraps with the title under `lineLimit`.
+    /// The title text, prefixed (in order) with a `pin.circle` glyph when the
+    /// link is pinned and the Firefox icon when it comes from theverge.com
+    /// (the site `MacFeedList.open` forces into Firefox), each followed by
+    /// one space. A single `Text` rather than an `Image` + `Text` `HStack`
+    /// so the glyphs flow inline and wrap with the title under `lineLimit`.
     private func titleText(_ title: String) -> Text {
-        guard item.isPinned else { return Text(title) }
-        return Text(Image(systemName: "pin.square")) + Text(" ") + Text(title)
+        let pinned = item.isPinned
+        guard let firefox = item.host.contains("theverge.com") ? Self.firefoxGlyph(size: titleFontSize) : nil else {
+            return pinned ? Text("\(Image(systemName: "pin.circle")) \(title)") : Text(title)
+        }
+        return pinned
+            ? Text("\(Image(systemName: "pin.circle")) \(firefox) \(title)")
+            : Text("\(firefox) \(title)")
+    }
+
+    /// The Firefox app icon, pre-scaled to `size` points so it sits inline
+    /// in a `Text` at the title's own size (an `Image` inside `Text` can't be
+    /// made `resizable`, so it would otherwise render at its bitmap's size).
+    private static var firefoxGlyphCache: [CGFloat: Image] = [:]
+
+    private static func firefoxGlyph(size: CGFloat) -> Image? {
+        if let cached = firefoxGlyphCache[size] { return cached }
+        #if canImport(UIKit)
+        guard let source = UIImage(named: "FirefoxIcon") else { return nil }
+        let scaled = UIGraphicsImageRenderer(size: CGSize(width: size, height: size)).image { _ in
+            source.draw(in: CGRect(x: 0, y: 0, width: size, height: size))
+        }
+        let image = Image(uiImage: scaled)
+        #else
+        guard let source = NSImage(named: "FirefoxIcon") else { return nil }
+        let scaled = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            source.draw(in: rect)
+            return true
+        }
+        let image = Image(nsImage: scaled)
+        #endif
+        firefoxGlyphCache[size] = image
+        return image
     }
 
     // MARK: Rail (default) — just the title, host below, nothing else.

@@ -174,7 +174,7 @@
 		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = PlutarMac.app; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMode.swift; sourceTree = "<group>"; };
 		FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
