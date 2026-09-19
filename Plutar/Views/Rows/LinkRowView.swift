@@ -198,16 +198,21 @@ struct LinkRowView: View {
     /// so the glyphs flow inline and wrap with the title under `lineLimit`.
     private func titleText(_ title: String) -> Text {
         let pinned = item.isPinned
-        guard let firefox = item.host.contains("theverge.com") ? Self.firefoxGlyph(size: titleFontSize) : nil else {
+        guard item.host.contains("theverge.com"), let glyph = Self.firefoxGlyph(size: titleFontSize * 1.25) else {
             return pinned ? Text("\(Image(systemName: "pin.circle")) \(title)") : Text(title)
         }
+        // A bitmap sits on the baseline, while an SF Symbol hangs ~0.28em
+        // below it — lowered by the same amount so both glyphs, and the
+        // title, share one vertical centre.
+        let firefox = Text(glyph).baselineOffset(-titleFontSize * 0.28)
         return pinned
             ? Text("\(Image(systemName: "pin.circle")) \(firefox) \(title)")
             : Text("\(firefox) \(title)")
     }
 
     /// The Firefox app icon, pre-scaled to `size` points so it sits inline
-    /// in a `Text` at the title's own size (an `Image` inside `Text` can't be
+    /// in a `Text` — callers pass 1.25× the title size, which is the bold
+    /// `pin.circle` glyph's own rendered size, so the two match (an `Image` inside `Text` can't be
     /// made `resizable`, so it would otherwise render at its bitmap's size).
     private static var firefoxGlyphCache: [CGFloat: Image] = [:]
 
