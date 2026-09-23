@@ -857,7 +857,7 @@ struct RootView: View {
                 // Copenhague: same ochre yellow as the other link counters.
                 .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
-            Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
+            Image(systemName: expandedSources.contains(group.id) ? "chevron.down" : "chevron.right")
                 .font(.system(size: 14, weight: .bold))
                 .opacity(0.7)
         }

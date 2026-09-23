@@ -48,27 +48,10 @@ struct MacSidebarView: View {
                     .tag(SidebarSelection.source(group.id))
                 }
             } label: {
-                Label {
-                    HStack {
-                        Text("Sources")
-                        Spacer()
-                        // Was the unread count — redundant with "À lire"'s
-                        // own count just above — replaced with an explicit
-                        // collapse/expand control in that same trailing spot.
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                sourcesExpanded.toggle()
-                            }
-                        } label: {
-                            Image(systemName: sourcesExpanded ? "chevron.up" : "chevron.down")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .help(sourcesExpanded ? "Réduire" : "Développer")
-                    }
-                } icon: {
-                    Image(systemName: "globe")
-                }
+                // A click anywhere on this label toggles `sourcesExpanded`
+                // via `DisclosureGroup`'s own built-in behavior — no
+                // separate button/chevron needed.
+                Label("Sources", systemImage: "globe")
             }
         }
         .listStyle(.sidebar)
