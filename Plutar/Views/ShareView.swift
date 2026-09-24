@@ -14,8 +14,18 @@ struct ShareSavedView: View {
             .font(.system(size: 44, weight: .semibold))
             .foregroundStyle(Color(red: 1, green: 0.31, blue: 0))
             .frame(width: 120, height: 120)
+            #if os(macOS)
+            // macOS can't drop the window the extension is hosted in, so the
+            // square and everything around it share the window's own
+            // background color rather than a translucent material that would
+            // read as a second, differently-tinted panel on top of it.
+            .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .windowBackgroundColor))
+            #else
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #endif
     }
 }
 

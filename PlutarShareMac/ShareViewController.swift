@@ -52,6 +52,11 @@ final class ShareViewController: NSViewController {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             embed(NSHostingController(rootView: AnyView(ShareSavedView())))
+            // Shrink the window to just the checkmark square (the error
+            // dialogs keep the wider default set in `loadView`).
+            let size = NSSize(width: 136, height: 136)
+            preferredContentSize = size
+            view.setFrameSize(size)
             // See `SharedStore.waitForPendingCloudKitExport`'s doc comment —
             // on-device testing showed the wait never actually observing a
             // single CloudKit sync event even across a full timeout kept

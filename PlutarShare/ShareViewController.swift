@@ -9,6 +9,12 @@ import SwiftUI
 /// `PlutarShareMac/ShareViewController.swift` for the macOS counterpart —
 /// same logic, `NSViewController`/`NSHostingController` instead of
 /// `UIViewController`/`UIHostingController`.
+///
+/// The container — the card that slides up from the bottom of the screen on
+/// iPhone — belongs to the host app's share-sheet machinery, not to the
+/// extension: there is no API to replace it with a centered HUD. All that's
+/// controllable from here is making our own view transparent so only the
+/// checkmark square shows, and (iPad only) shrinking the presented size.
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,6 +63,10 @@ final class ShareViewController: UIViewController {
             let container = try SharedStore.makeContainer()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             embed(ShareSavedView())
+            // iPad presents the extension as a popover/form sheet that
+            // follows `preferredContentSize`, so it shrinks to just the
+            // checkmark square; iPhone ignores it (see the class doc).
+            preferredContentSize = CGSize(width: 136, height: 136)
             // See `SharedStore.waitForPendingCloudKitExport`'s doc comment —
             // on-device testing showed the wait never actually observing a
             // single CloudKit sync event even across a full timeout kept
