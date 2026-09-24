@@ -70,7 +70,7 @@ enum LinkMetadataEnricher {
         }
 
         // Only replace the title if it's still one of the fallbacks
-        // LinkItemFactory / ShareView used (the bare host, or the raw URL
+        // LinkItemFactory used (the bare host, or the raw URL
         // when the source app supplied no title at all) — never overwrite a
         // title the user or the source app actually typed/provided.
         let isFallbackTitle = item.title == item.host || item.title == item.urlString
