@@ -10,7 +10,7 @@ import SwiftUI
 /// `RootView`/`MacRootView` — it borrows just the accent color.
 struct ShareSavedView: View {
     var body: some View {
-        Image(systemName: "checkmark")
+        Image(systemName: "square.and.arrow.up.badge.checkmark")
             .font(.system(size: 44, weight: .semibold))
             .foregroundStyle(Color(red: 1, green: 0.31, blue: 0))
             .frame(width: 120, height: 120)
