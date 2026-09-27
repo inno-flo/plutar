@@ -92,7 +92,7 @@ final class ShareViewController: UIViewController {
     /// Just long enough to register the checkmark, short enough not to get in
     /// the way of whatever the user was doing in the host app.
     private func finishAfterDelay() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
             self?.finish()
         }
     }
