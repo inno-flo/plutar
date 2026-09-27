@@ -249,6 +249,17 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var title: Color {
         switch self {
         case .astronaute, .astronauteSoir: return .white
+        // The 3 other "nuit" themes: link title text lightened 20% toward
+        // white from their own `inkRGB`, on top of (not instead of) the
+        // usual `ink(1)` — every other translucent "ink" tone (host row,
+        // etc.) stays as it was; only the title itself reads brighter.
+        case .scandSoir, .blancSoir, .tokyoSoir:
+            let (r, g, b) = inkRGB
+            return Color(
+                red: (r + (255 - r) * 0.2) / 255,
+                green: (g + (255 - g) * 0.2) / 255,
+                blue: (b + (255 - b) * 0.2) / 255
+            )
         default: return ink(1)
         }
     }

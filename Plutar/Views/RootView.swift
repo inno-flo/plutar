@@ -698,6 +698,13 @@ struct RootView: View {
             // dictates its own size and 2/3-digit counts visibly grow past
             // it instead.
             .frame(minWidth: 24, minHeight: 36)
+            // `floatingCounterBadge` hosts this inside an `.overlay` on a
+            // fixed 44×44 box, which proposes that same 44pt width back to
+            // this `Text` — without `fixedSize()`, a 3-digit count (needing
+            // more than 44pt with its padding/capsule) got squeezed into
+            // that proposal and truncated to an ellipsis instead of
+            // growing past it as the comment above assumes.
+            .fixedSize()
             .padding(.horizontal, 8)
             // Copenhague: the counter badge alone swaps to an ochre yellow
             // in every view (a darker variant for soir), leaving the
