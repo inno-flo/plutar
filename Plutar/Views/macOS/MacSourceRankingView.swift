@@ -19,7 +19,7 @@ struct MacSourceRankingView: View {
         Group {
             if ranked.isEmpty {
                 QuietEmptyStateView(
-                    theme: theme, appFont: appFont, icon: "chart.bar.horizontal.page",
+                    theme: theme, appFont: appFont, icon: "chart.line.uptrend.xyaxis",
                     title: "Aucun classement",
                     text: "Le classement apparaîtra une fois des liens partagés."
                 )

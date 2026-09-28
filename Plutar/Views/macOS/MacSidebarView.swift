@@ -33,6 +33,17 @@ struct MacSidebarView: View {
     /// row-content inset — SwiftUI doesn't expose the chevron's x position.
     private static let dotsLeadingInset: CGFloat = 10
 
+    /// SF Symbol for a source's sidebar row — a video icon for YouTube hosts
+    /// and a waveform for Spotify and Apple Music hosts (matched by
+    /// substring, so `www.youtube.com`, `m.youtube.com`, `open.spotify.com`,
+    /// … all count); the generic newspaper everywhere else.
+    private static func sourceIcon(forHost host: String) -> String {
+        let host = host.lowercased()
+        if host.contains("youtube.com") { return "play.rectangle" }
+        if host.contains("spotify.com") || host.contains("music.apple.com") { return "waveform" }
+        return "newspaper"
+    }
+
     /// One dot per theme family, in the Settings grid's order — the light
     /// variants' colors, or the nuit variants' while a nuit theme is active.
     private var quickThemes: [AppTheme] {
@@ -54,18 +65,18 @@ struct MacSidebarView: View {
     var body: some View {
         List(selection: $selection) {
             Section("Liens partagés") {
-                sidebarRow(label: "À lire", systemImage: "calendar", count: unreadCount)
+                sidebarRow(label: "À lire", systemImage: "list.bullet.clipboard", count: unreadCount)
                     .tag(SidebarSelection.date)
                 sidebarRow(label: "Lus", systemImage: "checkmark.circle", count: readCount)
                     .tag(SidebarSelection.read)
             }
             DisclosureGroup(isExpanded: $sourcesExpanded) {
-                sidebarRow(label: "Classement", systemImage: "chart.bar.horizontal.page")
+                sidebarRow(label: "Classement", systemImage: "chart.line.uptrend.xyaxis")
                     .tag(SidebarSelection.ranking)
                 ForEach(sourceGroups) { group in
                     sidebarRow(
                         label: group.label,
-                        systemImage: "newspaper",
+                        systemImage: Self.sourceIcon(forHost: group.label),
                         count: group.items.count
                     )
                     .tag(SidebarSelection.source(group.id))
