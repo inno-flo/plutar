@@ -158,7 +158,9 @@ struct RootView: View {
     /// both the pre- and post-shake colors to cross-fade between.
     private func effectiveBackground(for theme: AppTheme) -> Color {
         if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
-        if theme == .tokyo { return Color(hex: "#FFFFFF") }
+        // Tokyo clair: pure white everywhere except Lus, which gets a light
+        // gray instead.
+        if theme == .tokyo { return mode == .read ? Color(hex: "#E8E8E8") : Color(hex: "#FFFFFF") }
         return theme.background
     }
 

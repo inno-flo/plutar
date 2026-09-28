@@ -79,8 +79,17 @@ struct LinkRowView: View {
     /// own dark background.
     private var readTitleColor: Color {
         if theme.isSoir { return theme.ink(1) }
-        return theme.ink(theme == .tokyo ? 0.987 : 0.52)
+        if theme == .tokyo { return Self.tokyoReadTitleColor }
+        return theme.ink(0.52)
     }
+
+    /// Tokyo clair, Lus: the host line's dark gray, replacing the dimmed
+    /// ink tone it'd otherwise use.
+    private static let tokyoReadTextColor = Color(hex: "#333333")
+
+    /// Tokyo clair, Lus: the title's gray — `tokyoReadTextColor` blended 20%
+    /// of the way toward white, so it sits a step lighter than the host line.
+    private static let tokyoReadTitleColor = Color(hex: "#5C5C5C")
 
     /// Rounded is a real system weight variant and renders this bold fine;
     /// SF Compact ignores it entirely (fixed to its own Regular style
@@ -313,7 +322,7 @@ struct LinkRowView: View {
     private var hostRow: some View {
         Text(item.host)
             .font(appFont.font(size: 13, weight: .regular))
-            .foregroundStyle(isSelected ? selectedTextColor : (isSoirRead ? theme.ink(0.5) : theme.ink(0.52)))
+            .foregroundStyle(isSelected ? selectedTextColor : (item.isRead && theme == .tokyo ? Self.tokyoReadTextColor : (isSoirRead ? theme.ink(0.5) : theme.ink(0.52))))
             .lineLimit(1)
     }
 

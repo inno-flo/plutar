@@ -336,6 +336,12 @@ struct MacFeedList: View {
                     .buttonStyle(.plain)
                 } else {
                     Text(group.label)
+                        // Tokyo clair: the day labels (Date/Lus) take the
+                        // iPhone version's Tokyo red (`RootView`'s
+                        // `counterBackgroundOverride`; not `theme.chip`,
+                        // which is black for Tokyo) rather than the muted
+                        // ink the rest of this header row uses.
+                        .foregroundStyle(mode != .source && theme == .tokyo ? Color(hex: "#E1000F") : theme.ink(0.6))
                 }
                 Spacer()
                 if expandedSourcesButtonVisible(group) {
