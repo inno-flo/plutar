@@ -172,6 +172,23 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Color of this theme's dot in the settings' "Thème" grid and in the
+    /// Mac sidebar's quick-switch row. Same as `chip` except Tokyo (red) and
+    /// Copenhague (ochre yellow), which show the accent the iPhone version
+    /// uses for their counters (`RootView.counterBackgroundOverride`) —
+    /// Tokyo's `chip` is black, and Copenhague's blue-gray doesn't read as
+    /// that theme's signature color. Each nuit variant keeps its own darker
+    /// tone of the same hue, matching that override.
+    var dotColor: Color {
+        switch self {
+        case .tokyo: return Color(hex: "#E1000F")
+        case .tokyoSoir: return Color(hex: "#BC002D")
+        case .scand: return Color(hex: "#D9A62E")
+        case .scandSoir: return Color(hex: "#A67816")
+        default: return chip
+        }
+    }
+
     /// Selected-tab tint for the iOS/iPadOS tab bar. Same as `chip`
     /// everywhere except Tokyo nuit: `chip`'s near-black #2B2B2B reads fine
     /// as a pill fill but is nearly invisible as a selected-label color on
@@ -284,6 +301,19 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .dark: return selected.soirVariant
         case .auto: return systemColorScheme == .dark ? selected.soirVariant : selected.lightVariant
         }
+    }
+
+    /// The `AppAppearance` to store when the user picks this exact theme
+    /// variant: picking a specific light or nuit variant is itself a manual
+    /// override, so it forces Apparence to match (Clair/Sombre). Left on
+    /// "Automatique" only when it's already Automatique and this variant
+    /// already matches the live system setting — e.g. system in Clair,
+    /// Automatique selected, picking another *light* theme shouldn't
+    /// silently switch Apparence to "Clair". Shared by the Mac settings grid
+    /// and the Mac sidebar's quick-switch dots.
+    func appearanceAfterPicking(current: AppAppearance, systemColorScheme: ColorScheme) -> AppAppearance {
+        if current == .auto && isSoir == (systemColorScheme == .dark) { return .auto }
+        return isSoir ? .dark : .light
     }
 }
 

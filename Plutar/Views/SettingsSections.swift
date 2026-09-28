@@ -74,7 +74,7 @@ struct SettingsThemePillButton: View {
 
     private var label: some View {
         HStack(spacing: 7) {
-            Circle().fill(theme.chip).frame(width: 12, height: 12)
+            Circle().fill(theme.dotColor).frame(width: 12, height: 12)
             Text(theme.label)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

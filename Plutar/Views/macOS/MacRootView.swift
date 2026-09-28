@@ -35,6 +35,16 @@ struct MacRootView: View {
     private var theme: AppTheme {
         AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemAppearance.colorScheme)
     }
+    /// A click on one of the sidebar's quick-switch dots — same effect as
+    /// picking that variant in Settings' theme grid (`MacSettingsView`). Reads
+    /// the system appearance from `systemAppearance`, not
+    /// `@Environment(\.colorScheme)`, for the reason given on that property.
+    private func pickTheme(_ t: AppTheme) {
+        themeRaw = t.rawValue
+        appearanceRaw = t.appearanceAfterPicking(
+            current: appearance, systemColorScheme: systemAppearance.colorScheme
+        ).rawValue
+    }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
     /// `MacFeedList`'s toolbar picker needs to change the layout, not just
@@ -53,7 +63,18 @@ struct MacRootView: View {
     private var effectiveBackground: Color {
         if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
         if theme == .tokyo { return Color(hex: "#FFFFFF") }
+        // Copenhague clair: the list and the sidebar swapped backgrounds —
+        // the list takes the light gray macOS's own sidebar material
+        // normally shows (see `sidebarBackground` for the other half).
+        if theme == .scand { return Color(hex: "#F2F2F2") }
         return theme.background
+    }
+
+    /// Sidebar backdrop — nil (the system's own sidebar material) except
+    /// Copenhague clair, which swapped it with the list: the sidebar takes
+    /// the theme's own beige (see `effectiveBackground` for the other half).
+    private var sidebarBackground: Color? {
+        theme == .scand ? theme.background : nil
     }
 
     /// Matches exactly the themes where `theme.title` is white/near-white
@@ -72,7 +93,10 @@ struct MacRootView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            MacSidebarView(selection: $selection, allItems: allItems)
+            MacSidebarView(
+                selection: $selection, allItems: allItems, theme: theme,
+                backgroundColor: sidebarBackground, onPickTheme: pickTheme
+            )
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } detail: {
             detailView
