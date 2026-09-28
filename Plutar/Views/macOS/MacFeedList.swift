@@ -317,6 +317,22 @@ struct MacFeedList: View {
         Button("Supprimer…", role: .destructive) { itemPendingDelete = item }
     }
 
+    /// Day-label color (Date/Lus) — an accent borrowed from the iPhone
+    /// version for Tokyo clair (red, `RootView.counterBackgroundOverride`;
+    /// not `theme.chip`, which is black for Tokyo), Copenhague clair (the
+    /// day pill's own background, `theme.chip`) and Cap Canaveral clair
+    /// ("international orange", `RootView.counterForegroundOverride`); the
+    /// muted ink every other theme uses.
+    private var dayLabelColor: Color {
+        guard mode != .source else { return theme.ink(0.6) }
+        switch theme {
+        case .tokyo: return Color(hex: "#E1000F")
+        case .scand: return theme.chip
+        case .astronaute: return Color(hex: "#FF4F00")
+        default: return theme.ink(0.6)
+        }
+    }
+
     private func groupHeader(_ group: FeedGroup) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -336,12 +352,7 @@ struct MacFeedList: View {
                     .buttonStyle(.plain)
                 } else {
                     Text(group.label)
-                        // Tokyo clair: the day labels (Date/Lus) take the
-                        // iPhone version's Tokyo red (`RootView`'s
-                        // `counterBackgroundOverride`; not `theme.chip`,
-                        // which is black for Tokyo) rather than the muted
-                        // ink the rest of this header row uses.
-                        .foregroundStyle(mode != .source && theme == .tokyo ? Color(hex: "#E1000F") : theme.ink(0.6))
+                        .foregroundStyle(dayLabelColor)
                 }
                 Spacer()
                 if expandedSourcesButtonVisible(group) {
