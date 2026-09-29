@@ -304,6 +304,18 @@ struct RootView: View {
         }
     }
 
+    /// Lus only: collapses/expands just this one group — same membership
+    /// convention as `MacFeedList.collapsedReadGroups` (present = collapsed).
+    private func toggleReadGroupCollapse(_ id: String) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if collapsedReadGroups.contains(id) {
+                collapsedReadGroups.remove(id)
+            } else {
+                collapsedReadGroups.insert(id)
+            }
+        }
+    }
+
     private func toggleAllSources() {
         withAnimation(.easeInOut(duration: 0.25)) {
             allSourcesExpandedIcon.toggle()
@@ -833,7 +845,7 @@ struct RootView: View {
                 Button {
                     toggleSource(group.id)
                 } label: {
-                    fadingSourceChipLabel(group)
+                    fadingSourceChipLabel(group, isExpanded: expandedSources.contains(group.id))
                 }
                 .buttonStyle(.plain)
 
@@ -872,8 +884,21 @@ struct RootView: View {
             // Date mirrors Sources: the day chip stays a plain non-interactive
             // label, with its own mark-as-read button trailing it — same
             // 44pt tap target and icon treatment as Sources' per-source button.
+            // Lus instead reuses Sources' own tappable chip (count + chevron)
+            // once collapse/expand exists there too — tapping it toggles just
+            // this one group, and the trash button only makes sense (and
+            // only shows) while a group is actually expanded.
             HStack(alignment: .center, spacing: 10) {
-                fadingDayPill(group)
+                if mode == .read {
+                    Button {
+                        toggleReadGroupCollapse(group.id)
+                    } label: {
+                        fadingSourceChipLabel(group, isExpanded: !collapsedReadGroups.contains(group.id))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    fadingDayPill(group)
+                }
 
                 if mode == .chrono {
                     Spacer(minLength: 0)
@@ -889,7 +914,7 @@ struct RootView: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                } else if mode == .read {
+                } else if mode == .read && !collapsedReadGroups.contains(group.id) {
                     Spacer(minLength: 0)
 
                     Button {
@@ -915,10 +940,13 @@ struct RootView: View {
         }
     }
 
-    /// Takes `theme` explicitly (rather than reading the property directly)
-    /// so the shake transition can cross-fade this chip's pre- and
-    /// post-shake colors — see `fadingSourceChipLabel`.
-    private func sourceChipLabel(_ group: FeedGroup, theme: AppTheme) -> some View {
+    /// Takes `theme` and `isExpanded` explicitly (rather than reading
+    /// `theme`/`expandedSources` directly) so the shake transition can
+    /// cross-fade this chip's pre- and post-shake colors — see
+    /// `fadingSourceChipLabel` — and so Lus can reuse the same chip look for
+    /// its own collapsed groups, keyed on `collapsedReadGroups` instead of
+    /// `expandedSources`.
+    private func sourceChipLabel(_ group: FeedGroup, theme: AppTheme, isExpanded: Bool) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
                 .font(appFont.font(size: 16.5, weight: .bold))
@@ -931,7 +959,7 @@ struct RootView: View {
                 // Copenhague: same ochre yellow as the other link counters.
                 .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chipText.opacity(0.22))
                 .clipShape(Capsule())
-            Image(systemName: expandedSources.contains(group.id) ? "chevron.down" : "chevron.right")
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                 .font(.system(size: 14, weight: .bold))
                 .opacity(0.7)
         }
@@ -949,11 +977,11 @@ struct RootView: View {
     /// even restructured to remove that sibling; a plain fade, the same
     /// technique `animatedBackground` uses for the screen backdrop, was
     /// dropped in instead rather than keep chasing the rotation.
-    private func fadingSourceChipLabel(_ group: FeedGroup) -> some View {
+    private func fadingSourceChipLabel(_ group: FeedGroup, isExpanded: Bool) -> some View {
         ZStack {
-            sourceChipLabel(group, theme: themeFlipOldTheme ?? theme)
+            sourceChipLabel(group, theme: themeFlipOldTheme ?? theme, isExpanded: isExpanded)
             if themeFlipOldTheme != nil {
-                sourceChipLabel(group, theme: theme)
+                sourceChipLabel(group, theme: theme, isExpanded: isExpanded)
                     .opacity(themeFlipRevealsNewBackground ? 1 : 0)
             }
         }
