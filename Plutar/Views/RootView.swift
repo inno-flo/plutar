@@ -629,7 +629,16 @@ struct RootView: View {
                 }
 
                 if mode == .read && !groups.isEmpty {
-                    clearReadButton
+                    // Grouping/collapse control above, clear-read below —
+                    // same spot and stacking Sources uses for its own
+                    // toggle-all + mark-all-read pair.
+                    VStack(spacing: 14) {
+                        readGroupingControl
+                        floatingButton(icon: "trash") { showClearReadConfirm = true }
+                    }
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 } else if mode == .source && !groups.isEmpty {
                     // Toggle-all above, mark-all-read below — same spot the
                     // Date mark-all-read button sits in.
@@ -678,10 +687,6 @@ struct RootView: View {
     private var floatingCounterBadge: some View {
         HStack(spacing: 14) {
             Spacer()
-            if mode == .read && !groups.isEmpty {
-                readGroupingButton
-                readCollapseAllButton
-            }
             // A fixed 44×44 slot — the same box `floatingButton` uses —
             // positioned by the same Spacer + trailing-padding pattern as
             // every other floating button below, so its center always lands
@@ -733,27 +738,28 @@ struct RootView: View {
             .clipShape(Capsule())
     }
 
-    /// Lus only: same grouping toggle as `MacFeedList`'s toolbar button —
-    /// globe (day → source) / calendar (source → day).
-    private var readGroupingButton: some View {
-        floatingButton(icon: readGroupedBySource ? "calendar" : "globe") {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                readGroupedBySource.toggle()
-            }
-        }
-    }
-
     /// Whether every currently visible group is collapsed — same shape as
-    /// `MacFeedList.allReadGroupsCollapsed`, driving this button's icon.
+    /// `MacFeedList.allReadGroupsCollapsed`, driving the collapse icon below.
     private var allReadGroupsCollapsed: Bool {
         !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
     }
 
-    /// Lus only: collapse-all/expand-all — same rectangle.grid.1x3/1x2 pair
-    /// as `MacFeedList`'s toolbar button.
-    private var readCollapseAllButton: some View {
-        floatingButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x2" : "rectangle.grid.1x3") {
-            withAnimation(.easeInOut(duration: 0.25)) {
+    /// Lus only: the grouping toggle (globe/calendar) and collapse-all/
+    /// expand-all toggle (rectangle.grid.1x3/1x2), joined into one capsule —
+    /// same two controls `MacFeedList`'s toolbar exposes as separate
+    /// buttons, grouped here the way its 3-way presentation switcher joins
+    /// icons into a single block instead of each floating on its own like
+    /// the other circular buttons. Stacked vertically — this sits directly
+    /// above the trash button in the same bottom-trailing corner, so a
+    /// horizontal pill would be wider than that single circular button
+    /// beneath it.
+    private var readGroupingControl: some View {
+        VStack(spacing: 0) {
+            groupingControlButton(icon: readGroupedBySource ? "calendar" : "globe") {
+                readGroupedBySource.toggle()
+            }
+            Divider().frame(width: 20).opacity(0.3)
+            groupingControlButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x3" : "rectangle.grid.1x2") {
                 if allReadGroupsCollapsed {
                     collapsedReadGroups = []
                 } else {
@@ -761,6 +767,26 @@ struct RootView: View {
                 }
             }
         }
+        .frame(width: 44)
+        .glassEffect(.regular, in: .capsule)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+    }
+
+    /// One half of `readGroupingControl` — same icon size/color as
+    /// `floatingButton`, but without its own individual glass background
+    /// (the capsule around both halves supplies that instead).
+    private func groupingControlButton(icon: String, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                action()
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(theme.ink(1))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,
@@ -786,13 +812,6 @@ struct RootView: View {
         .buttonStyle(.plain)
         .glassEffect(.regular, in: .circle)
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
-    }
-
-    private var clearReadButton: some View {
-        floatingButton(icon: "trash") { showClearReadConfirm = true }
-            .padding(.trailing, 18)
-            .padding(.bottom, 30)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     private var markAllReadButton: some View {

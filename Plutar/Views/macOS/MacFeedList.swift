@@ -231,7 +231,7 @@ struct MacFeedList: View {
                     } label: {
                         Label(
                             readGroupedBySource ? "Grouper par date" : "Grouper par source",
-                            systemImage: readGroupedBySource ? "calendar" : "globe"
+                            systemImage: readGroupedBySource ? "calendar" : "globe.fill"
                         )
                     }
                     .help(readGroupedBySource ? "Grouper par date" : "Grouper par source")

@@ -17,7 +17,7 @@ enum FeedMode: String, CaseIterable {
     var icon: String {
         switch self {
         case .chrono: return "list.bullet.clipboard"
-        case .source: return "globe"
+        case .source: return "globe.fill"
         case .read: return "checkmark.circle"
         }
     }

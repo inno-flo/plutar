@@ -85,7 +85,7 @@ struct MacSidebarView: View {
                 // A click anywhere on this label toggles `sourcesExpanded`
                 // via `DisclosureGroup`'s own built-in behavior — no
                 // separate button/chevron needed.
-                Label("Sources", systemImage: "globe")
+                Label("Sources", systemImage: "globe.fill")
             }
         }
         .listStyle(.sidebar)
