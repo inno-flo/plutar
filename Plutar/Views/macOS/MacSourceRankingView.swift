@@ -10,6 +10,11 @@ struct MacSourceRankingView: View {
     let appFont: AppFont
     let effectiveBackground: Color
 
+    @Environment(\.modelContext) private var modelContext
+    /// Set instead of deleting immediately — same confirmation-gated
+    /// pattern as `MacFeedList`'s own pending-delete state.
+    @State private var hostPendingDelete: String?
+
     /// Merges any rows CloudKit sync left sharing the same host (see
     /// `SourceRank`'s own comment) instead of assuming `sourceRanks` is
     /// already collision-free.
@@ -51,6 +56,28 @@ struct MacSourceRankingView: View {
         // toolbar buttons alongside it here, a lone `.principal` item
         // renders as its own pill/button rather than plain text.
         .navigationTitle("Classement")
+        .confirmationDialog(
+            "Supprimer cette source du classement ?",
+            isPresented: Binding(
+                get: { hostPendingDelete != nil },
+                set: { if !$0 { hostPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let host = hostPendingDelete { deleteRank(for: host) }
+            }
+        }
+    }
+
+    /// Removes every underlying `SourceRank` row for `host` — `ranked`
+    /// already merges same-host rows for display (see `aggregated(_:)`), so
+    /// there can be more than one to delete.
+    private func deleteRank(for host: String) {
+        for rank in sourceRanks where rank.host == host {
+            modelContext.delete(rank)
+        }
+        try? modelContext.save()
     }
 
     private func displayName(_ host: String) -> String {
@@ -64,6 +91,11 @@ struct MacSourceRankingView: View {
                 .frame(width: 22, alignment: .leading)
             Text(displayName(host))
                 .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
+                .contextMenu {
+                    Button("Supprimer cette source…", role: .destructive) {
+                        hostPendingDelete = host
+                    }
+                }
             Spacer()
             Text("\(count)")
                 .foregroundStyle(theme.ink(0.5))
