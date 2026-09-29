@@ -103,4 +103,48 @@ enum FeedGrouping {
         guard year != calendar.component(.year, from: Date()) else { return label }
         return "\(label) \(year)"
     }
+
+    static let monthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "MMMM"
+        return f
+    }()
+
+    /// "Septembre", or "Septembre 2025" outside the current year — same
+    /// year-suffix rule as `dayLabel`. Used for Lus's month separators
+    /// (`RootView`/`MacFeedList`), shown between day groups when they span
+    /// more than one calendar month.
+    static func monthLabel(for day: Date) -> String {
+        let raw = monthFormatter.string(from: day)
+        let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: day)
+        guard year != calendar.component(.year, from: Date()) else { return formatted }
+        return "\(formatted) \(year)"
+    }
+
+    /// The "yyyy-MM" prefix of a day-group id (`dayKeyFormatter`'s own
+    /// "yyyy-MM-dd" format) — cheap month identity without reparsing the
+    /// date, since day-group ids are already this format zero-padded and
+    /// lexically sortable.
+    static func monthKey(fromDayGroupID id: String) -> String {
+        String(id.prefix(7))
+    }
+
+    /// Ids of the first group in each calendar month within `dayGroups`
+    /// (already day-grouped, newest first) — empty unless they actually
+    /// span more than one month. Shared by `RootView` (iOS) and
+    /// `MacFeedList` (macOS) for Lus's own month-separator row.
+    static func monthSeparatorGroupIDs(_ dayGroups: [FeedGroup]) -> Set<String> {
+        let monthKeys = dayGroups.map { monthKey(fromDayGroupID: $0.id) }
+        guard Set(monthKeys).count > 1 else { return [] }
+        var ids: Set<String> = []
+        var previousMonthKey: String?
+        for (group, key) in zip(dayGroups, monthKeys) {
+            if key != previousMonthKey { ids.insert(group.id) }
+            previousMonthKey = key
+        }
+        return ids
+    }
 }

@@ -280,6 +280,14 @@ struct RootView: View {
         return FeedGrouping.makeGroups(allItems, mode: mode)
     }
 
+    /// Lus, day-grouped only: ids of the first day group in each calendar
+    /// month — but only once links actually span more than one month, so a
+    /// single month shows no separators. Empty in every other mode/grouping.
+    private var monthSeparatorGroupIDs: Set<String> {
+        guard mode == .read, !readGroupedBySource else { return [] }
+        return FeedGrouping.monthSeparatorGroupIDs(groups)
+    }
+
     private func toggleSource(_ id: String) {
         // Read once, up front: `groups` is a computed property that eagerly
         // regroups and sorts every visible link, and reading it twice inline
@@ -490,6 +498,12 @@ struct RootView: View {
                             // as a normal row here instead so the whole chip —
                             // in Sources, button included — just scrolls by
                             // with everything else, nothing pinned to swap.
+                            if monthSeparatorGroupIDs.contains(group.id),
+                               let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
+                                monthSeparator(FeedGrouping.monthLabel(for: date))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                            }
                             groupHeader(group)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
@@ -769,6 +783,12 @@ struct RootView: View {
         VStack(spacing: 0) {
             groupingControlButton(icon: readGroupedBySource ? "calendar" : "globe") {
                 readGroupedBySource.toggle()
+                // Collapsed-group ids belong to whichever grouping was
+                // active when they were collapsed (day keys vs. hosts) —
+                // stale otherwise, so a switch starts every group expanded
+                // again rather than carrying over an unrelated collapsed
+                // state.
+                collapsedReadGroups = []
             }
             Divider().frame(width: 20).opacity(0.3)
             groupingControlButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x3" : "rectangle.grid.1x2") {
@@ -831,6 +851,22 @@ struct RootView: View {
             .padding(.trailing, 18)
             .padding(.bottom, 30)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+
+    /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
+    /// shown above the first day group of each calendar month once links
+    /// span more than one (see `monthSeparatorGroupIDs`).
+    private func monthSeparator(_ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(appFont.font(size: 13, weight: .semibold))
+                .foregroundStyle(theme.ink(0.6))
+            Rectangle()
+                .fill(theme.ink(0.15))
+                .frame(height: 1)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 10)
     }
 
     /// Chip shown as each Section's header. In Sources it also acts as the

@@ -97,6 +97,15 @@ struct MacFeedList: View {
         return FeedGrouping.makeGroups(allItems, mode: mode)
     }
 
+    /// Lus, day-grouped only: ids of the first day group in each calendar
+    /// month, once links actually span more than one — see
+    /// `FeedGrouping.monthSeparatorGroupIDs`. Empty in every other mode/
+    /// grouping, same as the iOS `RootView` counterpart.
+    private var monthSeparatorGroupIDs: Set<String> {
+        guard mode == .read, !readGroupedBySource else { return [] }
+        return FeedGrouping.monthSeparatorGroupIDs(groups)
+    }
+
     /// Whether every group in `groups` is expanded — a real set check, not
     /// `expandedSources.count == groups.count` (which used to drive both the
     /// toolbar icon and `toggleAllSources()`): that count comparison goes
@@ -153,6 +162,11 @@ struct MacFeedList: View {
                     // name is already the toolbar title, and its "mark as
                     // read" icon just duplicates the toolbar's own button.
                     if !isSingleSourceDetail {
+                        if monthSeparatorGroupIDs.contains(group.id),
+                           let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
+                            monthSeparator(FeedGrouping.monthLabel(for: date))
+                                .listRowSeparator(.hidden)
+                        }
                         groupHeader(group)
                             .listRowSeparator(.hidden)
                     }
@@ -228,6 +242,12 @@ struct MacFeedList: View {
                 ToolbarItemGroup {
                     Button {
                         readGroupedBySource.toggle()
+                        // Collapsed-group ids belong to whichever grouping
+                        // was active when they were collapsed (day keys vs.
+                        // hosts) — stale otherwise, so a switch starts every
+                        // group expanded again rather than carrying over an
+                        // unrelated collapsed state.
+                        collapsedReadGroups = []
                     } label: {
                         Label(
                             readGroupedBySource ? "Grouper par date" : "Grouper par source",
@@ -392,6 +412,22 @@ struct MacFeedList: View {
         case .astronaute: return Color(hex: "#FF4F00")
         default: return theme.ink(0.6)
         }
+    }
+
+    /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
+    /// shown above the first day group of each calendar month once links
+    /// span more than one (see `monthSeparatorGroupIDs`).
+    private func monthSeparator(_ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(appFont.font(size: 13, weight: .semibold))
+                .foregroundStyle(theme.ink(0.6))
+            Rectangle()
+                .fill(theme.ink(0.15))
+                .frame(height: 1)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 10)
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
