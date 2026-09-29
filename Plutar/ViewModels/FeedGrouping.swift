@@ -47,14 +47,22 @@ enum FeedGrouping {
                           items: buckets[day]!)
             }
         case .source:
-            let byHost = Dictionary(grouping: list, by: \.host)
-            let hosts = byHost.keys.sorted { a, b in
-                let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
-                return ca != cb ? ca > cb : a < b
-            }
-            return hosts.map { host in
-                FeedGroup(id: host, label: host, items: byHost[host] ?? [])
-            }
+            return makeSourceGroups(list)
+        }
+    }
+
+    /// Buckets an arbitrary item list by host, descending by count then
+    /// alphabetically — the same ranking `makeGroups(mode: .source)` uses,
+    /// factored out so `MacFeedList` can group Lus by source (instead of by
+    /// day) without going through `visibleItems`' unread-only filter.
+    static func makeSourceGroups(_ items: [LinkItem]) -> [FeedGroup] {
+        let byHost = Dictionary(grouping: items, by: \.host)
+        let hosts = byHost.keys.sorted { a, b in
+            let ca = byHost[a]?.count ?? 0, cb = byHost[b]?.count ?? 0
+            return ca != cb ? ca > cb : a < b
+        }
+        return hosts.map { host in
+            FeedGroup(id: host, label: host, items: byHost[host] ?? [])
         }
     }
 

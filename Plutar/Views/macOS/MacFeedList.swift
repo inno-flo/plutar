@@ -41,6 +41,21 @@ struct MacFeedList: View {
     @Environment(\.undoManager) private var undoManager
 
     @State private var expandedSources: Set<String>
+    /// Lus only: when true, `groups` below buckets by source (ranked by
+    /// link count, like Sources) instead of by day. Toggled by the globe
+    /// toolbar button, which swaps to "calendar" while this is active.
+    /// `@AppStorage`, not plain `@State` — stays as the user last set it
+    /// (across launches and other `MacFeedList` instances, e.g. switching
+    /// to another sidebar item and back) until changed again; day grouping
+    /// is the default on first launch.
+    @AppStorage(DisplaySettingsKey.macReadGroupedBySource) private var readGroupedBySource = false
+    /// Lus only: which day/source group headers are collapsed (their links
+    /// hidden) — membership means collapsed, so the default (nothing in the
+    /// set) is every group expanded, same as before this feature existed.
+    /// Toggled per-group by double-clicking its header, or all at once by
+    /// the collapse-all/expand-all toolbar button next to the globe/
+    /// calendar one.
+    @State private var collapsedReadGroups: Set<String> = []
     /// A single click now only selects a row (native macOS List selection,
     /// with its usual highlight color) — it used to open the link directly,
     /// which meant there was no way to select a row first the way iOS lets
@@ -75,7 +90,12 @@ struct MacFeedList: View {
         self._expandedSources = State(initialValue: initialExpandedSources)
     }
 
-    private var groups: [FeedGroup] { FeedGrouping.makeGroups(allItems, mode: mode) }
+    private var groups: [FeedGroup] {
+        if mode == .read && readGroupedBySource {
+            return FeedGrouping.makeSourceGroups(allItems.filter(\.isRead))
+        }
+        return FeedGrouping.makeGroups(allItems, mode: mode)
+    }
 
     /// Whether every group in `groups` is expanded — a real set check, not
     /// `expandedSources.count == groups.count` (which used to drive both the
@@ -89,6 +109,15 @@ struct MacFeedList: View {
     /// `FeedGrouping.makeGroups` pass.
     private func allSourcesExpanded(in groups: [FeedGroup]) -> Bool {
         !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.id) }
+    }
+
+    /// Same shape as `allSourcesExpanded` above, for Lus's own collapse-all/
+    /// expand-all toolbar button — separate state (`collapsedReadGroups`)
+    /// since it applies to day *or* source groups depending on
+    /// `readGroupedBySource`, and membership means the opposite thing
+    /// (collapsed, not expanded).
+    private func allReadGroupsCollapsed(in groups: [FeedGroup]) -> Bool {
+        !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
     }
 
     var body: some View {
@@ -127,7 +156,8 @@ struct MacFeedList: View {
                         groupHeader(group)
                             .listRowSeparator(.hidden)
                     }
-                    if mode != .source || isSingleSourceDetail || expandedSources.contains(group.id) {
+                    if (mode != .source || isSingleSourceDetail || expandedSources.contains(group.id))
+                        && !(mode == .read && collapsedReadGroups.contains(group.id)) {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
@@ -187,12 +217,43 @@ struct MacFeedList: View {
         }
         .navigationTitle(title)
         .toolbar {
-            // Two separate groups — macOS puts a gap between distinct
+            // Three separate groups — macOS puts a gap between distinct
             // `ToolbarItemGroup`s on its own. The 3 layout icons render as
             // one joined segmented block (native chrome, dividers between
-            // icons, a highlight behind the selected one); the mark-as-
-            // read/clear button stays a single plain toolbar button, apart
-            // from that block rather than sharing a background with it.
+            // icons, a highlight behind the selected one); the globe
+            // placeholder and the mark-as-read/clear button each stay their
+            // own single plain toolbar button, apart from that block and
+            // from each other rather than sharing a background.
+            if mode == .read && !currentGroups.isEmpty {
+                ToolbarItemGroup {
+                    Button {
+                        readGroupedBySource.toggle()
+                    } label: {
+                        Label(
+                            readGroupedBySource ? "Grouper par date" : "Grouper par source",
+                            systemImage: readGroupedBySource ? "calendar" : "globe"
+                        )
+                    }
+                    .help(readGroupedBySource ? "Grouper par date" : "Grouper par source")
+                }
+                ToolbarItemGroup {
+                    Button {
+                        if allReadGroupsCollapsed(in: currentGroups) {
+                            collapsedReadGroups = []
+                        } else {
+                            collapsedReadGroups = Set(currentGroups.map(\.id))
+                        }
+                    } label: {
+                        // Showing "collapse all" (1x3) until every group
+                        // actually is collapsed, then "expand all" (1x2) —
+                        // matches whatever double-clicking individual
+                        // headers already did, not just this button's own
+                        // last click.
+                        Image(systemName: allReadGroupsCollapsed(in: currentGroups) ? "rectangle.grid.1x2" : "rectangle.grid.1x3")
+                    }
+                    .help(allReadGroupsCollapsed(in: currentGroups) ? "Tout déplier" : "Tout replier")
+                }
+            }
             ToolbarItemGroup {
                 layoutSwitcher
             }
@@ -276,7 +337,7 @@ struct MacFeedList: View {
             ForEach(LinkLayout.allCases) { l in
                 Image(systemName: l.symbolName)
                     .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
-                    .help(l.label)
+                    .help(l.presentationHelp)
                     .tag(l)
             }
         }
@@ -319,15 +380,15 @@ struct MacFeedList: View {
 
     /// Day-label color (Date/Lus) — an accent borrowed from the iPhone
     /// version for Tokyo clair (red, `RootView.counterBackgroundOverride`;
-    /// not `theme.chip`, which is black for Tokyo), Copenhague clair (the
-    /// day pill's own background, `theme.chip`) and Cap Canaveral clair
+    /// not `theme.chip`, which is black for Tokyo), Copenhague clair (its
+    /// ochre yellow, `theme.dotColor`) and Cap Canaveral clair
     /// ("international orange", `RootView.counterForegroundOverride`); the
     /// muted ink every other theme uses.
     private var dayLabelColor: Color {
         guard mode != .source else { return theme.ink(0.6) }
         switch theme {
         case .tokyo: return Color(hex: "#E1000F")
-        case .scand: return theme.chip
+        case .scand: return theme.dotColor
         case .astronaute: return Color(hex: "#FF4F00")
         default: return theme.ink(0.6)
         }
@@ -353,6 +414,17 @@ struct MacFeedList: View {
                 } else {
                     Text(group.label)
                         .foregroundStyle(dayLabelColor)
+                        // Lus only — Date has no collapse feature. Toggles
+                        // just this one group, independent of the toolbar's
+                        // collapse-all/expand-all button.
+                        .onTapGesture(count: 2) {
+                            guard mode == .read else { return }
+                            if collapsedReadGroups.contains(group.id) {
+                                collapsedReadGroups.remove(group.id)
+                            } else {
+                                collapsedReadGroups.insert(group.id)
+                            }
+                        }
                 }
                 Spacer()
                 if expandedSourcesButtonVisible(group) {

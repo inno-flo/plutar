@@ -22,4 +22,7 @@ enum DisplaySettingsKey {
     static let blackSoirBackground = "plutar.blackSoirBackground"
     /// iOS-only — no shake gesture on macOS, so only `RootView` reads this.
     static let shakeToChangeTheme = "plutar.shakeToChangeTheme"
+    /// macOS-only — Lus's globe/calendar toggle (`MacFeedList`), whether it's
+    /// currently grouped by source instead of by day.
+    static let macReadGroupedBySource = "plutar.macReadGroupedBySource"
 }

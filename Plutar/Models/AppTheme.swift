@@ -389,6 +389,17 @@ enum LinkLayout: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Tooltip text for the macOS toolbar's presentation-switcher icons
+    /// (`MacFeedList.layoutSwitcher`) — "Présentation " + `label`, lowercased
+    /// except "Éditoriale" (already capitalized on its own).
+    var presentationHelp: String {
+        switch self {
+        case .rail: return "Présentation simple"
+        case .card: return "Présentation détaillée"
+        case .editorial: return "Présentation Éditoriale"
+        }
+    }
+
     /// SF Symbol shown next to `label` in the macOS toolbar's presentation
     /// menu (`MacFeedList`).
     var symbolName: String {
