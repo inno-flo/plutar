@@ -48,7 +48,7 @@ struct MacFeedList: View {
     /// (across launches and other `MacFeedList` instances, e.g. switching
     /// to another sidebar item and back) until changed again; day grouping
     /// is the default on first launch.
-    @AppStorage(DisplaySettingsKey.macReadGroupedBySource) private var readGroupedBySource = false
+    @AppStorage(DisplaySettingsKey.readGroupedBySource) private var readGroupedBySource = false
     /// Lus only: which day/source group headers are collapsed (their links
     /// hidden) — membership means collapsed, so the default (nothing in the
     /// set) is every group expanded, same as before this feature existed.

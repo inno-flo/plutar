@@ -198,6 +198,15 @@ struct LinkRowView: View {
         // No shadow on read cells (all of Lus), and none at all in
         // `plainStyle` — there's no card underneath for a shadow to sit on.
         .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
+        // macOS's `List` (NSTableView-backed) sometimes keeps a row at a
+        // stale, too-short height when its content changes — e.g. switching
+        // between sources in the sidebar reuses rows, and a taller
+        // multi-line title/thumbnail combination can render clipped/
+        // overlapping instead of growing the row. Forcing this view to
+        // report its own real vertical size, instead of accepting whatever
+        // height the row proposes, makes `List` size the row correctly.
+        // A no-op on iOS, where this bug doesn't occur.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// The title text, prefixed (in order) with a `pin.circle` glyph when the

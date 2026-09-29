@@ -118,6 +118,14 @@ struct RootView: View {
     /// Hosts currently expanded in the Sources view — empty by default, so
     /// every source starts collapsed.
     @State private var expandedSources: Set<String> = []
+    /// Lus only: same globe/calendar grouping toggle as `MacFeedList` — see
+    /// there and `DisplaySettingsKey.readGroupedBySource`.
+    @AppStorage(DisplaySettingsKey.readGroupedBySource) private var readGroupedBySource = false
+    /// Lus only: which day/source group headers are collapsed — see
+    /// `MacFeedList.collapsedReadGroups`. Not persisted (plain `@State`,
+    /// like its Mac counterpart): a per-session view state, not a display
+    /// preference.
+    @State private var collapsedReadGroups: Set<String> = []
 
     /// Which icon the expand-all/collapse-all button shows. Deliberately a
     /// separate stored flag rather than a value derived from `groups` +
@@ -266,7 +274,10 @@ struct RootView: View {
     }
 
     private var groups: [FeedGroup] {
-        FeedGrouping.makeGroups(allItems, mode: mode)
+        if mode == .read && readGroupedBySource {
+            return FeedGrouping.makeSourceGroups(allItems.filter(\.isRead))
+        }
+        return FeedGrouping.makeGroups(allItems, mode: mode)
     }
 
     private func toggleSource(_ id: String) {
@@ -470,7 +481,8 @@ struct RootView: View {
                             groupHeader(group)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
-                            if mode != .source || expandedSources.contains(group.id) {
+                            if (mode != .source || expandedSources.contains(group.id))
+                                && !(mode == .read && collapsedReadGroups.contains(group.id)) {
                                 ForEach(group.items) { item in
                                     FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
                                         LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont)
@@ -664,8 +676,12 @@ struct RootView: View {
     /// around *its own* center, and this row's center sits out in the
     /// middle of the `Spacer()`, nowhere near where the badge actually is.
     private var floatingCounterBadge: some View {
-        HStack {
+        HStack(spacing: 14) {
             Spacer()
+            if mode == .read && !groups.isEmpty {
+                readGroupingButton
+                readCollapseAllButton
+            }
             // A fixed 44×44 slot — the same box `floatingButton` uses —
             // positioned by the same Spacer + trailing-padding pattern as
             // every other floating button below, so its center always lands
@@ -715,6 +731,36 @@ struct RootView: View {
             // Tokyo soir: same gray as the ranking rows' own count text.
             .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
             .clipShape(Capsule())
+    }
+
+    /// Lus only: same grouping toggle as `MacFeedList`'s toolbar button —
+    /// globe (day → source) / calendar (source → day).
+    private var readGroupingButton: some View {
+        floatingButton(icon: readGroupedBySource ? "calendar" : "globe") {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                readGroupedBySource.toggle()
+            }
+        }
+    }
+
+    /// Whether every currently visible group is collapsed — same shape as
+    /// `MacFeedList.allReadGroupsCollapsed`, driving this button's icon.
+    private var allReadGroupsCollapsed: Bool {
+        !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
+    }
+
+    /// Lus only: collapse-all/expand-all — same rectangle.grid.1x3/1x2 pair
+    /// as `MacFeedList`'s toolbar button.
+    private var readCollapseAllButton: some View {
+        floatingButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x2" : "rectangle.grid.1x3") {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                if allReadGroupsCollapsed {
+                    collapsedReadGroups = []
+                } else {
+                    collapsedReadGroups = Set(groups.map(\.id))
+                }
+            }
+        }
     }
 
     /// Shared look for the bottom-corner circular action buttons (settings,

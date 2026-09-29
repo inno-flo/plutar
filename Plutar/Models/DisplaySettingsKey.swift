@@ -22,7 +22,9 @@ enum DisplaySettingsKey {
     static let blackSoirBackground = "plutar.blackSoirBackground"
     /// iOS-only — no shake gesture on macOS, so only `RootView` reads this.
     static let shakeToChangeTheme = "plutar.shakeToChangeTheme"
-    /// macOS-only — Lus's globe/calendar toggle (`MacFeedList`), whether it's
-    /// currently grouped by source instead of by day.
-    static let macReadGroupedBySource = "plutar.macReadGroupedBySource"
+    /// Lus's globe/calendar toggle (`MacFeedList` on macOS, `RootView` on
+    /// iOS/iPadOS), whether it's currently grouped by source instead of by
+    /// day. Per-device like the rest of this enum, so each platform reading/
+    /// writing the same key name is fine — it's never the same store.
+    static let readGroupedBySource = "plutar.macReadGroupedBySource"
 }
