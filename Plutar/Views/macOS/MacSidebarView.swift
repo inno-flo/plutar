@@ -76,7 +76,10 @@ struct MacSidebarView: View {
                 ForEach(sourceGroups) { group in
                     sidebarRow(
                         label: group.label,
-                        systemImage: Self.sourceIcon(forHost: group.label),
+                        // `group.id` — the real host — not `group.label`,
+                        // which is the site's pretty name once fetched
+                        // ("The Verge") and wouldn't match these substrings.
+                        systemImage: Self.sourceIcon(forHost: group.id),
                         count: group.items.count
                     )
                     .tag(SidebarSelection.source(group.id))

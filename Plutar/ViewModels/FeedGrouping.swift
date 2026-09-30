@@ -62,7 +62,13 @@ enum FeedGrouping {
             return ca != cb ? ca > cb : a < b
         }
         return hosts.map { host in
-            FeedGroup(id: host, label: host, items: byHost[host] ?? [])
+            let hostItems = byHost[host] ?? []
+            // The site's real name once `LinkMetadataEnricher` has fetched
+            // it for at least one link from this host, else `LinkItem`'s own
+            // hardcoded override for sites that block that fetch, else the
+            // bare host ("nytimes.com").
+            let label = hostItems.compactMap(\.sourceName).first ?? LinkItem.displaySourceName(forHost: host)
+            return FeedGroup(id: host, label: label, items: hostItems)
         }
     }
 

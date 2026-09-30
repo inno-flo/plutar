@@ -46,6 +46,19 @@ final class LinkItem {
     /// meant to stick around until explicitly marked read or deleted. The
     /// per-date "Tout marquer comme lu" button also skips pinned links.
     var isPinned: Bool = false
+    /// The site's own human-readable name (e.g. "The New York Times"),
+    /// fetched from the page's `og:site_name`/`application-name` meta tag —
+    /// `nil` until `LinkMetadataEnricher` has tried, or if the page had
+    /// neither. Wherever the source is shown to the user, this is preferred
+    /// over the bare `host` ("nytimes.com"); `host` itself stays untouched
+    /// since it's still what grouping/ranking/dedup key on.
+    var sourceName: String?
+    /// Whether `LinkMetadataEnricher` has already tried (successfully or
+    /// not) to fill in `sourceName` for this link. Separate from
+    /// `metadataFetched`/`excerptFetchAttempted` and not gated on read
+    /// state — unlike the excerpt, the source name is shown everywhere
+    /// (Sources, Classement, every row), not just Date/Sources.
+    var sourceNameFetchAttempted: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -61,7 +74,9 @@ final class LinkItem {
         thumbnailFileName: String? = nil,
         metadataFetched: Bool = true,
         excerptFetchAttempted: Bool = true,
-        isPinned: Bool = false
+        isPinned: Bool = false,
+        sourceName: String? = nil,
+        sourceNameFetchAttempted: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -77,5 +92,33 @@ final class LinkItem {
         self.metadataFetched = metadataFetched
         self.excerptFetchAttempted = excerptFetchAttempted
         self.isPinned = isPinned
+        self.sourceName = sourceName
+        self.sourceNameFetchAttempted = sourceNameFetchAttempted
+    }
+
+    /// Hardcoded overrides for hosts whose own site blocks the plain HTTP
+    /// fetch `LinkMetadataEnricher` uses to read `og:site_name` — DataDome,
+    /// Cloudflare and similar anti-bot protections return an error page (or
+    /// a flat 403) before any HTML ever reaches us, so no amount of retrying
+    /// will ever pick up a real name for these. Add an entry here (matching
+    /// the same normalized, "www."-stripped, lowercased form `host` is
+    /// always stored in) only once a specific host is confirmed to need it
+    /// — this is a manual list precisely because the automatic path already
+    /// covers every site that doesn't block it.
+    private static let knownSourceNames: [String: String] = [
+        "nytimes.com": "The New York Times",
+    ]
+
+    /// The best name to show for `host` — `sourceName` once fetched, else
+    /// the hardcoded override above, else the bare host as a last resort.
+    static func displaySourceName(forHost host: String) -> String {
+        knownSourceNames[host] ?? host
+    }
+
+    /// The name to show for this specific link — see the static overload
+    /// above for the same fallback chain, with `sourceName` (this link's own
+    /// fetched value) tried first.
+    var displaySourceName: String {
+        sourceName ?? LinkItem.displaySourceName(forHost: host)
     }
 }

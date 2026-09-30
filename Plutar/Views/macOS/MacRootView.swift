@@ -126,16 +126,17 @@ struct MacRootView: View {
                 effectiveBackground: effectiveBackground
             )
         case .source(let host):
+            let sourceItems = allItems.filter { $0.host == host }
             MacFeedList(
-                mode: .source, title: host,
-                allItems: allItems.filter { $0.host == host },
+                mode: .source, title: sourceItems.compactMap(\.sourceName).first ?? LinkItem.displaySourceName(forHost: host),
+                allItems: sourceItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
                 effectiveBackground: effectiveBackground,
                 isSingleSourceDetail: true, initialExpandedSources: [host]
             )
         case .ranking:
             MacSourceRankingView(
-                sourceRanks: sourceRanks, theme: theme, appFont: appFont,
+                sourceRanks: sourceRanks, allItems: allItems, theme: theme, appFont: appFont,
                 effectiveBackground: effectiveBackground
             )
         case nil:

@@ -33,6 +33,7 @@ enum LinkMetadataEnricher {
     /// network requests the moment the app opens.
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
         await enrichTitleAndThumbnail(in: context, limit: limit)
+        await enrichSourceName(in: context, limit: limit)
         await enrichExcerpt(in: context, limit: limit)
         await redownloadMissingThumbnails(in: context, limit: limit)
     }
@@ -84,6 +85,38 @@ enum LinkMetadataEnricher {
         } else {
             PlutarLog.store.notice("LinkMetadataEnricher: no image/icon provider for \(item.host, privacy: .public)")
         }
+    }
+
+    /// The site's own human-readable name (`og:site_name`/`application-name`
+    /// meta tags), regardless of read state — unlike the excerpt, it's shown
+    /// everywhere a source is named (row, Sources group header, Classement),
+    /// not just Date/Sources. Not gated on `metadataFetched` either: this
+    /// runs as its own pass so a site blocked for `LPMetadataProvider`
+    /// (`fetchTitleAndThumbnail`'s DataDome-style failures, see its own
+    /// comment) still gets a chance here, via a plain HTTP fetch instead.
+    private static func enrichSourceName(in context: ModelContext, limit: Int) async {
+        let descriptor = FetchDescriptor<LinkItem>(
+            predicate: #Predicate { $0.sourceNameFetchAttempted == false }
+        )
+        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
+        for item in pending.prefix(limit) {
+            await fetchSourceName(for: item)
+        }
+        try? context.save()
+    }
+
+    private static func fetchSourceName(for item: LinkItem) async {
+        defer { item.sourceNameFetchAttempted = true }
+
+        // `LinkItem.displaySourceName(forHost:)` already covers this host —
+        // its own site blocks the fetch below, so there's nothing to gain
+        // from actually making the (always-failing) request.
+        guard LinkItem.displaySourceName(forHost: item.host) == item.host else { return }
+
+        guard let url = URL(string: item.urlString) else { return }
+        guard let html = await fetchHTML(for: url) else { return }
+        guard let name = siteName(in: html), !name.isEmpty else { return }
+        item.sourceName = name
     }
 
     /// The HTML meta-description fetch, restricted to links currently
@@ -158,21 +191,22 @@ enum LinkMetadataEnricher {
         return try? await provider.startFetchingMetadata(for: url)
     }
 
-    /// `LPLinkMetadata` doesn't expose the page's meta description, so this
-    /// pulls a capped prefix of the HTML itself and reads it out directly —
-    /// enough to reach `<meta name="description">` /
-    /// `<meta property="og:description">`, which live in `<head>`.
+    /// `LPLinkMetadata` doesn't expose the page's meta description (or its
+    /// site name), so this pulls a capped prefix of the HTML itself and
+    /// reads it out directly — enough to reach whatever's in `<head>`.
     /// `nonisolated` for the same reason as `fetchLinkMetadata` above.
-    private nonisolated static func fetchMetaDescription(for url: URL) async -> String? {
+    /// Shared by `fetchMetaDescription` and `fetchSourceName`.
+    private nonisolated static func fetchHTML(for url: URL) async -> String? {
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
         guard let (data, _) = try? await URLSession.shared.data(for: request) else { return nil }
         let capped = data.prefix(65_536)
-        guard let html = String(data: capped, encoding: .utf8)
+        return String(data: capped, encoding: .utf8)
             ?? String(data: capped, encoding: .isoLatin1)
-        else {
-            return nil
-        }
+    }
+
+    private nonisolated static func fetchMetaDescription(for url: URL) async -> String? {
+        guard let html = await fetchHTML(for: url) else { return nil }
         return metaDescription(in: html)
     }
 
@@ -184,8 +218,29 @@ enum LinkMetadataEnricher {
     ]
 
     private nonisolated static func metaDescription(in html: String) -> String? {
+        firstMatch(descriptionPatterns, in: html)
+    }
+
+    /// Tried in this order: `og:site_name` is the standard Open Graph tag
+    /// for exactly this ("The New York Times", "Le Monde", …); Apple's own
+    /// `apple-mobile-web-app-title` and the generic `application-name` are
+    /// fallbacks some sites use instead.
+    private nonisolated static let siteNamePatterns = [
+        #"<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']*)["']"#,
+        #"<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:site_name["']"#,
+        #"<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]+content=["']([^"']*)["']"#,
+        #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']apple-mobile-web-app-title["']"#,
+        #"<meta[^>]+name=["']application-name["'][^>]+content=["']([^"']*)["']"#,
+        #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']application-name["']"#,
+    ]
+
+    private nonisolated static func siteName(in html: String) -> String? {
+        firstMatch(siteNamePatterns, in: html)
+    }
+
+    private nonisolated static func firstMatch(_ patterns: [String], in html: String) -> String? {
         let range = NSRange(html.startIndex..., in: html)
-        for pattern in descriptionPatterns {
+        for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
             guard let match = regex.firstMatch(in: html, range: range), match.numberOfRanges > 1,
                   let group = Range(match.range(at: 1), in: html)

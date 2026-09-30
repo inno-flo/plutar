@@ -1084,7 +1084,12 @@ struct RootView: View {
     /// "nytimes.com". Elsewhere (the link cards' host line) the full domain
     /// is kept. Same as macOS's `MacSourceRankingView.displayName`.
     private func sourceRankDisplayName(_ host: String) -> String {
-        host.split(separator: ".").first.map(String.init) ?? host
+        if let sourceName = allItems.first(where: { $0.host == host })?.sourceName {
+            return sourceName
+        }
+        let override = LinkItem.displaySourceName(forHost: host)
+        if override != host { return override }
+        return host.split(separator: ".").first.map(String.init) ?? host
     }
 
     /// A plain row — rank, name, count, no gauge/bar-chart background —

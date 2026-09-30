@@ -6,6 +6,9 @@ import SwiftUI
 /// the sidebar's "Classement" row, under Sources, is selected.
 struct MacSourceRankingView: View {
     let sourceRanks: [SourceRank]
+    /// Only consulted for `displayName(_:)` — a host has no name of its own
+    /// on `SourceRank`, so this looks one up from any link that shares it.
+    let allItems: [LinkItem]
     let theme: AppTheme
     let appFont: AppFont
     let effectiveBackground: Color
@@ -84,7 +87,12 @@ struct MacSourceRankingView: View {
     }
 
     private func displayName(_ host: String) -> String {
-        host.split(separator: ".").first.map(String.init) ?? host
+        if let sourceName = allItems.first(where: { $0.host == host })?.sourceName {
+            return sourceName
+        }
+        let override = LinkItem.displaySourceName(forHost: host)
+        if override != host { return override }
+        return host.split(separator: ".").first.map(String.init) ?? host
     }
 
     private func rankRow(rank: Int, host: String, count: Int) -> some View {

@@ -329,7 +329,7 @@ struct LinkRowView: View {
     // MARK: Shared pieces
 
     private var hostRow: some View {
-        Text(item.host)
+        Text(item.displaySourceName)
             .font(appFont.font(size: 13, weight: .regular))
             .foregroundStyle(isSelected ? selectedTextColor : (item.isRead && theme == .tokyo ? Self.tokyoReadTextColor : (isSoirRead ? theme.ink(0.5) : theme.ink(0.52))))
             .lineLimit(1)
