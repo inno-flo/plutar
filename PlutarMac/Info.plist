@@ -23,6 +23,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© Innoflo</string>
+	<string>Florian Innocente
+florianinnocente.com</string>
 </dict>
 </plist>

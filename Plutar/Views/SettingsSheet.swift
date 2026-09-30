@@ -147,6 +147,12 @@ struct SettingsSheet: View {
                             } message: {
                                 Text("Tous les liens seront supprimés définitivement.")
                             }
+
+                            Text("Florian Innocente\nflorianinnocente.com")
+                                .font(.footnote)
+                                .foregroundStyle(Color(white: 0.4))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 12)
                         }
                     }
                     .padding(.top, 6)
