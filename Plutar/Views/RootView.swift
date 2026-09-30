@@ -673,12 +673,12 @@ struct RootView: View {
                 }
 
                 if mode == .read && !groups.isEmpty {
-                    // Grouping/collapse control above, clear-read below —
+                    // Clear-read above, grouping/collapse control below —
                     // same spot and stacking Sources uses for its own
                     // toggle-all + mark-all-read pair.
                     VStack(spacing: 14) {
-                        readGroupingControl
                         floatingButton(icon: "trash") { showClearReadConfirm = true }
+                        readGroupingControl
                     }
                     .padding(.trailing, 18)
                     .padding(.bottom, 30)
@@ -789,7 +789,8 @@ struct RootView: View {
     }
 
     /// Lus only: the grouping toggle (globe/calendar) and collapse-all/
-    /// expand-all toggle (rectangle.grid.1x3/1x2), joined into one capsule —
+    /// expand-all toggle (inset.filled…rectangle/square.fill.text.grid.1x2,
+    /// the latter mirrored), joined into one capsule —
     /// same two controls `MacFeedList`'s toolbar exposes as separate
     /// buttons, grouped here the way its 3-way presentation switcher joins
     /// icons into a single block instead of each floating on its own like
@@ -813,7 +814,10 @@ struct RootView: View {
                 collapsedReadGroups = wasAllCollapsed ? Set(groups.map(\.id)) : []
             }
             Divider().frame(width: 20).opacity(0.3)
-            groupingControlButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x2" : "rectangle.grid.1x3") {
+            groupingControlButton(
+                icon: allReadGroupsCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle",
+                flipped: allReadGroupsCollapsed
+            ) {
                 if allReadGroupsCollapsed {
                     collapsedReadGroups = []
                 } else {
@@ -827,16 +831,18 @@ struct RootView: View {
     }
 
     /// One half of `readGroupingControl` — same icon size/color as
-    /// `floatingButton`, but without its own individual glass background
-    /// (the capsule around both halves supplies that instead).
-    private func groupingControlButton(icon: String, action: @escaping () -> Void) -> some View {
+    /// `floatingButton` (and thus the trash button above it), but without
+    /// its own individual glass background (the capsule around both halves
+    /// supplies that instead).
+    private func groupingControlButton(icon: String, size: CGFloat = 22, flipped: Bool = false, action: @escaping () -> Void) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.25)) {
                 action()
             }
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: size, weight: .semibold))
+                .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
                 .frame(width: 44, height: 44)
         }
