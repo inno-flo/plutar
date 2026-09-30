@@ -112,6 +112,9 @@ struct RootView: View {
 
     @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
+    /// Set instead of deleting immediately — same confirmation-gated
+    /// pattern as macOS's `MacSourceRankingView.hostPendingDelete`.
+    @State private var rankHostPendingDelete: String?
     /// Raised by `persist()` when a write to the store fails.
     @State private var saveFailed = false
 
@@ -213,14 +216,13 @@ struct RootView: View {
     /// link is added and shrinks when one is marked read (leaving Date/Sources).
     private var currentCount: Int { visibleItems.count }
 
-    /// One entry per host — merges any rows CloudKit sync left sharing the
-    /// same host (see `SourceRank`'s comment) instead of assuming
-    /// `sourceRanks` is already collision-free.
-    private var rankedSources: [(host: String, count: Int)] { SourceRank.aggregated(sourceRanks) }
-
-    /// Highest tally in the source ranking — the reference each row's width
-    /// is scaled against (see `sourceRankRow`).
-    private var maxSourceRankCount: Int { rankedSources.map(\.count).max() ?? 1 }
+    /// The 10 most-shared sources — merges any rows CloudKit sync left
+    /// sharing the same host (see `SourceRank`'s comment) instead of
+    /// assuming `sourceRanks` is already collision-free, then keeps only
+    /// the top 10 (already sorted descending by `aggregated`).
+    private var rankedSources: [(host: String, count: Int)] {
+        Array(SourceRank.aggregated(sourceRanks).prefix(15))
+    }
 
     /// Per-theme override for the link-count counters' background — nil
     /// everywhere else, so callers fall back to their own default
@@ -445,6 +447,22 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
             Button("Marquer comme lus") { markAllAsRead() }
         }
+        // `.alert`, not `.confirmationDialog` — the latter can render as a
+        // compact popover anchored near the triggering context menu instead
+        // of centered, unlike every other confirmation in this file (all
+        // `.alert`, all reliably centered regardless of what triggered them).
+        .alert(
+            "Supprimer \(rankHostPendingDelete.map(sourceRankDisplayName) ?? "cette source") du classement ?",
+            isPresented: Binding(
+                get: { rankHostPendingDelete != nil },
+                set: { if !$0 { rankHostPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let host = rankHostPendingDelete { deleteSourceRank(for: host) }
+            }
+        }
         .alert("Enregistrement impossible", isPresented: $saveFailed) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -598,13 +616,13 @@ struct RootView: View {
                     if mode == .source && !sourceRanks.isEmpty {
                         Section {
                             ForEach(Array(rankedSources.enumerated()), id: \.element.host) { index, rank in
-                                sourceRankRow(rank: index + 1, host: rank.host, count: rank.count, maxCount: maxSourceRankCount)
+                                sourceRankRow(rank: index + 1, host: rank.host, count: rank.count)
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                                     .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                             }
                         } header: {
-                            Text("Sources les plus partagées")
+                            Text("Les 15 sources les plus partagées")
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundStyle(theme.ink(0.55))
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -782,16 +800,20 @@ struct RootView: View {
     private var readGroupingControl: some View {
         VStack(spacing: 0) {
             groupingControlButton(icon: readGroupedBySource ? "calendar" : "globe") {
-                readGroupedBySource.toggle()
                 // Collapsed-group ids belong to whichever grouping was
-                // active when they were collapsed (day keys vs. hosts) —
-                // stale otherwise, so a switch starts every group expanded
-                // again rather than carrying over an unrelated collapsed
-                // state.
-                collapsedReadGroups = []
+                // active when they were collapsed (day keys vs. hosts), so
+                // they can't carry over as-is — but the all-or-nothing
+                // "everything folded" state itself should: re-derived
+                // against the new grouping's own ids instead of just
+                // dropped. A partial (some-but-not-all) collapse has no
+                // equivalent in the other grouping, so only the two
+                // extremes survive the switch.
+                let wasAllCollapsed = allReadGroupsCollapsed
+                readGroupedBySource.toggle()
+                collapsedReadGroups = wasAllCollapsed ? Set(groups.map(\.id)) : []
             }
             Divider().frame(width: 20).opacity(0.3)
-            groupingControlButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x3" : "rectangle.grid.1x2") {
+            groupingControlButton(icon: allReadGroupsCollapsed ? "rectangle.grid.1x2" : "rectangle.grid.1x3") {
                 if allReadGroupsCollapsed {
                     collapsedReadGroups = []
                 } else {
@@ -1051,57 +1073,37 @@ struct RootView: View {
         .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
     }
 
-    /// A row's width is proportional to its share of `maxCount` (the
-    /// top-ranked source's own count) — a bar-chart-like read on
-    /// importance, not just the numeral shown at its trailing edge.
-    /// The domain suffix (".com", ".fr", ".net"…) is dropped for this
-    /// ranking specifically — `sourceRankRow` names its capsules "nytimes",
-    /// not "nytimes.com". Elsewhere (the link cards' host line) the full
-    /// domain is kept.
+    /// The domain suffix (".com", ".fr", ".net"…) is dropped for the
+    /// ranking specifically — `sourceRankRow` names its rows "nytimes", not
+    /// "nytimes.com". Elsewhere (the link cards' host line) the full domain
+    /// is kept. Same as macOS's `MacSourceRankingView.displayName`.
     private func sourceRankDisplayName(_ host: String) -> String {
         host.split(separator: ".").first.map(String.init) ?? host
     }
 
-    private func sourceRankRow(rank: Int, host: String, count: Int, maxCount: Int) -> some View {
-        GeometryReader { proxy in
-            let ratio = maxCount > 0 ? CGFloat(count) / CGFloat(maxCount) : 1
-            let width = max(proxy.size.width * ratio, 140)
-            HStack(spacing: 12) {
-                Text("\(rank)")
-                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.ink(0.4))
-                    .frame(width: 22, alignment: .leading)
-                Text(sourceRankDisplayName(host))
-                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
-                    // Soir themes: match the rank/count's own muted ink tone
-                    // instead of the full-strength title color.
-                    .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
-                    .lineLimit(1)
-                    // Never truncated: readability of the name outranks the
-                    // capsule's width staying strictly proportional to
-                    // `count`. `width` below is a floor, not a cap — a name
-                    // that doesn't fit at the proportional width grows the
-                    // capsule past it instead of clipping/eliding.
-                    .fixedSize()
-                Spacer(minLength: 8)
-                Text("\(count)")
-                    .font(.system(size: 16.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.ink(0.5))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minWidth: width, alignment: .leading)
-            // Filled with the view's own background (not `card`) and outlined
-            // in the theme's chip/counter color, across every theme.
-            .background(effectiveBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(theme.chip, lineWidth: 1)
-            }
-            .fixedSize(horizontal: true, vertical: false)
+    /// A plain row — rank, name, count, no gauge/bar-chart background —
+    /// identical in spirit to macOS's own `MacSourceRankingView.rankRow`.
+    private func sourceRankRow(rank: Int, host: String, count: Int) -> some View {
+        HStack(spacing: 12) {
+            Text("\(rank)")
+                .foregroundStyle(theme.ink(0.4))
+                .frame(width: 22, alignment: .leading)
+            Text(sourceRankDisplayName(host))
+                // Soir themes: match the rank/count's own muted ink tone
+                // instead of the full-strength title color.
+                .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Text("\(count)")
+                .foregroundStyle(theme.ink(0.5))
         }
-        .frame(height: 44)
+        .font(.system(size: 16.5, weight: .bold, design: .rounded))
+        .padding(.horizontal, 4)
+        .contextMenu {
+            Button("Supprimer cette source…", role: .destructive) {
+                rankHostPendingDelete = host
+            }
+        }
     }
 
     private var undoToast: some View {
@@ -1305,6 +1307,17 @@ struct RootView: View {
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
+        persist()
+    }
+
+    /// Removes every underlying `SourceRank` row for `host` — `rankedSources`
+    /// already merges same-host rows for display (see `SourceRank.aggregated`),
+    /// so there can be more than one to delete. Same as macOS's
+    /// `MacSourceRankingView.deleteRank(for:)`.
+    private func deleteSourceRank(for host: String) {
+        for rank in sourceRanks where rank.host == host {
+            modelContext.delete(rank)
+        }
         persist()
     }
 

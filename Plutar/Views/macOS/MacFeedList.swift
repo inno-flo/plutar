@@ -241,13 +241,17 @@ struct MacFeedList: View {
             if mode == .read && !currentGroups.isEmpty {
                 ToolbarItemGroup {
                     Button {
-                        readGroupedBySource.toggle()
                         // Collapsed-group ids belong to whichever grouping
                         // was active when they were collapsed (day keys vs.
-                        // hosts) — stale otherwise, so a switch starts every
-                        // group expanded again rather than carrying over an
-                        // unrelated collapsed state.
-                        collapsedReadGroups = []
+                        // hosts), so they can't carry over as-is — but the
+                        // all-or-nothing "everything folded" state itself
+                        // should: re-derived against the new grouping's own
+                        // ids instead of just dropped. A partial (some-but-
+                        // not-all) collapse has no equivalent in the other
+                        // grouping, so only the two extremes survive.
+                        let wasAllCollapsed = allReadGroupsCollapsed(in: currentGroups)
+                        readGroupedBySource.toggle()
+                        collapsedReadGroups = wasAllCollapsed ? Set(groups.map(\.id)) : []
                     } label: {
                         Label(
                             readGroupedBySource ? "Grouper par date" : "Grouper par source",

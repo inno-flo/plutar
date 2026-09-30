@@ -15,10 +15,13 @@ struct MacSourceRankingView: View {
     /// pattern as `MacFeedList`'s own pending-delete state.
     @State private var hostPendingDelete: String?
 
-    /// Merges any rows CloudKit sync left sharing the same host (see
-    /// `SourceRank`'s own comment) instead of assuming `sourceRanks` is
-    /// already collision-free.
-    private var ranked: [(host: String, count: Int)] { SourceRank.aggregated(sourceRanks) }
+    /// The 15 most-shared sources — merges any rows CloudKit sync left
+    /// sharing the same host (see `SourceRank`'s own comment) instead of
+    /// assuming `sourceRanks` is already collision-free, then keeps only
+    /// the top 15 (already sorted descending by `aggregated`).
+    private var ranked: [(host: String, count: Int)] {
+        Array(SourceRank.aggregated(sourceRanks).prefix(15))
+    }
 
     var body: some View {
         Group {
@@ -35,7 +38,7 @@ struct MacSourceRankingView: View {
                     // plain-style Section headers to the top while
                     // scrolling, which reads as UI stuck to the window
                     // rather than part of the list.
-                    Text("Sources les plus partagées")
+                    Text("Les 15 sources les plus partagées")
                         .font(appFont.font(size: 13, weight: .semibold))
                         .foregroundStyle(theme.ink(0.6))
                         .padding(.horizontal, 18)
