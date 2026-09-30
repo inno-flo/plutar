@@ -406,7 +406,7 @@ enum LinkLayout: String, CaseIterable, Identifiable {
     var symbolName: String {
         switch self {
         case .rail: return "text.justify"
-        case .card: return "square.fill.text.grid.1x2"
+        case .card: return "list.bullet.rectangle"
         case .editorial: return "richtext.page"
         }
     }

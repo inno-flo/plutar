@@ -255,7 +255,7 @@ struct MacFeedList: View {
                     } label: {
                         Label(
                             readGroupedBySource ? "Grouper par date" : "Grouper par source",
-                            systemImage: readGroupedBySource ? "calendar" : "globe.fill"
+                            systemImage: readGroupedBySource ? "calendar" : "globe"
                         )
                     }
                     .help(readGroupedBySource ? "Grouper par date" : "Grouper par source")
@@ -268,12 +268,13 @@ struct MacFeedList: View {
                             collapsedReadGroups = Set(currentGroups.map(\.id))
                         }
                     } label: {
-                        // Showing "collapse all" (1x3) until every group
-                        // actually is collapsed, then "expand all" (1x2) —
-                        // matches whatever double-clicking individual
-                        // headers already did, not just this button's own
-                        // last click.
-                        Image(systemName: allReadGroupsCollapsed(in: currentGroups) ? "rectangle.grid.1x2" : "rectangle.grid.1x3")
+                        // Showing "collapse all" until every group actually
+                        // is collapsed, then "expand all" — matches whatever
+                        // double-clicking individual headers already did,
+                        // not just this button's own last click. Same icon
+                        // pair as iOS's own equivalent control.
+                        Image(systemName: allReadGroupsCollapsed(in: currentGroups) ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle")
+                            .scaleEffect(x: allReadGroupsCollapsed(in: currentGroups) ? -1 : 1, y: 1)
                     }
                     .help(allReadGroupsCollapsed(in: currentGroups) ? "Tout déplier" : "Tout replier")
                 }
@@ -359,8 +360,17 @@ struct MacFeedList: View {
     private var layoutSwitcher: some View {
         Picker("Présentation du fil", selection: $layout) {
             ForEach(LinkLayout.allCases) { l in
-                Image(systemName: l.symbolName)
-                    .scaleEffect(x: l.symbolIsMirrored ? -1 : 1, y: 1)
+                // `Picker(.segmented)` bakes each `Image` into a static
+                // `NSSegmentedControl` segment image — neither a plain
+                // `.scaleEffect` nor an `.environment(\.layoutDirection)`
+                // (which *did* pick the symbol's own right-to-left variant,
+                // confirmed visually, but got lost once `.imageScale` was
+                // added alongside it) survives that conversion reliably.
+                // Baking the flip into the image's own pixels via
+                // `Self.symbolImage`, with an explicit point size matching
+                // what `.imageScale(.large)` produced, is deterministic
+                // regardless of how the Picker bakes its segments.
+                Image(nsImage: Self.symbolImage(l.symbolName, mirrored: l.symbolIsMirrored))
                     .help(l.presentationHelp)
                     .tag(l)
             }
@@ -368,6 +378,30 @@ struct MacFeedList: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .fixedSize()
+    }
+
+    /// An SF Symbol as an `NSImage`, horizontally flipped at the pixel
+    /// level when `mirrored` — see `layoutSwitcher`'s own comment for why
+    /// baking this in is more reliable than a SwiftUI-side modifier inside
+    /// a segmented `Picker`. `.large` matches the size the mirrored icon
+    /// needs to visually match its two un-mirrored, default-size siblings.
+    private static func symbolImage(_ name: String, mirrored: Bool) -> NSImage {
+        let configuration: NSImage.SymbolConfiguration? = mirrored ? .init(scale: .large) : nil
+        let base = (NSImage(systemSymbolName: name, accessibilityDescription: nil))
+            .flatMap { image in configuration.flatMap { image.withSymbolConfiguration($0) } ?? image }
+            ?? NSImage()
+        guard mirrored else { return base }
+        let flipped = NSImage(size: base.size, flipped: false) { rect in
+            NSGraphicsContext.current?.cgContext.translateBy(x: rect.width, y: 0)
+            NSGraphicsContext.current?.cgContext.scaleBy(x: -1, y: 1)
+            base.draw(in: rect)
+            return true
+        }
+        // Keeps the symbol rendering as a template (tintable, theme-aware)
+        // image rather than a fixed-color bitmap — `draw(in:)` above copies
+        // pixels, not this flag, so it has to be set again on the result.
+        flipped.isTemplate = base.isTemplate
+        return flipped
     }
 
     @ViewBuilder
@@ -452,19 +486,32 @@ struct MacFeedList: View {
                     }
                     .buttonStyle(.plain)
                 } else {
-                    Text(group.label)
-                        .foregroundStyle(dayLabelColor)
-                        // Lus only — Date has no collapse feature. Toggles
-                        // just this one group, independent of the toolbar's
-                        // collapse-all/expand-all button.
-                        .onTapGesture(count: 2) {
-                            guard mode == .read else { return }
-                            if collapsedReadGroups.contains(group.id) {
-                                collapsedReadGroups.remove(group.id)
-                            } else {
-                                collapsedReadGroups.insert(group.id)
-                            }
+                    HStack(spacing: 6) {
+                        Text(group.label)
+                            .foregroundStyle(dayLabelColor)
+                        // Lus only — a link-count pastille, same idea as
+                        // Sources' own count badge above.
+                        if mode == .read {
+                            Text("\(group.items.count)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(theme.ink(0.6))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(theme.ink(0.12))
+                                .clipShape(Capsule())
                         }
+                    }
+                    // Lus only — Date has no collapse feature. Toggles
+                    // just this one group, independent of the toolbar's
+                    // collapse-all/expand-all button.
+                    .onTapGesture(count: 1) {
+                        guard mode == .read else { return }
+                        if collapsedReadGroups.contains(group.id) {
+                            collapsedReadGroups.remove(group.id)
+                        } else {
+                            collapsedReadGroups.insert(group.id)
+                        }
+                    }
                 }
                 Spacer()
                 if expandedSourcesButtonVisible(group) {
@@ -476,7 +523,7 @@ struct MacFeedList: View {
                         Image(systemName: "checkmark.circle")
                     }
                     .buttonStyle(.plain)
-                } else if mode == .read {
+                } else if mode == .read && !collapsedReadGroups.contains(group.id) {
                     Button {
                         groupItemsPendingDelete = group.items
                     } label: {
