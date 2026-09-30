@@ -148,6 +148,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         // here (its Lus tone was just `card` tinted toward `background`,
         // see LinkRowView), which worked out to about this color.
         case .scand: return Color(hex: "#ECE4DC")
+        case .tokyo: return Color(hex: "#C6C6C6")
         default: return nil
         }
     }
