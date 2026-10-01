@@ -27,6 +27,11 @@ struct MacSidebarView: View {
     let onPickTheme: (AppTheme) -> Void
 
     @State private var sourcesExpanded = true
+    /// Toggled by the "Sources" row's own sort button — alphabetical
+    /// (`sourceGroups`' original default) when true, ascending link count
+    /// when false. "Classement" itself isn't affected — it's a fixed first
+    /// row in the `DisclosureGroup`, not part of `sourceGroups`.
+    @State private var sourcesSortedAlphabetically = true
 
     /// Leading inset that lines the dots' left edge up with the "Sources"
     /// disclosure chevron above them. An estimate of the sidebar's own
@@ -55,11 +60,21 @@ struct MacSidebarView: View {
     private var unreadCount: Int { allItems.lazy.filter { !$0.isRead }.count }
     private var readCount: Int { allItems.lazy.filter { $0.isRead }.count }
 
-    /// Alphabetical, unlike `FeedGrouping.makeGroups`'s own count-first sort
-    /// (which suits a merged feed screen, not a sidebar list of sources).
+    /// Alphabetical by default, unlike `FeedGrouping.makeGroups`'s own
+    /// count-first sort (which suits a merged feed screen, not a sidebar
+    /// list of sources) — or descending link count (most-shared first),
+    /// toggled via the "Sources" row's sort button
+    /// (`sourcesSortedAlphabetically`).
     private var sourceGroups: [FeedGroup] {
-        FeedGrouping.makeGroups(allItems, mode: .source)
-            .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+        let groups = FeedGrouping.makeGroups(allItems, mode: .source)
+        if sourcesSortedAlphabetically {
+            return groups.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+        }
+        return groups.sorted { a, b in
+            a.items.count != b.items.count
+                ? a.items.count > b.items.count
+                : a.label.localizedStandardCompare(b.label) == .orderedAscending
+        }
     }
 
     var body: some View {
@@ -87,8 +102,21 @@ struct MacSidebarView: View {
             } label: {
                 // A click anywhere on this label toggles `sourcesExpanded`
                 // via `DisclosureGroup`'s own built-in behavior — no
-                // separate button/chevron needed.
-                Label("Sources", systemImage: "globe.fill")
+                // separate button/chevron needed. The sort `Button` below
+                // still takes its own taps first (SwiftUI routes a tap to
+                // the innermost interactive control), so it doesn't also
+                // collapse/expand the group.
+                HStack {
+                    Label("Sources", systemImage: "globe.fill")
+                    Spacer()
+                    Button {
+                        sourcesSortedAlphabetically.toggle()
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Trier par nom ou par nombre")
+                }
             }
         }
         .listStyle(.sidebar)
