@@ -55,6 +55,20 @@ enum SharedStore {
         return try ModelContainer(for: LinkItem.self, SourceRank.self, configurations: configuration)
     }
 
+    /// The one container a share-extension process uses, for every share it
+    /// handles — created on first access, then kept for the life of the
+    /// process. Both extensions used to call `makeContainer()` as a local
+    /// inside `save()`, which released the container (and with it the
+    /// persistent store) a few milliseconds after the save, while
+    /// `NSPersistentCloudKitContainer`'s asynchronous CloudKit setup was
+    /// still running: every share logged `Failed to initialize CloudKit
+    /// metadata` (134407) followed by "store was removed" / "tear down:
+    /// Store Removed", and nothing was ever exported until the main app
+    /// (which holds its container for its whole lifetime) next ran. A
+    /// macOS extension process can also handle several shares in a row, and
+    /// a fresh container per share meant a fresh CloudKit setup each time.
+    static let extensionContainer = Result { try makeContainer() }
+
     /// Where `LinkMetadataEnricher` saves downloaded preview images, keyed
     /// by `LinkItem.id`. In the App Group container (not the app's own
     /// Documents/Caches) so it's readable regardless of which process — app
@@ -79,31 +93,24 @@ enum SharedStore {
         try? FileManager.default.removeItem(at: directory.appendingPathComponent(fileName))
     }
 
-    /// Called by both share extensions right after `context.save()`, before
-    /// they call `completeRequest`. `NSPersistentCloudKitContainer` (behind
-    /// `cloudKitDatabase:` above) kicks off the push to CloudKit
-    /// asynchronously once a save happens — it doesn't finish inside
-    /// `save()` itself — but a share extension's process tends to get torn
-    /// down very soon after `completeRequest`, often before that export has
-    /// actually left the device. Left alone, a link shared while Plutar's
-    /// main app hasn't been opened on that device would just sit
-    /// local-only, invisible everywhere else, until the app (or this
-    /// extension again) happened to run and give the container another
-    /// chance to flush it.
+    /// Called by both share extensions right after a successful save (off
+    /// the main thread — this blocks). `NSPersistentCloudKitContainer`
+    /// (behind `cloudKitDatabase:` above) pushes a save to CloudKit
+    /// asynchronously, after `save()` has returned, so the extension has to
+    /// stay around — process *and* `extensionContainer` — until that export
+    /// has actually left the device; otherwise a link shared while Plutar
+    /// isn't running sits local-only until the main app next runs.
     ///
     /// On iOS, `ProcessInfo.performExpiringActivity` asks the OS for a short
     /// grace period of background runtime beyond the extension's own
-    /// lifecycle to do exactly this kind of cleanup — unavailable on macOS,
-    /// which doesn't tear down an extension's process on the same tight
-    /// leash to begin with, so the wait below just runs directly there.
-    /// Either way this blocks (on a background queue — callers dispatch off
-    /// the main thread before calling this) until
-    /// `NSPersistentCloudKitContainer` reports the export finished, or
-    /// `timeout` elapses, whichever comes first. Best effort, not a
-    /// guarantee — a slow network or an already-expiring activity can still
-    /// mean the export doesn't make it out in time, in which case the link
-    /// is caught by the same fallback as before (the next process to touch
-    /// this container).
+    /// lifecycle (the share sheet itself is dismissed independently, after
+    /// the brief confirmation) — unavailable on macOS, where on-device logs
+    /// showed the extension process staying alive after `completeRequest`
+    /// anyway, so the wait just runs directly there. Either way this
+    /// returns once `NSPersistentCloudKitContainer` reports an export
+    /// finished, or `timeout` elapses. Best effort, not a guarantee — if
+    /// the export doesn't make it out in time, the next process to open the
+    /// store (usually the main app) exports it.
     static func waitForPendingCloudKitExport(timeout: TimeInterval = 25) {
         #if os(iOS)
         ProcessInfo.processInfo.performExpiringActivity(withReason: "com.innoflo.plutar.cloudkit-export") { expiring in

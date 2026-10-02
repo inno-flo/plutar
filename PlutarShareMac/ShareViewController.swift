@@ -49,7 +49,10 @@ final class ShareViewController: NSViewController {
 
     private func save(url: URL, title: String?, sourceApp: String) {
         do {
-            let container = try SharedStore.makeContainer()
+            // Process-wide, not a local: see `SharedStore.extensionContainer`
+            // — a local was released right after this save, mid CloudKit
+            // setup, so nothing was ever exported.
+            let container = try SharedStore.extensionContainer.get()
             try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
             embed(NSHostingController(rootView: AnyView(ShareSavedView())))
             // Shrink the window to just the checkmark square (the error
@@ -57,17 +60,10 @@ final class ShareViewController: NSViewController {
             let size = NSSize(width: 136, height: 136)
             preferredContentSize = size
             view.setFrameSize(size)
-            // See `SharedStore.waitForPendingCloudKitExport`'s doc comment —
-            // on-device testing showed the wait never actually observing a
-            // single CloudKit sync event even across a full timeout kept
-            // alive, meaning it wasn't a process-teardown race to begin
-            // with. Blocking the share sheet open bought nothing but bad
-            // UX — the confirmation below is the only thing that stays up,
-            // and only briefly.
+            // The sheet doesn't wait for CloudKit — the confirmation stays
+            // up only briefly — but the export wait below keeps going after
+            // it's dismissed (see `SharedStore.waitForPendingCloudKitExport`).
             finishAfterDelay()
-            // Fire-and-forget, purely diagnostic: still logs whatever
-            // CloudKit sync events (if any) show up in the time the process
-            // happens to survive, without holding the UI up for it.
             DispatchQueue.global(qos: .utility).async {
                 SharedStore.waitForPendingCloudKitExport()
             }
