@@ -9,17 +9,13 @@ import OSLog
 /// it started in) so every target that saves to the store — both apps and
 /// both share extensions — can use it.
 enum PlutarLog {
-    static let store = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "Plutar",
-        category: "store"
-    )
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "Plutar"
+
+    static let store = Logger(subsystem: subsystem, category: "store")
 
     /// Used by both `PlutarShare` and `PlutarShareMac` to log when a share
     /// couldn't be turned into a link — otherwise the only trace is the
     /// generic "aucun lien n'a été trouvé" message shown to the user, with
     /// no way to tell which of several possible causes it was.
-    static let shareExtension = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "Plutar",
-        category: "shareExtension"
-    )
+    static let shareExtension = Logger(subsystem: subsystem, category: "shareExtension")
 }

@@ -28,35 +28,16 @@ final class SourceRank {
     }
 
     /// Finds (or creates) the rank entry for `host` and bumps it by one.
-    static func bump(_ host: String, in context: ModelContext) {
-        bump([host], in: context)
-    }
-
-    /// Bumps every host in `hosts` — repeats included, one increment each.
     ///
-    /// Does a single fetch of the existing entries up front and resolves the
-    /// rest in memory, rather than running its own predicate fetch per host
-    /// — there are only ever a handful of hosts, so fetching them all at
-    /// once is cheaper than one lookup each.
-    static func bump(_ hosts: [String], in context: ModelContext) {
-        guard !hosts.isEmpty else { return }
-        var known: [String: SourceRank] = [:]
-        for rank in (try? context.fetch(FetchDescriptor<SourceRank>())) ?? [] {
-            known[rank.host] = rank
-        }
-        for host in hosts {
-            if let existing = known[host] {
-                existing.count += 1
-            } else {
-                let created = SourceRank(host: host, count: 1)
-                context.insert(created)
-                // Kept so a repeat of the same host in `hosts` increments the
-                // entry just created rather than inserting a duplicate within
-                // this same call — not a database constraint (there is none
-                // any more, see the type-level comment above), just this
-                // function's own in-memory bookkeeping.
-                known[host] = created
-            }
+    /// Fetches just this host's entry rather than every rank — not a
+    /// database constraint (there is none any more, see the type-level
+    /// comment above), just a lookup.
+    static func bump(_ host: String, in context: ModelContext) {
+        let descriptor = FetchDescriptor<SourceRank>(predicate: #Predicate { $0.host == host })
+        if let existing = (try? context.fetch(descriptor))?.first {
+            existing.count += 1
+        } else {
+            context.insert(SourceRank(host: host, count: 1))
         }
     }
 
@@ -68,13 +49,20 @@ final class SourceRank {
     /// tie-break so the order doesn't depend on fetch/merge order.
     static func aggregated(_ ranks: [SourceRank]) -> [(host: String, count: Int)] {
         var totals: [String: Int] = [:]
-        var order: [String] = []
-        for rank in ranks {
-            if totals[rank.host] == nil { order.append(rank.host) }
-            totals[rank.host, default: 0] += rank.count
-        }
-        return order
-            .map { (host: $0, count: totals[$0] ?? 0) }
+        for rank in ranks { totals[rank.host, default: 0] += rank.count }
+        return totals
+            .map { (host: $0.key, count: $0.value) }
             .sorted { a, b in a.count != b.count ? a.count > b.count : a.host < b.host }
+    }
+
+    /// Name shown for `host` in the ranking (iOS Sources tab and macOS
+    /// `MacSourceRankingView`) — the site's own name when known (see
+    /// `LinkItem.displaySourceName(forHost:in:)`), else the domain with its
+    /// suffix (".com", ".fr", ".net"…) dropped: "nytimes", not "nytimes.com".
+    /// Elsewhere (the link cards' host line) the full domain is kept.
+    static func displayName(forHost host: String, in items: [LinkItem]) -> String {
+        let name = LinkItem.displaySourceName(forHost: host, in: items)
+        if name != host { return name }
+        return host.split(separator: ".").first.map(String.init) ?? host
     }
 }

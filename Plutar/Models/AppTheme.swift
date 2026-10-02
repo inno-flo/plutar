@@ -3,26 +3,16 @@ import SwiftUI
 extension Color {
     /// Convenience initializer from a "#RRGGBB" or "#RRGGBBAA" hex string.
     init(hex: String) {
-        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        s.removeAll { $0 == "#" }
-        var value: UInt64 = 0
-        Scanner(string: s).scanHexInt64(&value)
-        let r: Double
-        let g: Double
-        let b: Double
-        let a: Double
-        if s.count == 8 {
-            r = Double((value >> 24) & 0xFF) / 255
-            g = Double((value >> 16) & 0xFF) / 255
-            b = Double((value >> 8) & 0xFF) / 255
-            a = Double(value & 0xFF) / 255
-        } else {
-            r = Double((value >> 16) & 0xFF) / 255
-            g = Double((value >> 8) & 0xFF) / 255
-            b = Double(value & 0xFF) / 255
-            a = 1
-        }
-        self.init(red: r, green: g, blue: b, opacity: a)
+        let s = hex.trimmingCharacters(in: CharacterSet(charactersIn: "# \n"))
+        let value = UInt64(s, radix: 16) ?? 0
+        let hasAlpha = s.count == 8
+        let rgb = hasAlpha ? value >> 8 : value
+        self.init(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255,
+            opacity: hasAlpha ? Double(value & 0xFF) / 255 : 1
+        )
     }
 }
 
@@ -31,9 +21,6 @@ extension Color {
 /// used for cards / thumbnail placeholders / chips.
 enum AppTheme: String, CaseIterable, Identifiable {
     case tokyo, tokyoSoir, scand, scandSoir, blanc, blancSoir, astronaute, astronauteSoir
-
-    /// Themes offered in the Affichage picker — every case.
-    static var selectable: [AppTheme] { allCases }
 
     /// Whether this is a "soir" (dark) variant of another theme.
     var isSoir: Bool {
@@ -166,7 +153,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return Color(hex: "#C23D00")
         // Tokyo's pill swapped hues with its counter badge: black here
         // (was red), a near-black gray in soir (was dark red) — see
-        // `RootView.counterBackgroundOverride` for the other half of the
+        // `RootView.counterBackground` for the other half of the
         // swap.
         case .tokyo: return .black
         case .tokyoSoir: return Color(hex: "#2B2B2B")
@@ -176,7 +163,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Color of this theme's dot in the settings' "Thème" grid and in the
     /// Mac sidebar's quick-switch row. Same as `chip` except Tokyo (red) and
     /// Copenhague (ochre yellow), which show the accent the iPhone version
-    /// uses for their counters (`RootView.counterBackgroundOverride`) —
+    /// uses for their counters (`RootView.counterBackground`) —
     /// Tokyo's `chip` is black, and Copenhague's blue-gray doesn't read as
     /// that theme's signature color. Each nuit variant keeps its own darker
     /// tone of the same hue, matching that override.
@@ -195,10 +182,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// as a pill fill but is nearly invisible as a selected-label color on
     /// the tab bar's own near-black background, so this uses the same dark
     /// red already assigned to Tokyo nuit's counter badge instead (see
-    /// `counterBackgroundOverride` in RootView) — visible, and still in the
+    /// `counterBackground` in RootView) — visible, and still in the
     /// swapped-red family the theme already uses.
     var tabTint: Color {
-        self == .tokyoSoir ? Color(hex: "#BC002D") : chip
+        self == .tokyoSoir ? dotColor : chip
     }
 
     /// Text color drawn on top of `chip` (and the counter badge) — white for
@@ -228,9 +215,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .blanc: return Color(hex: "#E53935")
         case .blancSoir: return Color(hex: "#7A1F1F")
         // Cap Canaveral clair reuses Tokyo clair's own red.
-        case .astronaute: return Color(hex: "#E1000F")
+        case .astronaute, .tokyo: return Color(hex: "#E1000F")
         case .astronauteSoir, .scandSoir, .tokyoSoir: return Color(hex: "#8C2F2F")
-        case .tokyo: return Color(hex: "#E1000F")
         default: return nil
         }
     }
@@ -258,8 +244,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         // Cap Canaveral clair uses its own lighter neutral, distinct from
         // soir's darker value.
         case .astronaute: return Color(hex: "#8A8F99")
-        case .astronauteSoir: return Color(hex: "#4A4A4E")
-        case .scandSoir: return Color(hex: "#4A4A4E")
+        case .astronauteSoir, .scandSoir: return Color(hex: "#4A4A4E")
         default: return .gray
         }
     }
@@ -279,15 +264,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
                 blue: (b + (255 - b) * 0.2) / 255
             )
         default: return ink(1)
-        }
-    }
-
-    var countForeground: Color {
-        switch self {
-        case .astronaute, .scand, .tokyo, .astronauteSoir, .tokyoSoir: return .white
-        case .blanc: return Color(hex: "#E1F3FC")
-        // Copenhague soir falls through to `background` too — see chipText.
-        default: return background
         }
     }
 
@@ -353,6 +329,18 @@ enum AppFont: String, CaseIterable, Identifiable {
     case rounded, sfCompact, helvetica, helveticaCourant
 
     var id: String { rawValue }
+
+    /// Order of the settings' 2-column "Police" grid (iOS `SettingsSheet`
+    /// and macOS `MacSettingsView`) — left column top-to-bottom: Helvetica
+    /// Neue Courant, Helvetica Neue Bold. Right column: SF Compact, SF Pro.
+    /// Not `allCases`'s declaration order.
+    static let settingsOrder: [AppFont] = [.helveticaCourant, .sfCompact, .helvetica, .rounded]
+
+    /// The font each option's own pill in that grid is set in — SF Pro bold,
+    /// every other option at its regular weight.
+    func pillFont(size: CGFloat) -> Font {
+        font(size: size, weight: self == .rounded ? .bold : .regular)
+    }
 
     var label: String {
         switch self {

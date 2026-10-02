@@ -21,13 +21,15 @@ final class LinkItem {
     var colorHex: String = "#000000"
     /// When the link was added to Plutar — drives the chronological sort and day grouping.
     var dateAdded: Date = Date.now
-    /// The app the link was shared from (simulated for now: Safari, Mastodon, Notes…).
+    /// The app the link was shared from — "Safari" when Safari ran
+    /// `SharePreprocessor.js`, the generic "Partage" otherwise (see
+    /// `SharedLinkExtraction`).
     var sourceApp: String = ""
     var excerpt: String = ""
     var isRead: Bool = false
     /// File name (not a full path — the App Group container can move
     /// between launches) of the downloaded preview image inside
-    /// `SharedStore.thumbnailsDirectoryURL()`. `nil` means no thumbnail was
+    /// `SharedStore.thumbnailsDirectoryURL`. `nil` means no thumbnail was
     /// fetched (or the fetch found none) — the sole source of truth for
     /// whether this link has one.
     var thumbnailFileName: String?
@@ -120,5 +122,14 @@ final class LinkItem {
     /// fetched value) tried first.
     var displaySourceName: String {
         sourceName ?? LinkItem.displaySourceName(forHost: host)
+    }
+
+    /// The name to show for `host` as a whole (a Sources group, the macOS
+    /// single-source title, the ranking): the site's real name once
+    /// `LinkMetadataEnricher` has fetched it for at least one link from this
+    /// host among `items`, else the static fallback chain above.
+    static func displaySourceName(forHost host: String, in items: [LinkItem]) -> String {
+        items.first { $0.host == host && $0.sourceName != nil }?.sourceName
+            ?? displaySourceName(forHost: host)
     }
 }

@@ -6,8 +6,8 @@ import SwiftData
 ///
 /// - "Général": the same display settings as iOS's "Affichage" sheet
 ///   (`SettingsSheet`) minus its "Avancé" section, and minus the shake
-///   toggle entirely (macOS has no shake gesture — `ShakeGesture`/
-///   `FlipCard` are UIKit-only and aren't part of this target).
+///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
+///   UIKit-only and isn't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
 ///   "Réinitialiser le classement", "Vider le fil", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
@@ -20,8 +20,6 @@ import SwiftData
 struct MacSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var systemColorScheme
-    @Query private var allItems: [LinkItem]
-    @Query private var sourceRanks: [SourceRank]
 
     @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
@@ -45,8 +43,6 @@ struct MacSettingsView: View {
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
     private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
 
-    private let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
-
     var body: some View {
         TabView {
             Tab("Général", systemImage: "paintbrush") {
@@ -57,11 +53,7 @@ struct MacSettingsView: View {
             }
         }
         .frame(width: 420, height: 480)
-        .alert("Enregistrement impossible", isPresented: $saveFailed) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
-        }
+        .saveFailureAlert(isPresented: $saveFailed)
     }
 
     private var generalTab: some View {
@@ -72,9 +64,9 @@ struct MacSettingsView: View {
                     // to be — four options (since "Helvetica Neue Courant"
                     // joined "Helvetica Neue Bold") no longer fit one row at
                     // this window's 420pt width without overflowing.
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach([AppFont.helveticaCourant, .sfCompact, .helvetica, .rounded]) { f in
-                            SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 13, weight: f == .rounded ? .bold : .regular), chipColor: theme.chip) {
+                    LazyVGrid(columns: settingsGridColumns, spacing: 8) {
+                        ForEach(AppFont.settingsOrder) { f in
+                            SettingsPillButton(f.label, isActive: appFont == f, font: f.pillFont(size: 13), chipColor: theme.chip) {
                                 fontRaw = f.rawValue
                             }
                         }
@@ -82,8 +74,8 @@ struct MacSettingsView: View {
                 }
 
                 SettingsSectionView(title: "Thème", titleWeight: .regular) {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(AppTheme.selectable) { t in
+                    LazyVGrid(columns: settingsGridColumns, spacing: 8) {
+                        ForEach(AppTheme.allCases) { t in
                             SettingsThemePillButton(theme: t, isActive: theme == t, chipColor: theme.chip) {
                                 themeRaw = t.rawValue
                                 appearanceRaw = t.appearanceAfterPicking(
@@ -198,13 +190,8 @@ struct MacSettingsView: View {
         }
     }
 
-    private func persist() {
-        do {
-            try modelContext.save()
-        } catch {
-            PlutarLog.store.error("Save failed (macOS settings): \(String(describing: error), privacy: .public)")
-            saveFailed = true
-        }
+    private func persist(_ operation: String = #function) {
+        if !modelContext.persist(operation) { saveFailed = true }
     }
 
     private func refresh() async {
@@ -213,16 +200,18 @@ struct MacSettingsView: View {
         await LinkMetadataEnricher.enrichPendingLinks(in: modelContext)
     }
 
+    // Fetched only when the action actually runs, rather than keeping a
+    // live `@Query` of every link and rank alive in the Settings window
+    // just for these two buttons.
     private func resetSourceRanking() {
-        for rank in sourceRanks { modelContext.delete(rank) }
+        for rank in (try? modelContext.fetch(FetchDescriptor<SourceRank>())) ?? [] {
+            modelContext.delete(rank)
+        }
         persist()
     }
 
     private func clearAll() {
-        for item in allItems {
-            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-            modelContext.delete(item)
-        }
+        modelContext.deleteLinks((try? modelContext.fetch(FetchDescriptor<LinkItem>())) ?? [])
         persist()
     }
 }

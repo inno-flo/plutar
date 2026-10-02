@@ -32,15 +32,11 @@ enum LinkItemFactory {
     ///   - url: the shared link itself.
     ///   - title: page title supplied by the share extension host, if any.
     ///   - sourceApp: the app the share sheet was invoked from, when known.
-    static func makeLinkItem(
-        url: URL,
-        title: String?,
-        sourceApp: String = "Partage"
-    ) -> LinkItem {
+    private static func makeLinkItem(url: URL, title: String?, sourceApp: String) -> LinkItem {
         let host = displayHost(from: url)
         let resolvedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
         return LinkItem(
-            title: (resolvedTitle?.isEmpty == false) ? resolvedTitle! : host,
+            title: resolvedTitle.flatMap { $0.isEmpty ? nil : $0 } ?? host,
             urlString: url.absoluteString,
             host: host,
             initial: String(host.first ?? "?").uppercased(),
@@ -53,15 +49,25 @@ enum LinkItemFactory {
         )
     }
 
-    /// Saves the link and bumps its host's cumulative rank — kept in one
-    /// place so the app and the share extension can't drift on how a new
-    /// link is recorded.
-    @discardableResult
-    static func save(url: URL, title: String?, sourceApp: String = "Partage", in context: ModelContext) throws -> LinkItem {
-        let item = makeLinkItem(url: url, title: title, sourceApp: sourceApp)
+    /// Saves the link and bumps its host's cumulative rank — the whole
+    /// share-extension save, kept in one place so `PlutarShare` and
+    /// `PlutarShareMac` can't drift on how a new link is recorded.
+    ///
+    /// Into the process-wide `SharedStore.extensionContainer` (not a local —
+    /// a local was released right after the save, mid CloudKit setup, so
+    /// nothing was ever exported), then the CloudKit export wait in the
+    /// background. The extension's UI doesn't wait for CloudKit — its
+    /// confirmation stays up only briefly — but the export wait keeps going
+    /// after it's dismissed (see `SharedStore.waitForPendingCloudKitExport`).
+    @MainActor
+    static func save(_ shared: SharedLink) throws {
+        let context = try SharedStore.extensionContainer.get().mainContext
+        let item = makeLinkItem(url: shared.url, title: shared.title, sourceApp: shared.sourceApp)
         context.insert(item)
         SourceRank.bump(item.host, in: context)
         try context.save()
-        return item
+        DispatchQueue.global(qos: .utility).async {
+            SharedStore.waitForPendingCloudKitExport()
+        }
     }
 }

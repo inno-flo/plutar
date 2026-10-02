@@ -42,9 +42,7 @@ enum SharedStore {
     /// signed into the same iCloud account; it doesn't change where the
     /// local cache lives.
     static func makeContainer() throws -> ModelContainer {
-        guard let groupURL = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
-        else {
+        guard let groupURL = groupContainerURL else {
             throw StoreError.missingAppGroupContainer
         }
         let storeURL = groupURL.appendingPathComponent("Plutar.sqlite")
@@ -69,27 +67,31 @@ enum SharedStore {
     /// a fresh container per share meant a fresh CloudKit setup each time.
     static let extensionContainer = Result { try makeContainer() }
 
+    private static var groupContainerURL: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
+    }
+
     /// Where `LinkMetadataEnricher` saves downloaded preview images, keyed
     /// by `LinkItem.id`. In the App Group container (not the app's own
     /// Documents/Caches) so it's readable regardless of which process — app
     /// or extension — writes it.
-    static func thumbnailsDirectoryURL() -> URL? {
-        guard let groupURL = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
-        else {
-            return nil
-        }
+    ///
+    /// Resolved (and the directory created) once per process: this used to
+    /// be a function redoing both on every call — including every thumbnail
+    /// cache miss while rendering a row.
+    static let thumbnailsDirectoryURL: URL? = {
+        guard let groupURL = groupContainerURL else { return nil }
         let directory = groupURL.appendingPathComponent("Thumbnails", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
-    }
+    }()
 
     /// Removes a `LinkItem`'s on-disk preview image, once it's actually
     /// gone for good (not while an undo window could still restore the
     /// `LinkItem` pointing at this same file). Safe to call with `nil` (no
     /// thumbnail was ever fetched) or a name that's already gone.
     static func deleteThumbnailFile(named fileName: String?) {
-        guard let fileName, let directory = thumbnailsDirectoryURL() else { return }
+        guard let fileName, let directory = thumbnailsDirectoryURL else { return }
         try? FileManager.default.removeItem(at: directory.appendingPathComponent(fileName))
     }
 
@@ -148,5 +150,38 @@ enum SharedStore {
             PlutarLog.store.notice("CloudKit export wait timed out after \(timeout, privacy: .public)s (share extension)")
         }
         if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+}
+
+extension ModelContext {
+    /// Saves, logging a failure instead of dropping it — returns whether the
+    /// save went through, so a view can also surface it ("Enregistrement
+    /// impossible").
+    ///
+    /// Every mutation used to end in a bare `try? modelContext.save()`, so a
+    /// full disk or a constraint violation vanished without a trace: the
+    /// in-memory objects looked updated, nothing reached the store, and
+    /// neither the user nor the console ever heard about it.
+    @discardableResult
+    func persist(_ operation: String = #function) -> Bool {
+        do {
+            try save()
+            return true
+        } catch {
+            PlutarLog.store.error(
+                "Save failed during \(operation, privacy: .public): \(String(describing: error), privacy: .public)"
+            )
+            return false
+        }
+    }
+
+    /// Deletes `items` for good, along with each one's on-disk thumbnail —
+    /// only for a delete no undo window can bring back (see
+    /// `SharedStore.deleteThumbnailFile(named:)`).
+    func deleteLinks(_ items: some Sequence<LinkItem>) {
+        for item in items {
+            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
+            delete(item)
+        }
     }
 }

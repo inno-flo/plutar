@@ -24,49 +24,44 @@ final class ShareViewController: NSViewController {
         switch result {
         case .failure(let error):
             PlutarLog.shareExtension.error("extractSharedURL failed: \(error.localizedDescription, privacy: .public)")
-            embed(NSHostingController(rootView: AnyView(ShareErrorView(
+            embed(ShareErrorView(
                 message: "Ce contenu ne peut pas être ajouté à Plutar : aucun lien n'a été trouvé.",
                 onDismiss: { [weak self] in self?.finish() }
-            ))))
+            ))
         case .success(let shared):
             // No confirmation step: saved straight away, then a brief
             // "Ajouté" that dismisses itself (see `save`).
-            save(url: shared.url, title: shared.title, sourceApp: shared.sourceApp)
+            save(shared)
         }
     }
 
     /// AppKit's `NSViewController.addChild(_:)` has no `didMove(toParent:)`
     /// step to call afterwards the way UIKit's does — adding the child and
     /// its view is enough.
-    private func embed(_ hosting: NSHostingController<AnyView>) {
-        for child in children { child.view.removeFromSuperview() }
-        children.forEach { $0.removeFromParent() }
+    private func embed<Content: View>(_ content: Content) {
+        for child in children {
+            child.view.removeFromSuperview()
+            child.removeFromParent()
+        }
+        let hosting = NSHostingController(rootView: content)
         addChild(hosting)
         hosting.view.frame = view.bounds
         hosting.view.autoresizingMask = [.width, .height]
         view.addSubview(hosting.view)
     }
 
-    private func save(url: URL, title: String?, sourceApp: String) {
+    private func save(_ shared: SharedLink) {
         do {
-            // Process-wide, not a local: see `SharedStore.extensionContainer`
-            // — a local was released right after this save, mid CloudKit
-            // setup, so nothing was ever exported.
-            let container = try SharedStore.extensionContainer.get()
-            try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
-            embed(NSHostingController(rootView: AnyView(ShareSavedView())))
+            // Process-wide container + background CloudKit export wait: see
+            // `LinkItemFactory.save`.
+            try LinkItemFactory.save(shared)
+            embed(ShareSavedView())
             // Shrink the window to just the checkmark square (the error
             // dialogs keep the wider default set in `loadView`).
             let size = NSSize(width: 136, height: 136)
             preferredContentSize = size
             view.setFrameSize(size)
-            // The sheet doesn't wait for CloudKit — the confirmation stays
-            // up only briefly — but the export wait below keeps going after
-            // it's dismissed (see `SharedStore.waitForPendingCloudKitExport`).
             finishAfterDelay()
-            DispatchQueue.global(qos: .utility).async {
-                SharedStore.waitForPendingCloudKitExport()
-            }
         } catch {
             // `SwiftDataError`'s every case bridges to the same NSError code
             // (1), so `localizedDescription` alone can't tell one apart from
@@ -74,10 +69,10 @@ final class ShareViewController: NSViewController {
             // and userInfo often carries CloudKit's own underlying error.
             let ns = error as NSError
             PlutarLog.shareExtension.error("save failed: \(String(reflecting: error), privacy: .public) userInfo: \(ns.userInfo, privacy: .public)")
-            embed(NSHostingController(rootView: AnyView(ShareErrorView(
+            embed(ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",
                 onDismiss: { [weak self] in self?.finish() }
-            ))))
+            ))
         }
     }
 

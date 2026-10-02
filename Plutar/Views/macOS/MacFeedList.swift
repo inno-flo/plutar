@@ -35,7 +35,7 @@ struct MacFeedList: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
-    /// Wires "Marquer lu"/"Tout marquer comme lu" into the window's Edit >
+    /// Wires "Marquer lu"/"Marquer non lu"/"Tout marquer comme lu" into the window's Edit >
     /// Annuler — neither had any effect on it before, unlike delete (which
     /// already gets a confirmation dialog instead).
     @Environment(\.undoManager) private var undoManager
@@ -91,17 +91,14 @@ struct MacFeedList: View {
     }
 
     private var groups: [FeedGroup] {
-        if mode == .read && readGroupedBySource {
-            return FeedGrouping.makeSourceGroups(allItems.filter(\.isRead))
-        }
-        return FeedGrouping.makeGroups(allItems, mode: mode)
+        FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
     }
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
     /// month, once links actually span more than one — see
     /// `FeedGrouping.monthSeparatorGroupIDs`. Empty in every other mode/
     /// grouping, same as the iOS `RootView` counterpart.
-    private var monthSeparatorGroupIDs: Set<String> {
+    private func monthSeparatorGroupIDs(in groups: [FeedGroup]) -> Set<String> {
         guard mode == .read, !readGroupedBySource else { return [] }
         return FeedGrouping.monthSeparatorGroupIDs(groups)
     }
@@ -139,6 +136,11 @@ struct MacFeedList: View {
         // `currentGroups` local.
         let currentGroups = groups
         let sourcesAllExpanded = allSourcesExpanded(in: currentGroups)
+        let readAllCollapsed = allReadGroupsCollapsed(in: currentGroups)
+        // Same for the month-separator ids — this used to be a computed
+        // property read once per group inside the `ForEach`, each read
+        // redoing the whole grouping.
+        let monthSeparatorIDs = monthSeparatorGroupIDs(in: currentGroups)
 
         // Not `List(selection:)` — macOS draws that selection as a ring
         // behind the row regardless of `listRowBackground`/`listRowInsets`
@@ -162,7 +164,7 @@ struct MacFeedList: View {
                     // name is already the toolbar title, and its "mark as
                     // read" icon just duplicates the toolbar's own button.
                     if !isSingleSourceDetail {
-                        if monthSeparatorGroupIDs.contains(group.id),
+                        if monthSeparatorIDs.contains(group.id),
                            let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
                             monthSeparator(FeedGrouping.monthLabel(for: date))
                                 .listRowSeparator(.hidden)
@@ -192,23 +194,16 @@ struct MacFeedList: View {
                                 // requiring a second confirmation on top of it is the
                                 // odd one out next to every other swipe-to-delete list
                                 // on the platform, so this deletes straight away.
-                                Button(role: .destructive) { delete(item) } label: {
+                                Button(role: .destructive) { delete([item]) } label: {
                                     Label("Supprimer", systemImage: "trash")
                                 }
                                 .tint(theme.deleteSwipeTint)
                             }
                             .swipeActions(edge: .leading) {
-                                if item.isRead {
-                                    Button { markAsUnread(item) } label: {
-                                        Label("Marquer non lu", systemImage: "checkmark.circle.fill")
-                                    }
-                                    .tint(theme.markUnreadSwipeTint)
-                                } else {
-                                    Button { markAsRead(item) } label: {
-                                        Label("Marquer lu", systemImage: "checkmark.circle.fill")
-                                    }
-                                    .tint(theme.markReadSwipeTint)
+                                Button { toggleRead(item) } label: {
+                                    Label(item.isRead ? "Marquer non lu" : "Marquer lu", systemImage: "checkmark.circle.fill")
                                 }
+                                .tint(item.isRead ? theme.markUnreadSwipeTint : theme.markReadSwipeTint)
                             }
                         }
                     }
@@ -249,9 +244,8 @@ struct MacFeedList: View {
                         // ids instead of just dropped. A partial (some-but-
                         // not-all) collapse has no equivalent in the other
                         // grouping, so only the two extremes survive.
-                        let wasAllCollapsed = allReadGroupsCollapsed(in: currentGroups)
                         readGroupedBySource.toggle()
-                        collapsedReadGroups = wasAllCollapsed ? Set(groups.map(\.id)) : []
+                        collapsedReadGroups = readAllCollapsed ? Set(groups.map(\.id)) : []
                     } label: {
                         Label(
                             readGroupedBySource ? "Grouper par date" : "Grouper par source",
@@ -262,21 +256,17 @@ struct MacFeedList: View {
                 }
                 ToolbarItemGroup {
                     Button {
-                        if allReadGroupsCollapsed(in: currentGroups) {
-                            collapsedReadGroups = []
-                        } else {
-                            collapsedReadGroups = Set(currentGroups.map(\.id))
-                        }
+                        collapsedReadGroups = readAllCollapsed ? [] : Set(currentGroups.map(\.id))
                     } label: {
                         // Showing "collapse all" until every group actually
                         // is collapsed, then "expand all" — matches whatever
                         // double-clicking individual headers already did,
                         // not just this button's own last click. Same icon
                         // pair as iOS's own equivalent control.
-                        Image(systemName: allReadGroupsCollapsed(in: currentGroups) ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle")
-                            .scaleEffect(x: allReadGroupsCollapsed(in: currentGroups) ? -1 : 1, y: 1)
+                        Image(systemName: readAllCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle")
+                            .scaleEffect(x: readAllCollapsed ? -1 : 1, y: 1)
                     }
-                    .help(allReadGroupsCollapsed(in: currentGroups) ? "Tout déplier" : "Tout replier")
+                    .help(readAllCollapsed ? "Tout déplier" : "Tout replier")
                 }
             }
             ToolbarItemGroup {
@@ -319,7 +309,9 @@ struct MacFeedList: View {
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
-            Button("Marquer comme lus", role: .destructive) { markAllAsRead() }
+            Button("Marquer comme lus", role: .destructive) {
+                markAsRead(FeedGrouping.visibleItems(allItems, mode: mode), actionName: "Tout marquer comme lu")
+            }
         }
         .confirmationDialog(
             "Supprimer ce lien ?",
@@ -330,7 +322,7 @@ struct MacFeedList: View {
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) {
-                if let item = itemPendingDelete { delete(item) }
+                if let item = itemPendingDelete { delete([item]) }
             }
         }
         .confirmationDialog(
@@ -342,14 +334,10 @@ struct MacFeedList: View {
         ) {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) {
-                if let items = groupItemsPendingDelete { deleteGroup(items) }
+                if let items = groupItemsPendingDelete { delete(items) }
             }
         }
-        .alert("Enregistrement impossible", isPresented: $saveFailed) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
-        }
+        .saveFailureAlert(isPresented: $saveFailed)
     }
 
     /// One joined segmented block for the 3 `LinkLayout` icons — a real
@@ -406,29 +394,17 @@ struct MacFeedList: View {
 
     @ViewBuilder
     private func rowContextMenu(_ item: LinkItem) -> some View {
-        if item.isRead {
-            Button("Marquer non lu") { markAsUnread(item) }
-        } else {
-            Button("Marquer lu") { markAsRead(item) }
-        }
+        Button(item.isRead ? "Marquer non lu" : "Marquer lu") { toggleRead(item) }
         Button("Copier l'URL") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(item.urlString, forType: .string)
         }
-        if item.isPinned {
-            Button {
-                togglePin(item)
-            } label: {
-                Label("Détacher le lien", systemImage: "pin.slash")
-                    .labelStyle(.titleAndIcon)
-            }
-        } else {
-            Button {
-                togglePin(item)
-            } label: {
-                Label("Épingler le lien", systemImage: "pin")
-                    .labelStyle(.titleAndIcon)
-            }
+        Button {
+            togglePin(item)
+        } label: {
+            Label(item.isPinned ? "Détacher le lien" : "Épingler le lien",
+                  systemImage: item.isPinned ? "pin.slash" : "pin")
+                .labelStyle(.titleAndIcon)
         }
         // Ellipsis: this doesn't delete outright — it opens the
         // confirmationDialog below (itemPendingDelete), same convention as
@@ -437,17 +413,16 @@ struct MacFeedList: View {
     }
 
     /// Day-label color (Date/Lus) — an accent borrowed from the iPhone
-    /// version for Tokyo clair (red, `RootView.counterBackgroundOverride`;
-    /// not `theme.chip`, which is black for Tokyo), Copenhague clair (its
-    /// ochre yellow, `theme.dotColor`) and Cap Canaveral clair
+    /// version for Tokyo clair (red, `RootView.counterBackground`, i.e.
+    /// `theme.dotColor`; not `theme.chip`, which is black for Tokyo),
+    /// Copenhague clair (its ochre yellow, `theme.dotColor`) and Cap Canaveral clair
     /// ("international orange", `RootView.counterForegroundOverride`); the
     /// muted ink every other theme uses.
     private var dayLabelColor: Color {
         guard mode != .source else { return theme.ink(0.6) }
         switch theme {
-        case .tokyo: return Color(hex: "#E1000F")
-        case .scand: return theme.dotColor
-        case .astronaute: return Color(hex: "#FF4F00")
+        case .tokyo, .scand: return theme.dotColor
+        case .astronaute: return theme.accent
         default: return theme.ink(0.6)
         }
     }
@@ -506,11 +481,7 @@ struct MacFeedList: View {
                     // collapse-all/expand-all button.
                     .onTapGesture(count: 1) {
                         guard mode == .read else { return }
-                        if collapsedReadGroups.contains(group.id) {
-                            collapsedReadGroups.remove(group.id)
-                        } else {
-                            collapsedReadGroups.insert(group.id)
-                        }
+                        collapsedReadGroups.toggle(group.id)
                     }
                 }
                 Spacer()
@@ -518,7 +489,7 @@ struct MacFeedList: View {
                     Button {
                         // In Date, pinned links stay in À lire — this button
                         // only touches the rest of the day's links.
-                        markSourceAsRead(mode == .chrono ? group.items.filter { !$0.isPinned } : group.items)
+                        markAsRead(mode == .chrono ? group.items.filter { !$0.isPinned } : group.items)
                     } label: {
                         Image(systemName: "checkmark.circle")
                     }
@@ -557,13 +528,8 @@ struct MacFeedList: View {
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.
 
-    private func persist() {
-        do {
-            try modelContext.save()
-        } catch {
-            PlutarLog.store.error("Save failed (macOS): \(String(describing: error), privacy: .public)")
-            saveFailed = true
-        }
+    private func persist(_ operation: String = #function) {
+        if !modelContext.persist(operation) { saveFailed = true }
     }
 
     /// Bundle id for Firefox — forced open (below) needs the app's own URL,
@@ -601,33 +567,31 @@ struct MacFeedList: View {
         undoManager.setActionName(actionName)
     }
 
-    /// Shared by `markAsRead`/`markAllAsRead` below — registers the reverse
-    /// toggle as this same action's undo, and that reverse toggle registers
-    /// the original as its own undo in turn, so Edit > Annuler/Rétablir both
-    /// keep working no matter how many times either is pressed.
-    private func toggleReadState(for items: [LinkItem], to isRead: Bool, actionName: String) {
+    /// Shared by every read/unread change below (row, group header, "Tout
+    /// marquer comme lu") — registers the reverse toggle as this same
+    /// action's undo, and that reverse toggle registers the original as its
+    /// own undo in turn, so Edit > Annuler/Rétablir both keep working no
+    /// matter how many times either is pressed.
+    private func setReadState(for items: [LinkItem], to isRead: Bool, actionName: String) {
         for item in items {
             item.isRead = isRead
+            // A link moved back to unread re-enters À lire, where the
+            // excerpt is worth having again — see `RootView.markAsUnread`.
             if !isRead { item.excerptFetchAttempted = false }
         }
         persist()
         registerUndo(actionName: actionName) {
-            self.toggleReadState(for: items, to: !isRead, actionName: actionName)
+            self.setReadState(for: items, to: !isRead, actionName: actionName)
         }
     }
 
-    private func markAsRead(_ item: LinkItem) {
-        toggleReadState(for: [item], to: true, actionName: "Marquer lu")
+    private func markAsRead(_ items: [LinkItem], actionName: String = "Marquer lu") {
+        setReadState(for: items, to: true, actionName: actionName)
     }
 
-    private func markAsUnread(_ item: LinkItem) {
-        item.isRead = false
-        item.excerptFetchAttempted = false
-        persist()
-    }
-
-    private func markSourceAsRead(_ items: [LinkItem]) {
-        toggleReadState(for: items, to: true, actionName: "Marquer lu")
+    /// Row context menu / leading swipe: read ↔ unread.
+    private func toggleRead(_ item: LinkItem) {
+        setReadState(for: [item], to: !item.isRead, actionName: item.isRead ? "Marquer non lu" : "Marquer lu")
     }
 
     private func togglePin(_ item: LinkItem) {
@@ -635,38 +599,17 @@ struct MacFeedList: View {
         persist()
     }
 
-    private func delete(_ item: LinkItem) {
-        SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-        modelContext.delete(item)
-        persist()
-    }
-
-    private func deleteGroup(_ items: [LinkItem]) {
-        for item in items {
-            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-            modelContext.delete(item)
-        }
+    private func delete(_ items: [LinkItem]) {
+        modelContext.deleteLinks(items)
         persist()
     }
 
     private func clearRead() {
-        for item in allItems where item.isRead {
-            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-            modelContext.delete(item)
-        }
-        persist()
-    }
-
-    private func markAllAsRead() {
-        toggleReadState(for: FeedGrouping.visibleItems(allItems, mode: mode), to: true, actionName: "Tout marquer comme lu")
+        delete(allItems.filter(\.isRead))
     }
 
     private func toggleSource(_ id: String) {
-        if expandedSources.contains(id) {
-            expandedSources.remove(id)
-        } else {
-            expandedSources.insert(id)
-        }
+        expandedSources.toggle(id)
     }
 
     private func toggleAllSources() {

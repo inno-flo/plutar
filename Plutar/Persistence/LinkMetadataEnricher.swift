@@ -33,9 +33,16 @@ enum LinkMetadataEnricher {
     /// network requests the moment the app opens.
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
         await enrichTitleAndThumbnail(in: context, limit: limit)
-        await enrichSourceName(in: context, limit: limit)
-        await enrichExcerpt(in: context, limit: limit)
+        await enrichFromHTML(in: context, limit: limit)
         await redownloadMissingThumbnails(in: context, limit: limit)
+    }
+
+    /// Up to `limit` links matching `predicate` — `fetchLimit` rather than
+    /// fetching every pending link and keeping only a prefix.
+    private static func pending(_ predicate: Predicate<LinkItem>, in context: ModelContext, limit: Int) -> [LinkItem] {
+        var descriptor = FetchDescriptor<LinkItem>(predicate: predicate)
+        descriptor.fetchLimit = limit
+        return (try? context.fetch(descriptor)) ?? []
     }
 
     /// Title (fallback replacement only) and preview image, via
@@ -43,14 +50,12 @@ enum LinkMetadataEnricher {
     /// freshly shared link is essentially always still unread by the time
     /// this runs anyway.
     private static func enrichTitleAndThumbnail(in context: ModelContext, limit: Int) async {
-        let descriptor = FetchDescriptor<LinkItem>(
-            predicate: #Predicate { $0.metadataFetched == false }
-        )
-        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
-        for item in pending.prefix(limit) {
+        let items = pending(#Predicate { $0.metadataFetched == false }, in: context, limit: limit)
+        guard !items.isEmpty else { return }
+        for item in items {
             await fetchTitleAndThumbnail(for: item)
         }
-        try? context.save()
+        context.persist()
     }
 
     private static func fetchTitleAndThumbnail(for item: LinkItem) async {
@@ -79,69 +84,66 @@ enum LinkMetadataEnricher {
            !title.isEmpty, isFallbackTitle {
             item.title = title
         }
-        if let provider = meta.imageProvider ?? meta.iconProvider,
-           let fileName = await saveThumbnail(from: provider, id: item.id) {
+        if let fileName = await saveThumbnail(from: meta, id: item.id) {
             item.thumbnailFileName = fileName
         } else {
-            PlutarLog.store.notice("LinkMetadataEnricher: no image/icon provider for \(item.host, privacy: .public)")
+            PlutarLog.store.notice("LinkMetadataEnricher: no image/icon saved for \(item.host, privacy: .public)")
         }
     }
 
-    /// The site's own human-readable name (`og:site_name`/`application-name`
-    /// meta tags), regardless of read state — unlike the excerpt, it's shown
-    /// everywhere a source is named (row, Sources group header, Classement),
-    /// not just Date/Sources. Not gated on `metadataFetched` either: this
-    /// runs as its own pass so a site blocked for `LPMetadataProvider`
-    /// (`fetchTitleAndThumbnail`'s DataDome-style failures, see its own
-    /// comment) still gets a chance here, via a plain HTTP fetch instead.
-    private static func enrichSourceName(in context: ModelContext, limit: Int) async {
-        let descriptor = FetchDescriptor<LinkItem>(
-            predicate: #Predicate { $0.sourceNameFetchAttempted == false }
+    /// The two things only the page's own HTML has, read from one shared
+    /// fetch per link — this used to be two separate passes, each
+    /// downloading the same page on its own:
+    ///
+    /// - The site's own human-readable name (`og:site_name`/
+    ///   `application-name` meta tags), regardless of read state — unlike
+    ///   the excerpt, it's shown everywhere a source is named (row, Sources
+    ///   group header, Classement), not just Date/Sources. Not gated on
+    ///   `metadataFetched` either, so a site blocked for
+    ///   `LPMetadataProvider` (`fetchTitleAndThumbnail`'s DataDome-style
+    ///   failures, see its own comment) still gets a chance here, via a
+    ///   plain HTTP fetch instead.
+    /// - The meta description, restricted to links currently unread: the
+    ///   excerpt only shows up in Date/Sources (it feeds the Éditoriale
+    ///   layout), never in Lus, so there's nothing to gain fetching it for a
+    ///   link that's already been read. `RootView.markAsUnread(_:)` clears
+    ///   `excerptFetchAttempted` when a link moves back to unread, so it gets
+    ///   picked up here again.
+    private static func enrichFromHTML(in context: ModelContext, limit: Int) async {
+        let items = pending(
+            #Predicate { $0.sourceNameFetchAttempted == false || ($0.excerptFetchAttempted == false && $0.isRead == false) },
+            in: context, limit: limit
         )
-        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
-        for item in pending.prefix(limit) {
-            await fetchSourceName(for: item)
+        guard !items.isEmpty else { return }
+        for item in items {
+            await fetchFromHTML(for: item)
         }
-        try? context.save()
+        context.persist()
     }
 
-    private static func fetchSourceName(for item: LinkItem) async {
-        defer { item.sourceNameFetchAttempted = true }
-
+    private static func fetchFromHTML(for item: LinkItem) async {
         // `LinkItem.displaySourceName(forHost:)` already covers this host —
         // its own site blocks the fetch below, so there's nothing to gain
-        // from actually making the (always-failing) request.
-        guard LinkItem.displaySourceName(forHost: item.host) == item.host else { return }
-
-        guard let url = URL(string: item.urlString) else { return }
-        guard let html = await fetchHTML(for: url) else { return }
-        guard let name = siteName(in: html), !name.isEmpty else { return }
-        item.sourceName = name
-    }
-
-    /// The HTML meta-description fetch, restricted to links currently
-    /// unread: the excerpt only shows up in Date/Sources (it feeds the
-    /// Éditoriale layout), never in Lus, so there's nothing to gain fetching
-    /// it for a link that's already been read. `RootView.markAsUnread(_:)`
-    /// clears `excerptFetchAttempted` when a link moves back to unread, so
-    /// it gets picked up here again.
-    private static func enrichExcerpt(in context: ModelContext, limit: Int) async {
-        let descriptor = FetchDescriptor<LinkItem>(
-            predicate: #Predicate { $0.excerptFetchAttempted == false && $0.isRead == false }
-        )
-        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
-        for item in pending.prefix(limit) {
-            await fetchExcerpt(for: item)
+        // from actually making the (always-failing) request for its name.
+        let needsName = !item.sourceNameFetchAttempted
+            && LinkItem.displaySourceName(forHost: item.host) == item.host
+        let needsExcerpt = !item.excerptFetchAttempted && !item.isRead
+        // Each marked done up front, same reasoning as `metadataFetched`.
+        defer {
+            item.sourceNameFetchAttempted = true
+            if needsExcerpt { item.excerptFetchAttempted = true }
         }
-        try? context.save()
-    }
 
-    private static func fetchExcerpt(for item: LinkItem) async {
-        defer { item.excerptFetchAttempted = true }
-
-        guard let url = URL(string: item.urlString) else { return }
-        guard let excerpt = await fetchMetaDescription(for: url), !excerpt.isEmpty else { return }
-        item.excerpt = excerpt
+        guard needsName || needsExcerpt,
+              let url = URL(string: item.urlString),
+              let html = await fetchHTML(for: url)
+        else { return }
+        if needsName, let name = firstMatch(siteNameRegexes, in: html) {
+            item.sourceName = name
+        }
+        if needsExcerpt, let excerpt = firstMatch(descriptionRegexes, in: html) {
+            item.excerpt = excerpt
+        }
     }
 
     /// `metadataFetched`/`thumbnailFileName` sync via CloudKit like any other
@@ -158,7 +160,7 @@ enum LinkMetadataEnricher {
         let descriptor = FetchDescriptor<LinkItem>(
             predicate: #Predicate { $0.thumbnailFileName != nil }
         )
-        guard let candidates = try? context.fetch(descriptor), !candidates.isEmpty else { return }
+        guard let candidates = try? context.fetch(descriptor) else { return }
         let missing = candidates.filter { item in
             guard let fileName = item.thumbnailFileName else { return false }
             return !thumbnailFileExists(fileName)
@@ -167,23 +169,22 @@ enum LinkMetadataEnricher {
         for item in missing.prefix(limit) {
             guard let url = URL(string: item.urlString),
                   let meta = await fetchLinkMetadata(for: url),
-                  let provider = meta.imageProvider ?? meta.iconProvider,
-                  let fileName = await saveThumbnail(from: provider, id: item.id)
+                  let fileName = await saveThumbnail(from: meta, id: item.id)
             else { continue }
             item.thumbnailFileName = fileName
         }
-        try? context.save()
+        context.persist()
     }
 
     private nonisolated static func thumbnailFileExists(_ fileName: String) -> Bool {
-        guard let directory = SharedStore.thumbnailsDirectoryURL() else { return false }
+        guard let directory = SharedStore.thumbnailsDirectoryURL else { return false }
         return FileManager.default.fileExists(atPath: directory.appendingPathComponent(fileName).path)
     }
 
     /// `nonisolated`, deliberately: this is the actual slow part (a network
     /// round trip), and must run off the main actor so awaiting it doesn't
     /// pin the wait to the main thread. `.timeout` bounds a hung/slow host
-    /// to the same 8 s cap as `fetchMetaDescription` below, rather than
+    /// to the same 8 s cap as `fetchHTML` below, rather than
     /// however long `LPMetadataProvider` would otherwise wait on its own.
     private nonisolated static func fetchLinkMetadata(for url: URL) async -> LPLinkMetadata? {
         let provider = LPMetadataProvider()
@@ -195,7 +196,6 @@ enum LinkMetadataEnricher {
     /// site name), so this pulls a capped prefix of the HTML itself and
     /// reads it out directly — enough to reach whatever's in `<head>`.
     /// `nonisolated` for the same reason as `fetchLinkMetadata` above.
-    /// Shared by `fetchMetaDescription` and `fetchSourceName`.
     private nonisolated static func fetchHTML(for url: URL) async -> String? {
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
@@ -205,43 +205,35 @@ enum LinkMetadataEnricher {
             ?? String(data: capped, encoding: .isoLatin1)
     }
 
-    private nonisolated static func fetchMetaDescription(for url: URL) async -> String? {
-        guard let html = await fetchHTML(for: url) else { return nil }
-        return metaDescription(in: html)
+    /// Both orderings of one `<meta>` tag's attributes (`property=… content=…`
+    /// and `content=… property=…`), compiled once per process rather than on
+    /// every match.
+    private nonisolated static func metaTagRegexes(_ tags: [(attribute: String, value: String)]) -> [NSRegularExpression] {
+        tags.flatMap { tag in [
+            #"<meta[^>]+\#(tag.attribute)=["']\#(tag.value)["'][^>]+content=["']([^"']*)["']"#,
+            #"<meta[^>]+content=["']([^"']*)["'][^>]+\#(tag.attribute)=["']\#(tag.value)["']"#,
+        ] }
+        .compactMap { try? NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
     }
 
-    private nonisolated static let descriptionPatterns = [
-        #"<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']"#,
-        #"<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:description["']"#,
-        #"<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']"#,
-        #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']"#,
-    ]
-
-    private nonisolated static func metaDescription(in html: String) -> String? {
-        firstMatch(descriptionPatterns, in: html)
-    }
+    private nonisolated static let descriptionRegexes = metaTagRegexes([
+        ("property", "og:description"),
+        ("name", "description"),
+    ])
 
     /// Tried in this order: `og:site_name` is the standard Open Graph tag
     /// for exactly this ("The New York Times", "Le Monde", …); Apple's own
     /// `apple-mobile-web-app-title` and the generic `application-name` are
     /// fallbacks some sites use instead.
-    private nonisolated static let siteNamePatterns = [
-        #"<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']*)["']"#,
-        #"<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:site_name["']"#,
-        #"<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]+content=["']([^"']*)["']"#,
-        #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']apple-mobile-web-app-title["']"#,
-        #"<meta[^>]+name=["']application-name["'][^>]+content=["']([^"']*)["']"#,
-        #"<meta[^>]+content=["']([^"']*)["'][^>]+name=["']application-name["']"#,
-    ]
+    private nonisolated static let siteNameRegexes = metaTagRegexes([
+        ("property", "og:site_name"),
+        ("name", "apple-mobile-web-app-title"),
+        ("name", "application-name"),
+    ])
 
-    private nonisolated static func siteName(in html: String) -> String? {
-        firstMatch(siteNamePatterns, in: html)
-    }
-
-    private nonisolated static func firstMatch(_ patterns: [String], in html: String) -> String? {
+    private nonisolated static func firstMatch(_ regexes: [NSRegularExpression], in html: String) -> String? {
         let range = NSRange(html.startIndex..., in: html)
-        for pattern in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
+        for regex in regexes {
             guard let match = regex.firstMatch(in: html, range: range), match.numberOfRanges > 1,
                   let group = Range(match.range(at: 1), in: html)
             else {
@@ -265,22 +257,21 @@ enum LinkMetadataEnricher {
     }
 
     /// `nonisolated`: the image load/encode/write below has nothing to do
-    /// with `ModelContext` and doesn't need the main actor.
-    private nonisolated static func saveThumbnail(from provider: NSItemProvider, id: UUID) async -> String? {
-        guard provider.canLoadObject(ofClass: PlatformImage.self) else { return nil }
+    /// with `ModelContext` and doesn't need the main actor. Takes the page's
+    /// preview image, else its icon.
+    private nonisolated static func saveThumbnail(from meta: LPLinkMetadata, id: UUID) async -> String? {
+        guard let provider = meta.imageProvider ?? meta.iconProvider,
+              provider.canLoadObject(ofClass: PlatformImage.self)
+        else { return nil }
         let image: PlatformImage? = await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: PlatformImage.self) { object, _ in
                 continuation.resume(returning: object as? PlatformImage)
             }
         }
         guard let image, let data = image.plutarJPEGData(compressionQuality: 0.7) else { return nil }
-        guard let directory = SharedStore.thumbnailsDirectoryURL() else { return nil }
+        guard let directory = SharedStore.thumbnailsDirectoryURL else { return nil }
         let fileName = "\(id.uuidString).jpg"
-        do {
-            try data.write(to: directory.appendingPathComponent(fileName), options: .atomic)
-            return fileName
-        } catch {
-            return nil
-        }
+        guard (try? data.write(to: directory.appendingPathComponent(fileName), options: .atomic)) != nil else { return nil }
+        return fileName
     }
 }

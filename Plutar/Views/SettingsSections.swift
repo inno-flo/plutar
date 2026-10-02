@@ -5,6 +5,10 @@ import SwiftUI
 /// same way and toggle the same "selected" pill look, so both reuse these
 /// instead of each defining their own `section(_:)`/`pill(_:)` helpers.
 
+/// The 2-column grid both settings screens lay their "Police" and "Thème"
+/// pills out in.
+let settingsGridColumns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
+
 /// A titled group of settings controls — sentence case, no forced all-caps.
 struct SettingsSectionView<Content: View>: View {
     let title: String
@@ -21,11 +25,29 @@ struct SettingsSectionView<Content: View>: View {
     }
 }
 
-/// A single pill-style option button — `.glassProminent`, tinted with
-/// `chipColor`, when selected; plain `.glass` otherwise. There's no single
-/// `ButtonStyle` value that branches on `isActive`, so the two cases are two
-/// separate buttons under an `if`; SwiftUI's `ViewBuilder` erases them to the
-/// same opaque return type.
+/// The selected-pill look shared by `SettingsPillButton` and
+/// `SettingsThemePillButton` — `.glassProminent`, tinted with `chipColor`,
+/// when selected; plain `.glass` otherwise. There's no single `ButtonStyle`
+/// value that branches on `isActive`, so the two cases are two separate
+/// branches under an `if`; SwiftUI's `ViewBuilder` erases them to the same
+/// opaque return type.
+private struct SettingsPillStyle: ViewModifier {
+    let isActive: Bool
+    let chipColor: Color
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content
+                .buttonStyle(.glassProminent)
+                .tint(chipColor)
+        } else {
+            content
+                .buttonStyle(.glass)
+        }
+    }
+}
+
+/// A single pill-style option button.
 struct SettingsPillButton: View {
     let label: String
     let isActive: Bool
@@ -42,14 +64,8 @@ struct SettingsPillButton: View {
     }
 
     var body: some View {
-        if isActive {
-            Button(action: action) { Text(label).font(font) }
-                .buttonStyle(.glassProminent)
-                .tint(chipColor)
-        } else {
-            Button(action: action) { Text(label).font(font) }
-                .buttonStyle(.glass)
-        }
+        Button(action: action) { Text(label).font(font) }
+            .modifier(SettingsPillStyle(isActive: isActive, chipColor: chipColor))
     }
 }
 
@@ -62,14 +78,8 @@ struct SettingsThemePillButton: View {
     let action: () -> Void
 
     var body: some View {
-        if isActive {
-            Button(action: action) { label }
-                .buttonStyle(.glassProminent)
-                .tint(chipColor)
-        } else {
-            Button(action: action) { label }
-                .buttonStyle(.glass)
-        }
+        Button(action: action) { label }
+            .modifier(SettingsPillStyle(isActive: isActive, chipColor: chipColor))
     }
 
     private var label: some View {

@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// The app's accent orange (`AppTheme.accent`, #FF4F00) — `AppTheme` itself
+/// isn't compiled into the share extensions.
+private let shareAccent = Color(red: 1, green: 0.31, blue: 0)
+
 /// Brief HUD-style confirmation (a checkmark on a translucent rounded square,
 /// centered, no text) shown once a shared link has been saved — the share
 /// sequence has no editing/confirmation step any more: the extension saves
@@ -12,7 +16,7 @@ struct ShareSavedView: View {
     var body: some View {
         Image(systemName: "square.and.arrow.up.badge.checkmark")
             .font(.system(size: 44, weight: .semibold))
-            .foregroundStyle(Color(red: 1, green: 0.31, blue: 0))
+            .foregroundStyle(shareAccent)
             .frame(width: 120, height: 120)
             #if os(macOS)
             // macOS can't drop the window the extension is hosted in, so the
@@ -76,6 +80,6 @@ struct ShareErrorView: View {
                 .padding()
         }
         #endif
-        .tint(Color(red: 1, green: 0.31, blue: 0))
+        .tint(shareAccent)
     }
 }

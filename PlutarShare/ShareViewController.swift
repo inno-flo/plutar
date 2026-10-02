@@ -37,7 +37,7 @@ final class ShareViewController: UIViewController {
         case .success(let shared):
             // No confirmation step: saved straight away, then a brief
             // "Ajouté" that dismisses itself (see `save`).
-            save(url: shared.url, title: shared.title, sourceApp: shared.sourceApp)
+            save(shared)
         }
     }
 
@@ -58,25 +58,17 @@ final class ShareViewController: UIViewController {
         hosting.didMove(toParent: self)
     }
 
-    private func save(url: URL, title: String?, sourceApp: String) {
+    private func save(_ shared: SharedLink) {
         do {
-            // Process-wide, not a local: see `SharedStore.extensionContainer`
-            // — a local was released right after this save, mid CloudKit
-            // setup, so nothing was ever exported.
-            let container = try SharedStore.extensionContainer.get()
-            try LinkItemFactory.save(url: url, title: title, sourceApp: sourceApp, in: container.mainContext)
+            // Process-wide container + background CloudKit export wait: see
+            // `LinkItemFactory.save`.
+            try LinkItemFactory.save(shared)
             embed(ShareSavedView())
             // iPad presents the extension as a popover/form sheet that
             // follows `preferredContentSize`, so it shrinks to just the
             // checkmark square; iPhone ignores it (see the class doc).
             preferredContentSize = CGSize(width: 136, height: 136)
-            // The sheet doesn't wait for CloudKit — the confirmation stays
-            // up only briefly — but the export wait below keeps going after
-            // it's dismissed (see `SharedStore.waitForPendingCloudKitExport`).
             finishAfterDelay()
-            DispatchQueue.global(qos: .utility).async {
-                SharedStore.waitForPendingCloudKitExport()
-            }
         } catch {
             embed(ShareErrorView(
                 message: "Impossible d'enregistrer ce lien : \(error.localizedDescription)",

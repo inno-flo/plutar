@@ -26,16 +26,12 @@ enum SharedLinkExtraction {
         // with "aucun lien n'a été trouvé" even though a perfectly good URL
         // was sitting right there. Every attachment of every item is
         // considered now.
-        guard let items, !items.isEmpty else {
-            completion(.failure(SharedStore.StoreError.missingAppGroupContainer))
-            return
-        }
-        let attachments = items.flatMap { $0.attachments ?? [] }
+        let attachments = (items ?? []).flatMap { $0.attachments ?? [] }
         guard !attachments.isEmpty else {
-            completion(.failure(SharedStore.StoreError.missingAppGroupContainer))
+            completion(.failure(URLError(.unsupportedURL)))
             return
         }
-        let plainTitle = items.compactMap { $0.attributedContentText?.string }.first
+        let plainTitle = items?.lazy.compactMap { $0.attributedContentText?.string }.first
 
         // Safari (and only Safari — third-party apps never run our script)
         // runs `SharePreprocessor.js` on the page and hands back its result
@@ -73,9 +69,9 @@ enum SharedLinkExtraction {
                 // which is what made every Safari/Firefox share on macOS
                 // fail with "aucun lien n'a été trouvé" despite a perfectly
                 // good URL being right there.
-                if let url = data as? URL {
-                    completion(.success(SharedLink(url: url, title: plainTitle, sourceApp: "Partage")))
-                } else if let raw = data as? Data, let string = String(data: raw, encoding: .utf8), let url = URL(string: string) {
+                let url = (data as? URL)
+                    ?? (data as? Data).flatMap { String(data: $0, encoding: .utf8) }.flatMap { URL(string: $0) }
+                if let url {
                     completion(.success(SharedLink(url: url, title: plainTitle, sourceApp: "Partage")))
                 } else if let error {
                     completion(.failure(error))

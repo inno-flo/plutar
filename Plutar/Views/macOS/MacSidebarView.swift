@@ -52,7 +52,7 @@ struct MacSidebarView: View {
     /// One dot per theme family, in the Settings grid's order — the light
     /// variants' colors, or the nuit variants' while a nuit theme is active.
     private var quickThemes: [AppTheme] {
-        AppTheme.selectable
+        AppTheme.allCases
             .filter { !$0.isSoir }
             .map { theme.isSoir ? $0.soirVariant : $0 }
     }

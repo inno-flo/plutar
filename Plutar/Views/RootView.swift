@@ -7,24 +7,7 @@ import UIKit
 /// it just presents the settings sheet and bounces the selection back (see
 /// the `onChange(of: selectedTab)` handler in `RootView.body`).
 private enum RootTab: Hashable {
-    case chrono, source, read, settings
-
-    init(_ mode: FeedMode) {
-        switch mode {
-        case .chrono: self = .chrono
-        case .source: self = .source
-        case .read: self = .read
-        }
-    }
-
-    var feedMode: FeedMode? {
-        switch self {
-        case .chrono: return .chrono
-        case .source: return .source
-        case .read: return .read
-        case .settings: return nil
-        }
-    }
+    case feed(FeedMode), settings
 }
 
 private struct DeletedSnapshot {
@@ -47,6 +30,10 @@ private struct DeletedSnapshot {
     let metadataFetched: Bool
     let excerptFetchAttempted: Bool
     let isPinned: Bool
+    /// Same for the fetched site name — without these, an undone delete
+    /// showed the bare host again and queued the name to be re-fetched.
+    let sourceName: String?
+    let sourceNameFetchAttempted: Bool
 
     init(_ item: LinkItem) {
         title = item.title; urlString = item.urlString; host = item.host
@@ -56,6 +43,7 @@ private struct DeletedSnapshot {
         thumbnailFileName = item.thumbnailFileName; metadataFetched = item.metadataFetched
         excerptFetchAttempted = item.excerptFetchAttempted
         isPinned = item.isPinned
+        sourceName = item.sourceName; sourceNameFetchAttempted = item.sourceNameFetchAttempted
     }
 
     func makeLinkItem() -> LinkItem {
@@ -63,7 +51,8 @@ private struct DeletedSnapshot {
                  colorHex: colorHex, dateAdded: dateAdded, sourceApp: sourceApp,
                  excerpt: excerpt, isRead: isRead,
                  thumbnailFileName: thumbnailFileName, metadataFetched: metadataFetched,
-                 excerptFetchAttempted: excerptFetchAttempted, isPinned: isPinned)
+                 excerptFetchAttempted: excerptFetchAttempted, isPinned: isPinned,
+                 sourceName: sourceName, sourceNameFetchAttempted: sourceNameFetchAttempted)
     }
 }
 
@@ -98,12 +87,12 @@ struct RootView: View {
     @State private var themeFlipRevealsNewBackground = false
 
     @State private var mode: FeedMode = .chrono
-    @State private var selectedTab: RootTab = .chrono
+    @State private var selectedTab: RootTab = .feed(.chrono)
     @State private var showSettings = false
 
     /// Every link deleted inside the current undo window, oldest first — a
     /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
-    /// second swipe within the 5 seconds silently overwrote the first: the
+    /// second swipe within the undo window silently overwrote the first: the
     /// toast stayed up, implying both were recoverable, while "Annuler"
     /// only ever brought back the last one and the earlier link was gone
     /// for good (the delete is committed immediately, below).
@@ -144,9 +133,7 @@ struct RootView: View {
     private var selectedTheme: AppTheme {
         AppTheme(rawValue: themeRaw) ?? .scand
     }
-    private var appearance: AppAppearance {
-        get { AppAppearance(rawValue: appearanceRaw) ?? .auto }
-    }
+    private var appearance: AppAppearance { AppAppearance(rawValue: appearanceRaw) ?? .auto }
 
     /// The theme actually displayed: `selectedTheme`'s light or soir variant,
     /// picked according to `appearance` ("Automatique" follows the system's
@@ -155,16 +142,13 @@ struct RootView: View {
         AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemColorScheme)
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
-    private var layout: LinkLayout {
-        get { LinkLayout(rawValue: layoutRaw) ?? .rail }
-    }
+    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
 
     /// The view background actually drawn — pure black instead of the
     /// theme's own background when the "Fond noir pour les thèmes nuit"
     /// toggle is on and the current theme is a soir variant; pure white for
     /// Tokyo, across all three views (Date/Sources/Lus).
-    private var effectiveBackground: Color { effectiveBackground(for: theme) }
-
+    ///
     /// Takes `theme` explicitly so `animatedBackground` below can compute
     /// both the pre- and post-shake colors to cross-fade between.
     private func effectiveBackground(for theme: AppTheme) -> Color {
@@ -182,12 +166,19 @@ struct RootView: View {
     /// unlike the capsules' rotation (driven by `FlipCard`'s
     /// `animatableData`), a `.opacity()` fade between two solid layers is
     /// SwiftUI's standard way to animate between two arbitrary colors.
-    @ViewBuilder
     private var animatedBackground: some View {
+        themeCrossfade { effectiveBackground(for: $0) }
+    }
+
+    /// `content` drawn for the pre-shake theme, with the post-shake one
+    /// fading in on top while `triggerShakeThemeFlip` plays out — shared by
+    /// `animatedBackground` and the day/source pills (`fadingDayPill`/
+    /// `fadingSourceChipLabel`).
+    private func themeCrossfade<Content: View>(@ViewBuilder _ content: (AppTheme) -> Content) -> some View {
         ZStack {
-            effectiveBackground(for: themeFlipOldTheme ?? theme)
+            content(themeFlipOldTheme ?? theme)
             if themeFlipOldTheme != nil {
-                effectiveBackground(for: theme)
+                content(theme)
                     .opacity(themeFlipRevealsNewBackground ? 1 : 0)
             }
         }
@@ -216,47 +207,36 @@ struct RootView: View {
     /// link is added and shrinks when one is marked read (leaving Date/Sources).
     private var currentCount: Int { visibleItems.count }
 
-    /// The 10 most-shared sources — merges any rows CloudKit sync left
+    /// The 15 most-shared sources — merges any rows CloudKit sync left
     /// sharing the same host (see `SourceRank`'s comment) instead of
     /// assuming `sourceRanks` is already collision-free, then keeps only
-    /// the top 10 (already sorted descending by `aggregated`).
+    /// the top 15 (already sorted descending by `aggregated`).
     private var rankedSources: [(host: String, count: Int)] {
         Array(SourceRank.aggregated(sourceRanks).prefix(15))
     }
 
-    /// Per-theme override for the link-count counters' background — nil
-    /// everywhere else, so callers fall back to their own default
-    /// background. Copenhague uses an ochre yellow (a darker variant for
-    /// soir); Kamakura uses its own slate blue-gray (a darker variant for
-    /// soir); Cap Canaveral uses plain white. Tokyo's counter swapped hues
+    /// The link-count counters' background (the top badge and the
+    /// Sources/Lus pastille alike), per theme — every theme has its own,
+    /// so neither falls back to `chip` any more. Copenhague uses
+    /// an ochre yellow (a darker variant for soir); Kamakura uses its own
+    /// slate blue-gray (a darker variant for soir); Cap Canaveral uses plain
+    /// white, Cap Canaveral soir a light gray. Tokyo's counter swapped hues
     /// with its pill (`chip`): red here (was black), a dark red in soir
     /// (was dark gray) — the pill itself now carries the black/gray side of
-    /// the swap, see `AppTheme.chip`. Cap Canaveral soir isn't listed here
-    /// — its Sources pastille count badge already falls back to
-    /// `chipText.opacity(0.22)` on its own; see
-    /// `mainCounterBackgroundOverride` for the top badge.
-    private func counterBackgroundOverride(for theme: AppTheme) -> Color? {
+    /// the swap, see `AppTheme.chip`. Copenhague's and Tokyo's are exactly
+    /// `AppTheme.dotColor`, which mirrors them.
+    private func counterBackground(for theme: AppTheme) -> Color {
         switch theme {
-        case .scand: return Color(hex: "#D9A62E")
-        case .scandSoir: return Color(hex: "#A67816")
-        case .tokyo: return Color(hex: "#E1000F")
-        case .tokyoSoir: return Color(hex: "#BC002D")
+        case .scand, .scandSoir, .tokyo, .tokyoSoir: return theme.dotColor
         case .blanc: return Color(hex: "#798891")
         case .blancSoir: return Color(hex: "#546067")
         case .astronaute: return .white
-        default: return nil
+        case .astronauteSoir: return Color(hex: "#6D6D6D")
         }
     }
 
-    /// Overrides the top link-count badge's background specifically (not
-    /// the Sources pastille's own count badge) — Cap Canaveral soir uses a
-    /// light gray there instead of `counterBackgroundOverride`'s value.
-    private func mainCounterBackgroundOverride(for theme: AppTheme) -> Color? {
-        theme == .astronauteSoir ? Color(hex: "#6D6D6D") : nil
-    }
-
     /// Cap Canaveral's own "international orange" for counter text, paired
-    /// with `counterBackgroundOverride`'s white; Cap Canaveral soir uses
+    /// with `counterBackground`'s white; Cap Canaveral soir uses
     /// `chipText` — the same combination the Sources pastille's own count
     /// badge already falls back to. Copenhague pairs its ochre counter with
     /// dark ink instead of the pastille's white (contrast audit: white on
@@ -264,28 +244,27 @@ struct RootView: View {
     /// their own default foreground.
     private func counterForegroundOverride(for theme: AppTheme) -> Color? {
         switch theme {
-        case .astronaute: return Color(hex: "#FF4F00")
+        case .astronaute: return theme.accent
         case .astronauteSoir: return theme.chipText
         case .scand: return theme.ink(1)
         // Kamakura soir: its counter's dark fallback text (`background`)
         // was ~2.7:1 on that gray; pale ink matches the light variant's
         // own pattern instead.
         case .blancSoir: return theme.ink(1)
+        // Tokyo soir: same gray as the ranking rows' own count text.
+        case .tokyoSoir: return theme.ink(0.5)
         default: return nil
         }
     }
 
     private var groups: [FeedGroup] {
-        if mode == .read && readGroupedBySource {
-            return FeedGrouping.makeSourceGroups(allItems.filter(\.isRead))
-        }
-        return FeedGrouping.makeGroups(allItems, mode: mode)
+        FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
     }
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
     /// month — but only once links actually span more than one month, so a
     /// single month shows no separators. Empty in every other mode/grouping.
-    private var monthSeparatorGroupIDs: Set<String> {
+    private func monthSeparatorGroupIDs(in groups: [FeedGroup]) -> Set<String> {
         guard mode == .read, !readGroupedBySource else { return [] }
         return FeedGrouping.monthSeparatorGroupIDs(groups)
     }
@@ -299,11 +278,7 @@ struct RootView: View {
         // keeps that work out of the animation.
         let currentGroups = groups
         withAnimation(.easeInOut(duration: 0.25)) {
-            if expandedSources.contains(id) {
-                expandedSources.remove(id)
-            } else {
-                expandedSources.insert(id)
-            }
+            expandedSources.toggle(id)
             // Only the two "every source" extremes move the icon; anything
             // in between leaves it as it was.
             if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.id) }) {
@@ -318,11 +293,7 @@ struct RootView: View {
     /// convention as `MacFeedList.collapsedReadGroups` (present = collapsed).
     private func toggleReadGroupCollapse(_ id: String) {
         withAnimation(.easeInOut(duration: 0.25)) {
-            if collapsedReadGroups.contains(id) {
-                collapsedReadGroups.remove(id)
-            } else {
-                collapsedReadGroups.insert(id)
-            }
+            collapsedReadGroups.toggle(id)
         }
     }
 
@@ -336,7 +307,7 @@ struct RootView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             ForEach(FeedMode.allCases, id: \.self) { m in
-                Tab(m.label, systemImage: m.icon, value: RootTab(m)) {
+                Tab(m.label, systemImage: m.icon, value: RootTab.feed(m)) {
                     feedScreen
                 }
             }
@@ -366,20 +337,21 @@ struct RootView: View {
             triggerShakeThemeFlip()
         }
         .onChange(of: selectedTab) { _, newValue in
-            if newValue == .settings {
+            switch newValue {
+            case .settings:
                 showSettings = true
                 // Reverting the selection in the same tick can make the tab
                 // bar's highlight snap to the first tab instead of back to
                 // the current one — defer it to the next run loop turn.
                 Task { @MainActor in
-                    selectedTab = RootTab(mode)
+                    selectedTab = .feed(mode)
                 }
-            } else if let newMode = newValue.feedMode {
+            case .feed(let newMode):
                 mode = newMode
             }
         }
         .onChange(of: mode) { _, newMode in
-            selectedTab = RootTab(newMode)
+            selectedTab = .feed(newMode)
         }
         .tint(theme.accent)
         // Native chrome (the floating tab bar, sheets, alerts) picks its own
@@ -416,10 +388,9 @@ struct RootView: View {
                         // Apparence to "Claire". Only an actually mismatched
                         // pick (or an already-explicit Apparence) still
                         // forces it.
-                        let matchesAutoAlready = appearance == .auto && newTheme.isSoir == (systemColorScheme == .dark)
-                        if !matchesAutoAlready {
-                            appearanceRaw = (newTheme.isSoir ? AppAppearance.dark : .light).rawValue
-                        }
+                        appearanceRaw = newTheme.appearanceAfterPicking(
+                            current: appearance, systemColorScheme: systemColorScheme
+                        ).rawValue
                     }
                 ),
                 appearance: Binding(get: { appearance }, set: { appearanceRaw = $0.rawValue }),
@@ -445,14 +416,16 @@ struct RootView: View {
             isPresented: $showMarkAllReadConfirm
         ) {
             Button("Annuler", role: .cancel) {}
-            Button("Marquer comme lus") { markAllAsRead() }
+            // Every link currently shown (Date view: all unread links), in
+            // one go.
+            Button("Marquer comme lus") { markAsRead(visibleItems) }
         }
         // `.alert`, not `.confirmationDialog` — the latter can render as a
         // compact popover anchored near the triggering context menu instead
         // of centered, unlike every other confirmation in this file (all
         // `.alert`, all reliably centered regardless of what triggered them).
         .alert(
-            "Supprimer \(rankHostPendingDelete.map(sourceRankDisplayName) ?? "cette source") du classement ?",
+            "Supprimer \(rankHostPendingDelete.map { SourceRank.displayName(forHost: $0, in: allItems) } ?? "cette source") du classement ?",
             isPresented: Binding(
                 get: { rankHostPendingDelete != nil },
                 set: { if !$0 { rankHostPendingDelete = nil } }
@@ -463,11 +436,7 @@ struct RootView: View {
                 if let host = rankHostPendingDelete { deleteSourceRank(for: host) }
             }
         }
-        .alert("Enregistrement impossible", isPresented: $saveFailed) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("La dernière modification n'a pas pu être enregistrée et sera perdue à la fermeture de l'app.")
-        }
+        .saveFailureAlert(isPresented: $saveFailed)
     }
 
     /// Stand-in shown under the "Affichage" tab. That tab is never really
@@ -499,7 +468,14 @@ struct RootView: View {
     /// tabs; which links it shows is driven by the shared `mode` state, not
     /// by which tab is selected.
     private var feedScreen: some View {
-        NavigationStack {
+        // Computed once per render and reused below — `groups` is a
+        // non-memoized computed property (a full `FeedGrouping.makeGroups`
+        // pass), and the month-separator check used to recompute it for
+        // every single group inside the `ForEach`, on top of every
+        // `groups.isEmpty` test below.
+        let groups = self.groups
+        let monthSeparatorIDs = monthSeparatorGroupIDs(in: groups)
+        return NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 animatedBackground.ignoresSafeArea()
 
@@ -516,7 +492,7 @@ struct RootView: View {
                             // as a normal row here instead so the whole chip —
                             // in Sources, button included — just scrolls by
                             // with everything else, nothing pinned to swap.
-                            if monthSeparatorGroupIDs.contains(group.id),
+                            if monthSeparatorIDs.contains(group.id),
                                let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
                                 monthSeparator(FeedGrouping.monthLabel(for: date))
                                     .listRowSeparator(.hidden)
@@ -528,62 +504,7 @@ struct RootView: View {
                             if (mode != .source || expandedSources.contains(group.id))
                                 && !(mode == .read && collapsedReadGroups.contains(group.id)) {
                                 ForEach(group.items) { item in
-                                    FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
-                                        LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont)
-                                    }
-                                        .listRowSeparator(.hidden)
-                                        .listRowBackground(Color.clear)
-                                        .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
-                                        .contentShape(Rectangle())
-                                        .onTapGesture { open(item) }
-                                        .contextMenu {
-                                            Button("Copier l'URL") {
-                                                UIPasteboard.general.string = item.urlString
-                                            }
-                                            if item.isPinned {
-                                                Button {
-                                                    togglePin(item)
-                                                } label: {
-                                                    Label("Détacher le lien", systemImage: "pin.slash")
-                                                }
-                                            } else {
-                                                Button {
-                                                    togglePin(item)
-                                                } label: {
-                                                    Label("Épingler le lien", systemImage: "pin")
-                                                }
-                                            }
-                                        }
-                                        .swipeActions(edge: .trailing) {
-                                            Button(role: .destructive) { requestDelete(item) } label: {
-                                                Label("Supprimer", systemImage: "trash")
-                                            }
-                                            .tint(theme.deleteSwipeTint)
-                                        }
-                                        .swipeActions(edge: .leading) {
-                                            if mode == .read {
-                                                Button {
-                                                    markAsUnread(item)
-                                                } label: {
-                                                    Label("Marquer non lu", systemImage: "checkmark.circle.fill")
-                                                }
-                                                .tint(theme.markUnreadSwipeTint)
-                                            } else {
-                                                Button {
-                                                    markAsRead(item)
-                                                } label: {
-                                                    Label("Marquer lu", systemImage: "checkmark.circle.fill")
-                                                }
-                                                .tint(theme.markReadSwipeTint)
-                                            }
-                                        }
-                                        // Plain opacity — without it, a newly-inserted row
-                                        // can pop in at full height as soon as List
-                                        // measures it, instead of fading in like a removed
-                                        // row fades out. A directional `.move` transition
-                                        // was tried here but made the last row in a
-                                        // source's list animate differently from the rest.
-                                        .transition(.opacity)
+                                    linkRow(item)
                                 }
                             }
                         }
@@ -672,36 +593,8 @@ struct RootView: View {
                     }
                 }
 
-                if mode == .read && !groups.isEmpty {
-                    // Clear-read above, grouping/collapse control below —
-                    // same spot and stacking Sources uses for its own
-                    // toggle-all + mark-all-read pair.
-                    VStack(spacing: 14) {
-                        floatingButton(icon: "trash") { showClearReadConfirm = true }
-                        readGroupingControl
-                    }
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 30)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                } else if mode == .source && !groups.isEmpty {
-                    // Toggle-all above, mark-all-read below — same spot the
-                    // Date mark-all-read button sits in.
-                    VStack(spacing: 14) {
-                        floatingButton(
-                            icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
-                            flipped: !allSourcesExpandedIcon
-                        ) {
-                            toggleAllSources()
-                        }
-                        floatingButton(icon: "checkmark.circle.fill") {
-                            showMarkAllReadConfirm = true
-                        }
-                    }
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 30)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                } else if mode == .chrono && !groups.isEmpty {
-                    markAllReadButton
+                if !groups.isEmpty {
+                    floatingButtons(groups)
                 }
 
                 undoToast
@@ -718,6 +611,81 @@ struct RootView: View {
                 floatingCounterBadge
             }
         }
+    }
+
+    /// One link: its card (turning with the others on a shake), tap to
+    /// open, context menu and swipe actions.
+    private func linkRow(_ item: LinkItem) -> some View {
+        FlipCard(angle: themeFlipAngle, axis: (x: 1, y: 0, z: 0)) { showsNewFace in
+            LinkRowView(item: item, layout: layout, theme: flippedTheme(showsNewFace: showsNewFace), appFont: appFont)
+        }
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+            .contentShape(Rectangle())
+            .onTapGesture { open(item) }
+            .contextMenu {
+                Button("Copier l'URL") {
+                    UIPasteboard.general.string = item.urlString
+                }
+                Button {
+                    togglePin(item)
+                } label: {
+                    Label(item.isPinned ? "Détacher le lien" : "Épingler le lien",
+                          systemImage: item.isPinned ? "pin.slash" : "pin")
+                }
+            }
+            .swipeActions(edge: .trailing) {
+                Button(role: .destructive) { requestDelete([item]) } label: {
+                    Label("Supprimer", systemImage: "trash")
+                }
+                .tint(theme.deleteSwipeTint)
+            }
+            .swipeActions(edge: .leading) {
+                Button {
+                    if mode == .read { markAsUnread(item) } else { markAsRead([item]) }
+                } label: {
+                    Label(mode == .read ? "Marquer non lu" : "Marquer lu", systemImage: "checkmark.circle.fill")
+                }
+                .tint(mode == .read ? theme.markUnreadSwipeTint : theme.markReadSwipeTint)
+            }
+            // Plain opacity — without it, a newly-inserted row
+            // can pop in at full height as soon as List
+            // measures it, instead of fading in like a removed
+            // row fades out. A directional `.move` transition
+            // was tried here but made the last row in a
+            // source's list animate differently from the rest.
+            .transition(.opacity)
+    }
+
+    /// The bottom-trailing floating buttons, stacked in the same spot in
+    /// every view.
+    private func floatingButtons(_ groups: [FeedGroup]) -> some View {
+        VStack(spacing: 14) {
+            switch mode {
+            case .read:
+                // Clear-read above, grouping/collapse control below —
+                // same spot and stacking Sources uses for its own
+                // toggle-all + mark-all-read pair.
+                floatingButton(icon: "trash") { showClearReadConfirm = true }
+                readGroupingControl(groups)
+            case .source:
+                // Toggle-all above, mark-all-read below — same spot the
+                // Date mark-all-read button sits in.
+                floatingButton(
+                    icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
+                    flipped: !allSourcesExpandedIcon
+                ) {
+                    toggleAllSources()
+                }
+                floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
+            case .chrono:
+                floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
+            }
+        }
+        .padding(.trailing, 18)
+        .padding(.bottom, 30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     /// The link-count pill, floating on its own with no surrounding title
@@ -776,15 +744,14 @@ struct RootView: View {
             // Copenhague: the counter badge alone swaps to an ochre yellow
             // in every view (a darker variant for soir), leaving the
             // day/source pill on its usual `chip`.
-            .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chip)
-            // Tokyo soir: same gray as the ranking rows' own count text.
-            .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.countForeground))
+            .background(counterBackground(for: theme))
+            .foregroundStyle(counterForegroundOverride(for: theme) ?? theme.chipText)
             .clipShape(Capsule())
     }
 
     /// Whether every currently visible group is collapsed — same shape as
     /// `MacFeedList.allReadGroupsCollapsed`, driving the collapse icon below.
-    private var allReadGroupsCollapsed: Bool {
+    private func allReadGroupsCollapsed(in groups: [FeedGroup]) -> Bool {
         !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
     }
 
@@ -798,8 +765,9 @@ struct RootView: View {
     /// above the trash button in the same bottom-trailing corner, so a
     /// horizontal pill would be wider than that single circular button
     /// beneath it.
-    private var readGroupingControl: some View {
-        VStack(spacing: 0) {
+    private func readGroupingControl(_ groups: [FeedGroup]) -> some View {
+        let allCollapsed = allReadGroupsCollapsed(in: groups)
+        return VStack(spacing: 0) {
             groupingControlButton(icon: readGroupedBySource ? "calendar" : "globe") {
                 // Collapsed-group ids belong to whichever grouping was
                 // active when they were collapsed (day keys vs. hosts), so
@@ -809,20 +777,15 @@ struct RootView: View {
                 // dropped. A partial (some-but-not-all) collapse has no
                 // equivalent in the other grouping, so only the two
                 // extremes survive the switch.
-                let wasAllCollapsed = allReadGroupsCollapsed
                 readGroupedBySource.toggle()
-                collapsedReadGroups = wasAllCollapsed ? Set(groups.map(\.id)) : []
+                collapsedReadGroups = allCollapsed ? Set(self.groups.map(\.id)) : []
             }
             Divider().frame(width: 20).opacity(0.3)
             groupingControlButton(
-                icon: allReadGroupsCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle",
-                flipped: allReadGroupsCollapsed
+                icon: allCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle",
+                flipped: allCollapsed
             ) {
-                if allReadGroupsCollapsed {
-                    collapsedReadGroups = []
-                } else {
-                    collapsedReadGroups = Set(groups.map(\.id))
-                }
+                collapsedReadGroups = allCollapsed ? [] : Set(groups.map(\.id))
             }
         }
         .frame(width: 44)
@@ -834,14 +797,14 @@ struct RootView: View {
     /// `floatingButton` (and thus the trash button above it), but without
     /// its own individual glass background (the capsule around both halves
     /// supplies that instead).
-    private func groupingControlButton(icon: String, size: CGFloat = 22, flipped: Bool = false, action: @escaping () -> Void) -> some View {
+    private func groupingControlButton(icon: String, flipped: Bool = false, action: @escaping () -> Void) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.25)) {
                 action()
             }
         } label: {
             Image(systemName: icon)
-                .font(.system(size: size, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .scaleEffect(x: flipped ? -1 : 1, y: 1)
                 .foregroundStyle(theme.ink(1))
                 .frame(width: 44, height: 44)
@@ -874,13 +837,6 @@ struct RootView: View {
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
     }
 
-    private var markAllReadButton: some View {
-        floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
-            .padding(.trailing, 18)
-            .padding(.bottom, 30)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-    }
-
     /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
     /// shown above the first day group of each calendar month once links
     /// span more than one (see `monthSeparatorGroupIDs`).
@@ -899,52 +855,11 @@ struct RootView: View {
 
     /// Chip shown as each Section's header. In Sources it also acts as the
     /// collapse/expand toggle for that source and carries a link-count badge;
-    /// in Date/Lus it's a plain, non-interactive day label.
-    @ViewBuilder
+    /// in Date it's a plain, non-interactive day label.
     private func groupHeader(_ group: FeedGroup) -> some View {
-        if mode == .source {
-            // Centered alignment keeps the mark-all-read icon on the same
-            // vertical line as the count badge and chevron inside the chip.
-            HStack(alignment: .center, spacing: 10) {
-                Button {
-                    toggleSource(group.id)
-                } label: {
-                    fadingSourceChipLabel(group, isExpanded: expandedSources.contains(group.id))
-                }
-                .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
-
-                // Only while expanded — marks every link from this source as
-                // read, which empties it out of the (unread-only) Sources
-                // view, so the source disappears from the list.
-                if expandedSources.contains(group.id) {
-                    Button {
-                        markSourceAsRead(group.items)
-                    } label: {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(theme.ink(0.55))
-                            // Same 44pt box as the floating buttons below,
-                            // so the icon glyph lands on the same vertical
-                            // line as "Tout marquer comme lu" and
-                            // "Présentation liste/condensé".
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .listRowInsets(EdgeInsets())
-            // The source chip's own leading padding (14) plus its label's
-            // internal padding (14) put the source name 28pt from the row
-            // edge, 4pt short of a link title's 32pt (14 listRowInset + 18
-            // LinkRowView padding) — nudged to match, same as the day pill
-            // below.
-            .padding(.leading, 18)
-            .padding(.trailing, 18)
-            .padding(.vertical, 4)
-        } else {
+        // Centered alignment keeps the mark-all-read icon on the same
+        // vertical line as the count badge and chevron inside the chip.
+        HStack(alignment: .center, spacing: 10) {
             // Date mirrors Sources: the day chip stays a plain non-interactive
             // label, with its own mark-as-read button trailing it — same
             // 44pt tap target and icon treatment as Sources' per-source button.
@@ -952,56 +867,64 @@ struct RootView: View {
             // once collapse/expand exists there too — tapping it toggles just
             // this one group, and the trash button only makes sense (and
             // only shows) while a group is actually expanded.
-            HStack(alignment: .center, spacing: 10) {
-                if mode == .read {
-                    Button {
-                        toggleReadGroupCollapse(group.id)
-                    } label: {
-                        fadingSourceChipLabel(group, isExpanded: !collapsedReadGroups.contains(group.id))
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    fadingDayPill(group)
+            switch mode {
+            case .source:
+                Button {
+                    toggleSource(group.id)
+                } label: {
+                    fadingSourceChipLabel(group, isExpanded: expandedSources.contains(group.id))
                 }
-
-                if mode == .chrono {
-                    Spacer(minLength: 0)
-
-                    Button {
-                        // Pinned links stay in À lire — this button only
-                        // touches the rest of the day's links.
-                        markSourceAsRead(group.items.filter { !$0.isPinned })
-                    } label: {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(theme.ink(0.55))
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                } else if mode == .read && !collapsedReadGroups.contains(group.id) {
-                    Spacer(minLength: 0)
-
-                    Button {
-                        requestDeleteGroup(group.items)
-                    } label: {
-                        Image(systemName: "trash.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(theme.ink(0.55))
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
+                .buttonStyle(.plain)
+            case .read:
+                Button {
+                    toggleReadGroupCollapse(group.id)
+                } label: {
+                    fadingSourceChipLabel(group, isExpanded: !collapsedReadGroups.contains(group.id))
                 }
+                .buttonStyle(.plain)
+            case .chrono:
+                fadingDayPill(group)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .listRowInsets(EdgeInsets())
-            // Same nudge as the source chip above: the day pill's own
-            // leading padding (14) plus its label's internal padding (14)
-            // put "Aujourd'hui" 28pt from the row edge, 4pt short of a link
-            // title's 32pt (14 listRowInset + 18 LinkRowView padding).
-            .padding(.leading, 18)
-            .padding(.trailing, 18)
-            .padding(.vertical, 4)
+
+            Spacer(minLength: 0)
+
+            switch mode {
+            // Only while expanded — marks every link from this source as
+            // read, which empties it out of the (unread-only) Sources
+            // view, so the source disappears from the list.
+            case .source where expandedSources.contains(group.id):
+                headerIconButton("checkmark.circle.fill") { markAsRead(group.items) }
+            // Pinned links stay in À lire — this button only
+            // touches the rest of the day's links.
+            case .chrono:
+                headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
+            case .read where !collapsedReadGroups.contains(group.id):
+                headerIconButton("trash.circle.fill") { requestDelete(group.items) }
+            default:
+                EmptyView()
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowInsets(EdgeInsets())
+        // The chip's own leading padding (14) plus its label's internal
+        // padding (14) put the source name — or "Aujourd'hui" — 28pt from
+        // the row edge, 4pt short of a link title's 32pt (14 listRowInset +
+        // 18 LinkRowView padding) — nudged to match.
+        .padding(.horizontal, 18)
+        .padding(.vertical, 4)
+    }
+
+    /// A group header's trailing action — same 44pt box as the floating
+    /// buttons below, so the icon glyph lands on the same vertical line as
+    /// "Tout marquer comme lu" and "Présentation liste/condensé".
+    private func headerIconButton(_ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(theme.ink(0.55))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Takes `theme` and `isExpanded` explicitly (rather than reading
@@ -1016,12 +939,11 @@ struct RootView: View {
                 .font(appFont.font(size: 16.5, weight: .bold))
             Text("\(group.items.count)")
                 .font(appFont.font(size: 16.5, weight: .bold))
-                // Tokyo soir: same gray as the ranking rows' own count text.
-                .foregroundStyle(counterForegroundOverride(for: theme) ?? (theme == .tokyoSoir ? theme.ink(0.5) : theme.chipText))
+                .foregroundStyle(counterForegroundOverride(for: theme) ?? theme.chipText)
                 .frame(minWidth: 17, minHeight: 17)
                 .padding(.horizontal, 4)
                 // Copenhague: same ochre yellow as the other link counters.
-                .background(mainCounterBackgroundOverride(for: theme) ?? counterBackgroundOverride(for: theme) ?? theme.chipText.opacity(0.22))
+                .background(counterBackground(for: theme))
                 .clipShape(Capsule())
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                 .font(.system(size: 14, weight: .bold))
@@ -1042,16 +964,9 @@ struct RootView: View {
     /// technique `animatedBackground` uses for the screen backdrop, was
     /// dropped in instead rather than keep chasing the rotation.
     private func fadingSourceChipLabel(_ group: FeedGroup, isExpanded: Bool) -> some View {
-        ZStack {
-            sourceChipLabel(group, theme: themeFlipOldTheme ?? theme, isExpanded: isExpanded)
-            if themeFlipOldTheme != nil {
-                sourceChipLabel(group, theme: theme, isExpanded: isExpanded)
-                    .opacity(themeFlipRevealsNewBackground ? 1 : 0)
-            }
-        }
         // Explicit, and pinned to the exact same duration as
-        // `animatedBackground`'s — see `Self.themeFlipDuration`.
-        .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
+        // `animatedBackground`'s — see `themeCrossfade`.
+        themeCrossfade { sourceChipLabel(group, theme: $0, isExpanded: isExpanded) }
     }
 
     /// The day pill ("Aujourd'hui", "Hier", a date) shown in Date/Lus —
@@ -1069,27 +984,7 @@ struct RootView: View {
     /// `dayPill` cross-fading between its pre- and post-shake colors — see
     /// `fadingSourceChipLabel`.
     private func fadingDayPill(_ group: FeedGroup) -> some View {
-        ZStack {
-            dayPill(group, theme: themeFlipOldTheme ?? theme)
-            if themeFlipOldTheme != nil {
-                dayPill(group, theme: theme)
-                    .opacity(themeFlipRevealsNewBackground ? 1 : 0)
-            }
-        }
-        .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
-    }
-
-    /// The domain suffix (".com", ".fr", ".net"…) is dropped for the
-    /// ranking specifically — `sourceRankRow` names its rows "nytimes", not
-    /// "nytimes.com". Elsewhere (the link cards' host line) the full domain
-    /// is kept. Same as macOS's `MacSourceRankingView.displayName`.
-    private func sourceRankDisplayName(_ host: String) -> String {
-        if let sourceName = allItems.first(where: { $0.host == host })?.sourceName {
-            return sourceName
-        }
-        let override = LinkItem.displaySourceName(forHost: host)
-        if override != host { return override }
-        return host.split(separator: ".").first.map(String.init) ?? host
+        themeCrossfade { dayPill(group, theme: $0) }
     }
 
     /// A plain row — rank, name, count, no gauge/bar-chart background —
@@ -1099,7 +994,10 @@ struct RootView: View {
             Text("\(rank)")
                 .foregroundStyle(theme.ink(0.4))
                 .frame(width: 22, alignment: .leading)
-            Text(sourceRankDisplayName(host))
+            // The domain suffix (".com", ".fr", ".net"…) is dropped for the
+            // ranking specifically — see `SourceRank.displayName`. Same as
+            // macOS's `MacSourceRankingView`.
+            Text(SourceRank.displayName(forHost: host, in: allItems))
                 // Soir themes: match the rank/count's own muted ink tone
                 // instead of the full-strength title color.
                 .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
@@ -1128,9 +1026,9 @@ struct RootView: View {
         // view is removed from the tree — too late to animate its own exit.
         // Attached to the always-present `Group` wrapping it instead, so the
         // toast's remove transition is covered by an actual animation
-        // rather than popping out instantly; `requestDelete`/
-        // `requestDeleteGroup`'s auto-dismiss and `performUndo` no longer
-        // need their own `withAnimation` for this.
+        // rather than popping out instantly; `requestDelete`'s
+        // auto-dismiss and `performUndo` no longer need their own
+        // `withAnimation` for this.
         .animation(.easeInOut(duration: 0.3), value: undoSnapshots.isEmpty)
     }
 
@@ -1175,31 +1073,17 @@ struct RootView: View {
 
     // MARK: Actions
 
-    /// Saves the context and reports a failure instead of dropping it.
-    ///
-    /// Every mutation here used to end in a bare `try? modelContext.save()`,
-    /// so a full disk or a constraint violation vanished without a trace:
-    /// the in-memory objects looked updated, nothing reached the store, and
-    /// neither the user nor the console ever heard about it.
+    /// Saves the context and reports a failure instead of dropping it — see
+    /// `ModelContext.persist(_:)`.
     private func persist(_ operation: String = #function) {
-        do {
-            try modelContext.save()
-        } catch {
-            PlutarLog.store.error(
-                "Save failed during \(operation, privacy: .public): \(String(describing: error), privacy: .public)"
-            )
-            saveFailed = true
-        }
+        if !modelContext.persist(operation) { saveFailed = true }
     }
 
     private func open(_ item: LinkItem) {
         // A pinned link stays in À lire when opened — only an explicit
         // "Marquer comme lu" (swipe or context menu) or delete moves it on.
         if !item.isPinned {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                item.isRead = true
-                persist()
-            }
+            markAsRead([item])
         }
         if let url = URL(string: item.urlString) {
             openURL(url)
@@ -1213,9 +1097,11 @@ struct RootView: View {
         }
     }
 
-    private func markAsRead(_ item: LinkItem) {
+    /// One link (swipe, open), a whole day/source group, or every link
+    /// currently shown ("Tout marquer comme lu").
+    private func markAsRead(_ items: [LinkItem]) {
         withAnimation(.easeInOut(duration: 0.25)) {
-            item.isRead = true
+            for item in items { item.isRead = true }
             persist()
         }
     }
@@ -1232,35 +1118,17 @@ struct RootView: View {
         }
     }
 
-    private func markSourceAsRead(_ items: [LinkItem]) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            for item in items { item.isRead = true }
-            persist()
-        }
-    }
-
-    private func requestDelete(_ item: LinkItem) {
-        undoSnapshots.append(DeletedSnapshot(item))
-        modelContext.delete(item)
-        persist()
-        // Each delete restarts the window, so the user always gets the full
-        // 1.5 seconds from their own last swipe rather than from the first
-        // one in the batch.
-        undoTask?.cancel()
-        undoTask = Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            if !Task.isCancelled { discardUndoSnapshots() }
-        }
-    }
-
-    /// Deletes every link in a Lus day group at once, all covered by the
-    /// same undo toast (its count reflects the whole group).
-    private func requestDeleteGroup(_ items: [LinkItem]) {
+    /// One swiped link, or every link in a Lus day group at once — all
+    /// covered by the same undo toast (its count reflects the whole group).
+    private func requestDelete(_ items: [LinkItem]) {
         for item in items {
             undoSnapshots.append(DeletedSnapshot(item))
             modelContext.delete(item)
         }
         persist()
+        // Each delete restarts the window, so the user always gets the full
+        // 1.5 seconds from their own last swipe rather than from the first
+        // one in the batch.
         undoTask?.cancel()
         undoTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
@@ -1291,28 +1159,13 @@ struct RootView: View {
     }
 
     private func clearAll() {
-        for item in allItems {
-            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-            modelContext.delete(item)
-        }
+        modelContext.deleteLinks(allItems)
         persist()
     }
 
     private func clearRead() {
-        for item in allItems where item.isRead {
-            SharedStore.deleteThumbnailFile(named: item.thumbnailFileName)
-            modelContext.delete(item)
-        }
+        modelContext.deleteLinks(allItems.filter(\.isRead))
         persist()
-    }
-
-    /// Marks every link currently shown (Date view: all unread links) as
-    /// read in one go.
-    private func markAllAsRead() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            for item in visibleItems { item.isRead = true }
-            persist()
-        }
     }
 
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
@@ -1332,7 +1185,7 @@ struct RootView: View {
         persist()
     }
 
-    /// Steps to the next theme, in `AppTheme.selectable`'s declared order,
+    /// Steps to the next theme, in `AppTheme.allCases`' declared order,
     /// within the currently displayed one's own light/soir family — a clear
     /// theme shaken from cycles to the next clear theme, a soir one to the
     /// next soir one, wrapping back to the first once the family is
@@ -1341,7 +1194,7 @@ struct RootView: View {
     /// variant the new pick happens to be. Font, layout and every other
     /// Affichage setting are untouched too: only `themeRaw` changes.
     private func shakeToRandomizeTheme() {
-        let family = AppTheme.selectable.filter { $0.isSoir == theme.isSoir }
+        let family = AppTheme.allCases.filter { $0.isSoir == theme.isSoir }
         guard let currentIndex = family.firstIndex(of: theme) else { return }
         let next = family[(currentIndex + 1) % family.count]
         themeRaw = next.rawValue

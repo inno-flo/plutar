@@ -9,8 +9,8 @@ import SwiftData
 /// Sources group also carries a "Classement" row (`MacSourceRankingView`) for
 /// the standing, all-time `SourceRank` tally. Display settings live in a
 /// real `Settings` scene (Cmd+,) — see `MacSettingsView`.
-/// No shake-to-theme here either (`ShakeGesture`/`FlipCard` are UIKit-only
-/// and stay out of this target's sources).
+/// No shake-to-theme here either (`ShakeGesture` is UIKit-only and stays out
+/// of this target's sources).
 struct MacRootView: View {
     /// Not `@Environment(\.colorScheme)` — see `SystemAppearanceObserver`'s
     /// doc comment for why that gets corrupted by this same view's own
@@ -52,10 +52,7 @@ struct MacRootView: View {
     /// `layoutRaw` (the actual `@AppStorage` source of truth) as a
     /// `Binding<LinkLayout>` instead.
     private var layoutBinding: Binding<LinkLayout> {
-        Binding(
-            get: { layout },
-            set: { layoutRaw = $0.rawValue }
-        )
+        Binding(get: { layout }, set: { layoutRaw = $0.rawValue })
     }
 
     /// Same resolution as `RootView.effectiveBackground` — see there for why
@@ -128,7 +125,7 @@ struct MacRootView: View {
         case .source(let host):
             let sourceItems = allItems.filter { $0.host == host }
             MacFeedList(
-                mode: .source, title: sourceItems.compactMap(\.sourceName).first ?? LinkItem.displaySourceName(forHost: host),
+                mode: .source, title: LinkItem.displaySourceName(forHost: host, in: sourceItems),
                 allItems: sourceItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
                 effectiveBackground: effectiveBackground,

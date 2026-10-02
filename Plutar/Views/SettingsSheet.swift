@@ -32,8 +32,6 @@ struct SettingsSheet: View {
     /// rendering unexpectedly white).
     let chipColor: Color
 
-    private let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
-
     /// Room for the inline nav bar and the home-indicator safe area below
     /// the scroll view.
     private static let chromeAllowance: CGFloat = 100
@@ -59,13 +57,11 @@ struct SettingsSheet: View {
                         // options (since "Helvetica Neue Courant" joined
                         // "Helvetica Neue Bold") no longer fit one row
                         // without overflowing on iPhone width either.
-                        LazyVGrid(columns: columns, spacing: 8) {
-                            // Left column top-to-bottom: Helvetica Neue
-                            // Courant, Helvetica Neue Bold. Right column:
-                            // SF Compact, SF Pro. Not `AppFont.allCases`'s
-                            // declaration order.
-                            ForEach([AppFont.helveticaCourant, .sfCompact, .helvetica, .rounded]) { f in
-                                SettingsPillButton(f.label, isActive: appFont == f, font: f.font(size: 17, weight: f == .rounded ? .bold : .regular), chipColor: chipColor) {
+                        LazyVGrid(columns: settingsGridColumns, spacing: 8) {
+                            // Not `AppFont.allCases`'s declaration order —
+                            // see `AppFont.settingsOrder`.
+                            ForEach(AppFont.settingsOrder) { f in
+                                SettingsPillButton(f.label, isActive: appFont == f, font: f.pillFont(size: 17), chipColor: chipColor) {
                                     appFont = f
                                 }
                             }
@@ -73,8 +69,8 @@ struct SettingsSheet: View {
                     }
 
                     SettingsSectionView(title: "Thème") {
-                        LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(AppTheme.selectable) { t in
+                        LazyVGrid(columns: settingsGridColumns, spacing: 8) {
+                            ForEach(AppTheme.allCases) { t in
                                 SettingsThemePillButton(theme: t, isActive: theme == t, chipColor: chipColor) {
                                     theme = t
                                 }

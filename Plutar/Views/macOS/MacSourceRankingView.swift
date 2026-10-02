@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The standing "most shared sources" ranking — an all-time, cumulative
 /// `SourceRank` tally, unlike the live per-source unread counts shown
@@ -6,7 +7,7 @@ import SwiftUI
 /// the sidebar's "Classement" row, under Sources, is selected.
 struct MacSourceRankingView: View {
     let sourceRanks: [SourceRank]
-    /// Only consulted for `displayName(_:)` — a host has no name of its own
+    /// Only consulted for `SourceRank.displayName` — a host has no name of its own
     /// on `SourceRank`, so this looks one up from any link that shares it.
     let allItems: [LinkItem]
     let theme: AppTheme
@@ -27,7 +28,8 @@ struct MacSourceRankingView: View {
     }
 
     var body: some View {
-        Group {
+        let ranked = self.ranked
+        return Group {
             if ranked.isEmpty {
                 QuietEmptyStateView(
                     theme: theme, appFont: appFont, icon: "chart.line.uptrend.xyaxis",
@@ -83,16 +85,8 @@ struct MacSourceRankingView: View {
         for rank in sourceRanks where rank.host == host {
             modelContext.delete(rank)
         }
-        try? modelContext.save()
-    }
-
-    private func displayName(_ host: String) -> String {
-        if let sourceName = allItems.first(where: { $0.host == host })?.sourceName {
-            return sourceName
-        }
-        let override = LinkItem.displaySourceName(forHost: host)
-        if override != host { return override }
-        return host.split(separator: ".").first.map(String.init) ?? host
+        // Logged rather than a bare `try?` — see `ModelContext.persist(_:)`.
+        modelContext.persist()
     }
 
     private func rankRow(rank: Int, host: String, count: Int) -> some View {
@@ -100,7 +94,7 @@ struct MacSourceRankingView: View {
             Text("\(rank)")
                 .foregroundStyle(theme.ink(0.4))
                 .frame(width: 22, alignment: .leading)
-            Text(displayName(host))
+            Text(SourceRank.displayName(forHost: host, in: allItems))
                 .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
                 .contextMenu {
                     Button("Supprimer cette source…", role: .destructive) {

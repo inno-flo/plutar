@@ -94,7 +94,7 @@ struct LinkRowView: View {
     /// Rounded is a real system weight variant and renders this bold fine;
     /// SF Compact ignores it entirely (fixed to its own Regular style
     /// regardless of what's passed), so titles stay at Regular weight there.
-    private var titleWeight: Font.Weight { .bold }
+    private let titleWeight: Font.Weight = .bold
 
     /// Smaller on macOS — the mockup's 18pt reads oversized next to the
     /// window chrome/sidebar there; iOS keeps its original size.
@@ -126,18 +126,13 @@ struct LinkRowView: View {
                 thumbnailFileName: showsNewFace ? item.thumbnailFileName : (frozenThumbnailFileName ?? item.thumbnailFileName)
             )
         }
-        .onChange(of: item.title) { oldTitle, newTitle in
+        .onChange(of: item.title) { oldTitle, _ in
             // Only the "acquired a real title" transition flips — a link
             // whose title was already real doesn't flip again over some
             // unrelated later edit (there isn't one today, but this keeps
             // the trigger meaningful rather than "title changed at all").
-            guard oldTitle != newTitle, oldTitle == item.host || oldTitle == item.urlString else { return }
-            frozenTitle = oldTitle
-            frozenThumbnailFileName = item.thumbnailFileName
-            flipAngle = 0
-            withAnimation(.easeInOut(duration: 0.5)) {
-                flipAngle = 180
-            }
+            guard oldTitle == item.host || oldTitle == item.urlString else { return }
+            flip(from: oldTitle, thumbnailFileName: item.thumbnailFileName)
         }
         .onChange(of: item.thumbnailFileName) { oldFileName, newFileName in
             // Same flip, for the case `LinkMetadataEnricher`'s
@@ -147,13 +142,19 @@ struct LinkRowView: View {
             // CloudKit, only this filename — and this device fetches its
             // own copy afterwards. Only the "acquired an image" transition
             // flips, same reasoning as the title's own case above.
-            guard oldFileName != newFileName, oldFileName == nil, newFileName != nil else { return }
-            frozenTitle = item.title
-            frozenThumbnailFileName = oldFileName
-            flipAngle = 0
-            withAnimation(.easeInOut(duration: 0.5)) {
-                flipAngle = 180
-            }
+            guard oldFileName == nil, newFileName != nil else { return }
+            flip(from: item.title, thumbnailFileName: oldFileName)
+        }
+    }
+
+    /// Freezes the given pre-enrichment face and turns the card over to the
+    /// live one.
+    private func flip(from title: String, thumbnailFileName: String?) {
+        frozenTitle = title
+        frozenThumbnailFileName = thumbnailFileName
+        flipAngle = 0
+        withAnimation(.easeInOut(duration: 0.5)) {
+            flipAngle = 180
         }
     }
 
@@ -175,7 +176,7 @@ struct LinkRowView: View {
         // together than the old card spacing.
         .padding(.vertical, plainStyle ? 8 : 16)
         .padding(.horizontal, 18)
-        .background(plainStyle && !isSelected ? Color.clear : (isSelected ? theme.chip : (item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card)))
+        .background(cardBackground)
         // In Lus (every cell here is read), the title drops down to the
         // same muted tone as the host/"via" line below it instead of the
         // theme's full-strength title color.
@@ -207,6 +208,12 @@ struct LinkRowView: View {
         // height the row proposes, makes `List` size the row correctly.
         // A no-op on iOS, where this bug doesn't occur.
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var cardBackground: Color {
+        if isSelected { return theme.chip }
+        if plainStyle { return .clear }
+        return item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card
     }
 
     /// The title text, prefixed (in order) with a `pin.circle` glyph when the
@@ -254,13 +261,18 @@ struct LinkRowView: View {
         return image
     }
 
+    /// `titleText` in the title font, capped at 3 lines — same in every layout.
+    private func titleLine(_ title: String) -> some View {
+        titleText(title)
+            .font(appFont.font(size: titleFontSize, weight: titleWeight))
+            .lineLimit(3)
+    }
+
     // MARK: Rail (default) — just the title, host below, nothing else.
 
     private func railBody(title: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            titleText(title)
-                .font(appFont.font(size: titleFontSize, weight: titleWeight))
-                .lineLimit(3)
+            titleLine(title)
             if showHost {
                 hostRow
             }
@@ -272,9 +284,7 @@ struct LinkRowView: View {
     private func cardBody(title: String, thumbnailFileName: String?) -> some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                titleText(title)
-                    .font(appFont.font(size: titleFontSize, weight: titleWeight))
-                    .lineLimit(3)
+                titleLine(title)
                 if showHost {
                     hostRow
                 }
@@ -307,9 +317,7 @@ struct LinkRowView: View {
             // Éditoriale both always carry a thumbnail (placeholder or
             // real), Simple never does.
             thumbnail(size: editorialThumbnailHeight, fullWidth: true, thumbnailFileName: thumbnailFileName)
-            titleText(title)
-                .font(appFont.font(size: titleFontSize, weight: .bold))
-                .lineLimit(3)
+            titleLine(title)
             // Only when there's actually an excerpt to show — an empty
             // `Text` still claims a row plus the `VStack`'s own spacing on
             // both sides, leaving a visible gap above the source line for
@@ -361,7 +369,7 @@ struct LinkRowView: View {
     private static func cachedThumbnail(_ fileName: String) -> PlatformImage? {
         let key = fileName as NSString
         if let cached = thumbnailCache.object(forKey: key) { return cached }
-        guard let directory = SharedStore.thumbnailsDirectoryURL(),
+        guard let directory = SharedStore.thumbnailsDirectoryURL,
               let image = PlatformImage(contentsOfFile: directory.appendingPathComponent(fileName).path)
         else {
             return nil

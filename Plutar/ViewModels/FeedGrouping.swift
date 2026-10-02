@@ -25,6 +25,17 @@ enum FeedGrouping {
         mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
     }
 
+    /// The groups a feed screen actually shows (`RootView`, `MacFeedList`) —
+    /// `makeGroups`, except Lus bucketed by source instead of by day while
+    /// its globe/calendar toggle (`DisplaySettingsKey.readGroupedBySource`)
+    /// is on.
+    static func groups(_ allItems: [LinkItem], mode: FeedMode, readGroupedBySource: Bool) -> [FeedGroup] {
+        if mode == .read && readGroupedBySource {
+            return makeSourceGroups(allItems.filter(\.isRead))
+        }
+        return makeGroups(allItems, mode: mode)
+    }
+
     /// Buckets `visibleItems(allItems, mode:)` into day groups (Date/Lus) or
     /// host groups (Sources), in the same order `RootView`'s "groups" used
     /// to compute: days newest-first (matching `allItems`' own sort), hosts
@@ -67,7 +78,7 @@ enum FeedGrouping {
             // it for at least one link from this host, else `LinkItem`'s own
             // hardcoded override for sites that block that fetch, else the
             // bare host ("nytimes.com").
-            let label = hostItems.compactMap(\.sourceName).first ?? LinkItem.displaySourceName(forHost: host)
+            let label = LinkItem.displaySourceName(forHost: host, in: hostItems)
             return FeedGroup(id: host, label: label, items: hostItems)
         }
     }
@@ -152,5 +163,14 @@ enum FeedGrouping {
             previousMonthKey = key
         }
         return ids
+    }
+}
+
+extension Set {
+    /// Inserts `member` if absent, removes it if present — the expand/
+    /// collapse toggle behind every per-group chevron (`RootView`,
+    /// `MacFeedList`).
+    mutating func toggle(_ member: Element) {
+        if remove(member) == nil { insert(member) }
     }
 }
