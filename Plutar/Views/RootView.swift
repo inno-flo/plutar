@@ -713,9 +713,9 @@ struct RootView: View {
                 ) {
                     toggleAllSources()
                 }
-                floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
+                floatingButton(icon: "checkmark.circle") { showMarkAllReadConfirm = true }
             case .chrono:
-                floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
+                floatingButton(icon: "checkmark.circle") { showMarkAllReadConfirm = true }
                 // Test: Lus' grouping/collapse control, below
                 // mark-all-read.
                 if hasGroupingControls {
@@ -877,7 +877,7 @@ struct RootView: View {
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
     }
 
-    /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
+    /// Lus, day-grouped only — the month name and year, no rule,
     /// shown above the first day group of each calendar month once links
     /// span more than one (see `monthSeparatorGroupIDs`).
     private func monthSeparator(_ label: String, monthKey: String) -> some View {
@@ -900,9 +900,6 @@ struct RootView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            Rectangle()
-                .fill(theme.ink(0.15))
-                .frame(height: 1)
         }
         .padding(.horizontal, 18)
         .padding(.top, 10)
@@ -954,7 +951,7 @@ struct RootView: View {
             // read, which empties it out of the (unread-only) Sources
             // view, so the source disappears from the list.
             case .source where expandedSources.contains(group.id):
-                headerIconButton("checkmark.circle.fill") { markAsRead(group.items) }
+                headerIconButton("checkmark.circle") { markAsRead(group.items) }
             // Pinned links stay in À lire — this button only
             // touches the rest of the day's links.
             // Test: no per-day button while À lire has Lus' grouping

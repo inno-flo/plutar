@@ -316,7 +316,9 @@ struct MacFeedList: View {
                 }
                 ToolbarItemGroup {
                     Button {
-                        collapsedReadGroups = readAllCollapsed ? [] : Set(currentGroups.map(\.id))
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            collapsedReadGroups = readAllCollapsed ? [] : Set(currentGroups.map(\.id))
+                        }
                     } label: {
                         // Showing "collapse all" until every group actually
                         // is collapsed, then "expand all" — matches whatever
@@ -468,7 +470,9 @@ struct MacFeedList: View {
     private func monthSeparator(_ label: String, monthKey: String) -> some View {
         let isCollapsed = collapsedMonths.contains(monthKey)
         return Button {
-            collapsedMonths.toggle(monthKey)
+            withAnimation(.easeInOut(duration: 0.25)) {
+                collapsedMonths.toggle(monthKey)
+            }
         } label: {
             HStack(spacing: 6) {
                 Text(label)
@@ -534,7 +538,9 @@ struct MacFeedList: View {
                     // collapse-all/expand-all button.
                     .onTapGesture(count: 1) {
                         guard mode == .read else { return }
-                        collapsedReadGroups.toggle(group.id)
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            collapsedReadGroups.toggle(group.id)
+                        }
                     }
                 }
                 Spacer()
@@ -569,7 +575,9 @@ struct MacFeedList: View {
     }
 
     private func expandedSourcesButtonVisible(_ group: FeedGroup) -> Bool {
-        mode == .chrono || isSingleSourceDetail || (mode == .source && expandedSources.contains(group.id))
+        // À lire (.chrono) has no per-day button — only the toolbar's
+        // mark-all-read one.
+        isSingleSourceDetail || (mode == .source && expandedSources.contains(group.id))
     }
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.
@@ -651,7 +659,9 @@ struct MacFeedList: View {
     }
 
     private func toggleSource(_ id: String) {
-        expandedSources.toggle(id)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            expandedSources.toggle(id)
+        }
     }
 
     private func toggleAllSources() {
@@ -659,10 +669,12 @@ struct MacFeedList: View {
         // this is an event handler (one tap), not a render, so there's no
         // waste concern here; kept consistent with `body`'s pattern anyway.
         let currentGroups = groups
-        if allSourcesExpanded(in: currentGroups) {
-            expandedSources = []
-        } else {
-            expandedSources = Set(currentGroups.map(\.id))
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if allSourcesExpanded(in: currentGroups) {
+                expandedSources = []
+            } else {
+                expandedSources = Set(currentGroups.map(\.id))
+            }
         }
     }
 }
