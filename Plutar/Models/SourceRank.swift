@@ -3,7 +3,7 @@ import SwiftData
 
 /// Tracks how many links have ever been added for a given host — a
 /// persistent, cumulative tally that powers the "most important sources"
-/// ranking in the Sources view. Unlike the live per-source link counts
+/// ranking in the Lus view (iOS) / the Classement row (macOS). Unlike the live per-source link counts
 /// shown elsewhere, this one does not shrink when links are deleted or
 /// marked read; it only grows (or is explicitly reset to zero).
 // `host` used to carry `@Attribute(.unique)` — dropped along with
@@ -55,7 +55,7 @@ final class SourceRank {
             .sorted { a, b in a.count != b.count ? a.count > b.count : a.host < b.host }
     }
 
-    /// Name shown for `host` in the ranking (iOS Sources tab and macOS
+    /// Name shown for `host` in the ranking (iOS Lus ranking and macOS
     /// `MacSourceRankingView`) — the site's own name when known (see
     /// `LinkItem.displaySourceName(forHost:in:)`), else the domain with its
     /// suffix (".com", ".fr", ".net"…) dropped: "nytimes", not "nytimes.com".

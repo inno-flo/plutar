@@ -123,10 +123,13 @@ struct RootView: View {
     /// Each tab's last scroll offset, restored when switching back to it.
     @State private var scrollStore = ScrollOffsetStore()
     @State private var scrollPosition = ScrollPosition()
-    /// Lus' top-right button: false shows its chart icon (the 15 most
-    /// shared sources — not wired yet), true its newspaper icon (back to
-    /// the start of the links list).
-    @State private var lusButtonIsNewspaper = false
+    /// Lus' top-right button: false shows the links and the button's chart
+    /// icon; true shows the 15 most shared sources (`rankingList`) and the
+    /// button's newspaper icon (back to the start of the links list).
+    @State private var lusShowsRanking = false
+    @State private var rankingScrollPosition = ScrollPosition()
+    /// Whether Lus is currently showing its ranking instead of its links.
+    private var rankingShown: Bool { mode == .read && lusShowsRanking }
     /// À lire (test): the same source/date grouping and
     /// collapse controls as Lus, kept separate from Lus' own so switching
     /// tabs doesn't carry one view's grouping into the other. Not persisted.
@@ -544,52 +547,6 @@ struct RootView: View {
                             }
                         }
                     }
-
-                    // When Sources has no links left but the ranking still
-                    // does, the empty-state block is placed as a normal row
-                    // here — above the ranking section below — instead of
-                    // as an overlay, so the two never sit on top of each
-                    // other; it just scrolls with everything else.
-                    if mode == .source && groups.isEmpty && !sourceRanks.isEmpty {
-                        QuietEmptyStateView(
-                            theme: theme,
-                            appFont: appFont,
-                            icon: "moon.stars",
-                            title: "Aucun lien partagé",
-                            text: "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage.",
-                            fillHeight: false
-                        )
-                        .padding(.top, 40)
-                        .padding(.bottom, 20)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                    }
-
-                    // Cumulative ranking, most-to-least important — a
-                    // persistent tally (see `SourceRank`) that keeps
-                    // growing regardless of links being deleted, so it
-                    // survives clearing the feed.
-                    if mode == .source && !sourceRanks.isEmpty {
-                        Section {
-                            ForEach(Array(rankedSources.enumerated()), id: \.element.host) { index, rank in
-                                sourceRankRow(rank: index + 1, host: rank.host, count: rank.count)
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
-                            }
-                        } header: {
-                            Text("Les 15 sources les plus partagées")
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                .foregroundStyle(theme.ink(0.55))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .listRowInsets(EdgeInsets())
-                                .padding(.horizontal, 14)
-                                .padding(.top, 10)
-                                // + the first row's 5pt top inset = 22pt
-                                // down to the first source name.
-                                .padding(.bottom, 17)
-                        }
-                    }
                 }
                 .listStyle(.plain)
                 // The plain list's default 44pt minimum row height was what
@@ -613,6 +570,19 @@ struct RootView: View {
                 .refreshable {
                     await LinkMetadataEnricher.enrichPendingLinks(in: modelContext)
                 }
+                // Lus: the links list stays alive underneath (so its scroll
+                // position is untouched) and fades out while the ranking
+                // fades/slides in over it.
+                .opacity(rankingShown ? 0 : 1)
+                .allowsHitTesting(!rankingShown)
+                .accessibilityHidden(rankingShown)
+                .overlay {
+                    if rankingShown {
+                        rankingList
+                            .background(animatedBackground.ignoresSafeArea())
+                            .transition(.opacity.combined(with: .offset(y: 12)))
+                    }
+                }
                 // No `.animation(_:value: expandedSources)` here: the only
                 // two places that mutate `expandedSources` (`toggleSource`
                 // and `toggleAllSources`) already wrap it in `withAnimation`,
@@ -622,11 +592,7 @@ struct RootView: View {
                 // expand/collapse button's own icon swap, which lives
                 // outside this List and so was never covered here.
                 .overlay(alignment: .center) {
-                    // The Sources-with-ranking case is handled above as a
-                    // row inside the List itself, not here — an overlay
-                    // would sit on top of the ranking section instead of
-                    // scrolling above it.
-                    if groups.isEmpty && !(mode == .source && !sourceRanks.isEmpty) {
+                    if groups.isEmpty && !rankingShown {
                         // Sources mirrors Date's empty state exactly (icon,
                         // title, subtitle) — only Lus differs.
                         QuietEmptyStateView(
@@ -641,7 +607,9 @@ struct RootView: View {
                     }
                 }
 
-                if !groups.isEmpty {
+                // Lus keeps its buttons with no links read, so the ranking
+                // stays reachable.
+                if !groups.isEmpty || mode == .read {
                     floatingButtons(groups)
                 }
 
@@ -712,21 +680,23 @@ struct RootView: View {
         VStack(spacing: 14) {
             switch mode {
             case .read:
-                // Manual toggle between two icons. Chart: meant to bring up
-                // the 15 most shared sources — not wired yet, it only
-                // flips the icon. Newspaper: back to the start of the
-                // links list.
-                floatingButton(icon: lusButtonIsNewspaper ? "newspaper" : "chart.line.uptrend.xyaxis") {
-                    if lusButtonIsNewspaper {
-                        lusButtonIsNewspaper = false
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            scrollPosition.scrollTo(edge: .top)
-                        }
-                    } else {
-                        lusButtonIsNewspaper = true
+                // Bascule between the links (chart icon offered) and the
+                // 15 most shared sources (newspaper icon offered).
+                floatingButton(icon: lusShowsRanking ? "newspaper" : "chart.line.uptrend.xyaxis") {
+                    if lusShowsRanking {
+                        // Back to the start of the links list.
+                        scrollPosition.scrollTo(edge: .top)
+                    }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        lusShowsRanking.toggle()
                     }
                 }
-                readGroupingControl(groups)
+                if !groups.isEmpty {
+                    readGroupingControl(groups)
+                        .opacity(lusShowsRanking ? 0 : 1)
+                        .allowsHitTesting(!lusShowsRanking)
+                        .animation(.easeInOut(duration: 0.25), value: lusShowsRanking)
+                }
             case .source:
                 // Toggle-all above, mark-all-read below — same spot the
                 // Date mark-all-read button sits in.
@@ -781,6 +751,11 @@ struct RootView: View {
         .padding(.top, 14)
         .padding(.trailing, 18)
         .padding(.bottom, 10)
+        // Lus' ranking has no link count: fade out instead of removing, so
+        // the reserved safe-area inset (and the list under it) stays put.
+        .opacity(rankingShown ? 0 : 1)
+        .allowsHitTesting(!rankingShown)
+        .animation(.easeInOut(duration: 0.25), value: rankingShown)
     }
 
     /// Takes `theme` explicitly (rather than reading the property directly)
@@ -1070,6 +1045,50 @@ struct RootView: View {
     /// `fadingSourceChipLabel`.
     private func fadingDayPill(_ group: FeedGroup) -> some View {
         themeCrossfade { dayPill(group, theme: $0) }
+    }
+
+    /// Lus' alternate content: the 15 most shared sources, from the
+    /// cumulative `SourceRank` tally (it keeps growing regardless of links
+    /// being deleted, so it survives clearing the feed).
+    private var rankingList: some View {
+        let ranked = rankedSources
+        return Group {
+            if ranked.isEmpty {
+                QuietEmptyStateView(
+                    theme: theme, appFont: appFont, icon: "chart.line.uptrend.xyaxis",
+                    title: "Aucun classement",
+                    text: "Le classement apparaîtra une fois des liens partagés."
+                )
+            } else {
+                List {
+                    Section {
+                        ForEach(Array(ranked.enumerated()), id: \.element.host) { index, rank in
+                            sourceRankRow(rank: index + 1, host: rank.host, count: rank.count)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                        }
+                    } header: {
+                        Text("Les 15 sources les plus partagées")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(theme.ink(0.55))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .listRowInsets(EdgeInsets())
+                            .padding(.horizontal, 14)
+                            .padding(.top, 10)
+                            // + the first row's 5pt top inset = 22pt down
+                            // to the first source name.
+                            .padding(.bottom, 17)
+                    }
+                }
+                .listStyle(.plain)
+                // See the links list: lifts the 44pt minimum row height so
+                // the rows' own insets set the gap.
+                .environment(\.defaultMinListRowHeight, 0)
+                .scrollContentBackground(.hidden)
+                .rememberScrollOffset(in: scrollStore, key: "read-ranking", position: $rankingScrollPosition)
+            }
+        }
     }
 
     /// A plain row — rank, name, count, no gauge/bar-chart background —
