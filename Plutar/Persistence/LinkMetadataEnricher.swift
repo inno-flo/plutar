@@ -122,9 +122,9 @@ enum LinkMetadataEnricher {
     }
 
     private static func fetchFromHTML(for item: LinkItem) async {
-        // `LinkItem.displaySourceName(forHost:)` already covers this host —
-        // its own site blocks the fetch below, so there's nothing to gain
-        // from actually making the (always-failing) request for its name.
+        // `LinkItem.displaySourceName(forHost:)` already covers this host
+        // with a hardcoded name that wins over any fetched one — nothing to
+        // gain from requesting its name (often an always-failing request).
         let needsName = !item.sourceNameFetchAttempted
             && LinkItem.displaySourceName(forHost: item.host) == item.host
         let needsExcerpt = !item.excerptFetchAttempted && !item.isRead

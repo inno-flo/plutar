@@ -98,38 +98,54 @@ final class LinkItem {
         self.sourceNameFetchAttempted = sourceNameFetchAttempted
     }
 
-    /// Hardcoded overrides for hosts whose own site blocks the plain HTTP
-    /// fetch `LinkMetadataEnricher` uses to read `og:site_name` — DataDome,
-    /// Cloudflare and similar anti-bot protections return an error page (or
-    /// a flat 403) before any HTML ever reaches us, so no amount of retrying
-    /// will ever pick up a real name for these. Add an entry here (matching
-    /// the same normalized, "www."-stripped, lowercased form `host` is
-    /// always stored in) only once a specific host is confirmed to need it
-    /// — this is a manual list precisely because the automatic path already
-    /// covers every site that doesn't block it.
+    /// Hardcoded names, matched against the same normalized, "www."-stripped,
+    /// lowercased form `host` is always stored in — a subdomain ("m.youtube.com")
+    /// matches its parent entry too. Two reasons to add an entry:
+    /// - the site blocks the plain HTTP fetch `LinkMetadataEnricher` uses to
+    ///   read `og:site_name` (DataDome, Cloudflare and similar anti-bot
+    ///   protections return an error page or a flat 403), so no real name
+    ///   would ever be picked up — e.g. nytimes.com;
+    /// - the site's own `og:site_name` isn't how its name should read here
+    ///   ("Le Monde.fr", "arte.tv"…).
+    /// Either way, an entry here wins over any fetched `sourceName`.
     private static let knownSourceNames: [String: String] = [
         "nytimes.com": "The New York Times",
+        "lemonde.fr": "Le Monde",
+        "youtube.com": "YouTube",
+        "youtu.be": "YouTube",
+        "arte.tv": "ARTE",
     ]
 
-    /// The best name to show for `host` — `sourceName` once fetched, else
-    /// the hardcoded override above, else the bare host as a last resort.
-    static func displaySourceName(forHost host: String) -> String {
-        knownSourceNames[host] ?? host
+    /// `knownSourceNames`' entry for `host`, or for its closest parent
+    /// domain that has one.
+    private static func knownSourceName(forHost host: String) -> String? {
+        var candidate = Substring(host)
+        while true {
+            if let name = knownSourceNames[String(candidate)] { return name }
+            guard let dot = candidate.firstIndex(of: ".") else { return nil }
+            candidate = candidate[candidate.index(after: dot)...]
+        }
     }
 
-    /// The name to show for this specific link — see the static overload
-    /// above for the same fallback chain, with `sourceName` (this link's own
-    /// fetched value) tried first.
+    /// The best name to show for `host` without any fetched `sourceName` —
+    /// the hardcoded name above, else the bare host as a last resort.
+    static func displaySourceName(forHost host: String) -> String {
+        knownSourceName(forHost: host) ?? host
+    }
+
+    /// The name to show for this specific link: a hardcoded name first, then
+    /// this link's own fetched `sourceName`, then the bare host.
     var displaySourceName: String {
-        sourceName ?? LinkItem.displaySourceName(forHost: host)
+        LinkItem.knownSourceName(forHost: host) ?? sourceName ?? host
     }
 
     /// The name to show for `host` as a whole (a Sources group, the macOS
-    /// single-source title, the ranking): the site's real name once
-    /// `LinkMetadataEnricher` has fetched it for at least one link from this
-    /// host among `items`, else the static fallback chain above.
+    /// single-source title, the ranking): a hardcoded name first, then the
+    /// site's real name once `LinkMetadataEnricher` has fetched it for at
+    /// least one link from this host among `items`, else the bare host.
     static func displaySourceName(forHost host: String, in items: [LinkItem]) -> String {
-        items.first { $0.host == host && $0.sourceName != nil }?.sourceName
-            ?? displaySourceName(forHost: host)
+        knownSourceName(forHost: host)
+            ?? items.first { $0.host == host && $0.sourceName != nil }?.sourceName
+            ?? host
     }
 }

@@ -550,10 +550,18 @@ struct RootView: View {
                                 .listRowInsets(EdgeInsets())
                                 .padding(.horizontal, 14)
                                 .padding(.top, 10)
+                                // + the first row's 5pt top inset = 22pt
+                                // down to the first source name.
+                                .padding(.bottom, 17)
                         }
                     }
                 }
                 .listStyle(.plain)
+                // The plain list's default 44pt minimum row height was what
+                // actually spaced out the ranking rows (text + their 5pt
+                // insets is only ~32pt); lifting it lets those insets alone
+                // set the gap. Link rows are taller than 44pt anyway.
+                .environment(\.defaultMinListRowHeight, 0)
                 .scrollContentBackground(.hidden)
                 // There's no supported API to force CloudKit to pull sooner
                 // — sync itself stays automatic/background, same as before.
@@ -992,8 +1000,11 @@ struct RootView: View {
     private func sourceRankRow(rank: Int, host: String, count: Int) -> some View {
         HStack(spacing: 12) {
             Text("\(rank)")
-                .foregroundStyle(theme.ink(0.4))
-                .frame(width: 22, alignment: .leading)
+                // Black in clair themes (Cap Canaveral clair: the source
+                // names' own `title` color instead); soir keeps its muted
+                // ink, black would vanish on its dark background.
+                .foregroundStyle(theme.isSoir ? theme.ink(0.4) : theme == .astronaute ? theme.title : .black)
+                .frame(width: 22, alignment: .center)
             // The domain suffix (".com", ".fr", ".net"…) is dropped for the
             // ranking specifically — see `SourceRank.displayName`. Same as
             // macOS's `MacSourceRankingView`.
@@ -1003,11 +1014,19 @@ struct RootView: View {
                 .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
                 .lineLimit(1)
             Spacer(minLength: 8)
+            // Centered in the same 44pt box `floatingCounterBadge` uses, so
+            // the counts share the top counter's vertical axis.
             Text("\(count)")
                 .foregroundStyle(theme.ink(0.5))
+                .frame(minWidth: 44)
         }
         .font(.system(size: 16.5, weight: .bold, design: .rounded))
-        .padding(.horizontal, 4)
+        // 14 listRowInset + 18 = 32pt, the same offset as a source chip's
+        // name (18 header padding + 14 chip padding), so the rank digits
+        // line up under the source names above. 14 + 4 trailing matches
+        // the counter's 18pt trailing padding.
+        .padding(.leading, 18)
+        .padding(.trailing, 4)
         .contextMenu {
             Button("Supprimer cette source…", role: .destructive) {
                 rankHostPendingDelete = host
