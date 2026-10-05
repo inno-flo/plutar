@@ -179,7 +179,7 @@ struct MacSettingsView: View {
                         Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
                     }
 
-                    Text("Le classement des sources sera remis à zéro")
+                    Text("Remise à zéro du classement des 15 sources les plus partagées")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
