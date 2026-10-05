@@ -12,8 +12,8 @@ final class ScrollOffsetStore {
 private struct RememberScrollOffset: ViewModifier {
     let store: ScrollOffsetStore
     let key: String
-
-    @State private var position = ScrollPosition()
+    /// Owned by the caller, so it can also drive scrolling itself.
+    @Binding var position: ScrollPosition
     /// True from the moment `key` changes (or the view appears) until the
     /// saved offset has been re-applied — the offsets reported while the
     /// list swaps its content would otherwise overwrite the saved one.
@@ -42,7 +42,7 @@ extension View {
     /// Remembers this scroll view's offset under `key` in `store` and
     /// restores it when the view (re)appears or `key` changes — so
     /// switching to another view and back lands where the user left off.
-    func rememberScrollOffset(in store: ScrollOffsetStore, key: String) -> some View {
-        modifier(RememberScrollOffset(store: store, key: key))
+    func rememberScrollOffset(in store: ScrollOffsetStore, key: String, position: Binding<ScrollPosition>) -> some View {
+        modifier(RememberScrollOffset(store: store, key: key, position: position))
     }
 }

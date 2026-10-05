@@ -122,6 +122,11 @@ struct RootView: View {
     @State private var collapsedMonths: Set<String> = []
     /// Each tab's last scroll offset, restored when switching back to it.
     @State private var scrollStore = ScrollOffsetStore()
+    @State private var scrollPosition = ScrollPosition()
+    /// Lus' top-right button: false shows its chart icon (the 15 most
+    /// shared sources — not wired yet), true its newspaper icon (back to
+    /// the start of the links list).
+    @State private var lusButtonIsNewspaper = false
     /// À lire (test): the same source/date grouping and
     /// collapse controls as Lus, kept separate from Lus' own so switching
     /// tabs doesn't carry one view's grouping into the other. Not persisted.
@@ -593,7 +598,11 @@ struct RootView: View {
                 // set the gap. Link rows are taller than 44pt anyway.
                 .environment(\.defaultMinListRowHeight, 0)
                 .scrollContentBackground(.hidden)
-                .rememberScrollOffset(in: scrollStore, key: "\(mode)-\(readGroupedBySource)-\(chronoGroupedBySource)")
+                .rememberScrollOffset(
+                    in: scrollStore, key: "\(mode)-\(readGroupedBySource)-\(chronoGroupedBySource)",
+                    position: $scrollPosition
+                )
+
                 // There's no supported API to force CloudKit to pull sooner
                 // — sync itself stays automatic/background, same as before.
                 // What pull-to-refresh actually does here: re-runs the same
@@ -703,6 +712,20 @@ struct RootView: View {
         VStack(spacing: 14) {
             switch mode {
             case .read:
+                // Manual toggle between two icons. Chart: meant to bring up
+                // the 15 most shared sources — not wired yet, it only
+                // flips the icon. Newspaper: back to the start of the
+                // links list.
+                floatingButton(icon: lusButtonIsNewspaper ? "newspaper" : "chart.line.uptrend.xyaxis") {
+                    if lusButtonIsNewspaper {
+                        lusButtonIsNewspaper = false
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollPosition.scrollTo(edge: .top)
+                        }
+                    } else {
+                        lusButtonIsNewspaper = true
+                    }
+                }
                 readGroupingControl(groups)
             case .source:
                 // Toggle-all above, mark-all-read below — same spot the

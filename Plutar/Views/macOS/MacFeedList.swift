@@ -99,6 +99,7 @@ struct MacFeedList: View {
     /// Bumped once, shortly after the app's very first feed list appears, to
     /// rebuild its `List` — see the `.id` on it below.
     @State private var listGeneration = 0
+    @State private var scrollPosition = ScrollPosition()
     private static var didInitialListRebuild = false
     @State private var showMarkAllReadConfirm = false
     /// Set instead of deleting immediately — both the row context menu's
@@ -271,7 +272,7 @@ struct MacFeedList: View {
             try? await Task.sleep(for: .milliseconds(40))
             listGeneration += 1
         }
-        .rememberScrollOffset(in: scrollStore, key: scrollKey)
+        .rememberScrollOffset(in: scrollStore, key: scrollKey, position: $scrollPosition)
         .background(effectiveBackground)
         .overlay {
             if currentGroups.isEmpty {
