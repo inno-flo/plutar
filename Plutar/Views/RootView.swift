@@ -343,7 +343,7 @@ struct RootView: View {
             }
             // Not a real destination — see `RootTab.settings` and the
             // `onChange(of: selectedTab)` handler below.
-            Tab("Affichage", systemImage: "gear", value: RootTab.settings) {
+            Tab("Réglages", systemImage: "gear", value: RootTab.settings) {
                 settingsTabPlaceholder
             }
         }
@@ -428,7 +428,7 @@ struct RootView: View {
                 blackSoirBackground: $blackSoirBackground,
                 shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
-                onClearAll: { clearAll(); showSettings = false },
+                onClearUnread: { clearUnread(); showSettings = false },
                 onClearRead: { clearRead(); showSettings = false },
                 onResetRanking: { resetSourceRanking(); showSettings = false },
                 onClose: { showSettings = false },
@@ -1231,8 +1231,8 @@ struct RootView: View {
         undoSnapshots.removeAll()
     }
 
-    private func clearAll() {
-        modelContext.deleteLinks(allItems)
+    private func clearUnread() {
+        modelContext.deleteLinks(allItems.filter { !$0.isRead })
         persist()
     }
 

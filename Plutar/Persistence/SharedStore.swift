@@ -92,7 +92,29 @@ enum SharedStore {
     /// thumbnail was ever fetched) or a name that's already gone.
     static func deleteThumbnailFile(named fileName: String?) {
         guard let fileName, let directory = thumbnailsDirectoryURL else { return }
+        thumbnailImageCache.removeObject(forKey: fileName as NSString)
         try? FileManager.default.removeItem(at: directory.appendingPathComponent(fileName))
+    }
+
+    /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
+    /// disk on every layout pass (see `LinkRowView`) — kept here, next to
+    /// the files it mirrors, so deleting a thumbnail drops its cached image
+    /// too.
+    static let thumbnailImageCache = NSCache<NSString, PlatformImage>()
+
+    /// Deletes every file in the thumbnails directory that no link refers
+    /// to any more — a link deleted on another device, via CloudKit, only
+    /// removes that device's own file. `referenced` is every
+    /// `thumbnailFileName` currently in the store; the caller must only
+    /// pass a complete set (never one from a failed fetch or the in-memory
+    /// fallback store), or live thumbnails would be wiped.
+    static func removeOrphanedThumbnails(keeping referenced: Set<String>) {
+        guard let directory = thumbnailsDirectoryURL,
+              let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path)
+        else { return }
+        for file in files where !referenced.contains(file) {
+            deleteThumbnailFile(named: file)
+        }
     }
 
     /// Called by both share extensions right after a successful save (off

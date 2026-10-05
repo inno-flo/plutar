@@ -9,7 +9,7 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
 ///   UIKit-only and isn't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   "Réinitialiser le classement", "Vider le fil lus…", "Vider le fil à lire…", and "Actualiser le fil" (moved
+///   "Réinitialiser le classement", "Vider le fil À lire…", "Vider le fil Lus…", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -116,32 +116,33 @@ struct MacSettingsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
-                        showResetRankingConfirm = true
+                        showClearFeedConfirm = true
                     } label: {
-                        Text("Réinitialiser le classement")
+                        Text("Vider le fil À lire…")
                     }
                     .buttonStyle(.glass)
                     .confirmationDialog(
-                        "Réinitialiser le classement ?",
-                        isPresented: $showResetRankingConfirm,
+                        "Vider le fil À lire",
+                        isPresented: $showClearFeedConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Réinitialiser", role: .destructive, action: resetSourceRanking)
+                        Button("Vider", role: .destructive, action: clearUnread)
                         Button("Annuler", role: .cancel) {}
                     } message: {
-                        Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                        Text("Tous les liens À lire seront supprimés définitivement.")
                     }
 
-                    Text("Le classement des sources les plus partagées sera remis à zéro")
+                    Text("Supprime tous les liens encore à lire")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
+
 
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
                         showClearReadConfirm = true
                     } label: {
-                        Text("Vider le fil lus…")
+                        Text("Vider le fil Lus…")
                     }
                     .buttonStyle(.glass)
                     .confirmationDialog(
@@ -155,34 +156,33 @@ struct MacSettingsView: View {
                         Text("Tous les liens lus seront supprimés définitivement.")
                     }
 
-                    Text("Supprime tous les liens lus")
+                    Text("Supprime tous les liens déjà lus")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
-                        showClearFeedConfirm = true
+                        showResetRankingConfirm = true
                     } label: {
-                        Text("Vider le fil à lire…")
+                        Text("Réinitialiser le classement…")
                     }
                     .buttonStyle(.glass)
                     .confirmationDialog(
-                        "Vider le fil à lire",
-                        isPresented: $showClearFeedConfirm,
+                        "Réinitialiser le classement",
+                        isPresented: $showResetRankingConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Vider", role: .destructive, action: clearUnread)
+                        Button("Réinitialiser", role: .destructive, action: resetSourceRanking)
                         Button("Annuler", role: .cancel) {}
                     } message: {
-                        Text("Tous les liens À lire seront supprimés définitivement.")
+                        Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
                     }
 
-                    Text("Supprime tous les liens À lire")
+                    Text("Le classement des sources sera remis à zéro")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
                         Task { await refresh() }

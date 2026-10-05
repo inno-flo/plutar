@@ -85,7 +85,17 @@ private struct StoreLifecycle: ViewModifier {
                 Text("Plutar n'a pas pu ouvrir sa base de données. L'app fonctionne normalement, mais les liens ajoutés ou supprimés pendant cette session seront perdus à la fermeture.")
             }
             .task { showStoreFailureAlert = store.storeFailure != nil }
-            .task { await LinkMetadataEnricher.enrichPendingLinks(in: context) }
+            .task {
+                // Cold start only, and before enrichment can write new
+                // thumbnails: drop thumbnail files no link refers to any
+                // more. Skipped on the throwaway in-memory fallback store,
+                // whose emptiness says nothing about the real one.
+                if store.storeFailure == nil,
+                   let items = try? context.fetch(FetchDescriptor<LinkItem>()) {
+                    SharedStore.removeOrphanedThumbnails(keeping: Set(items.compactMap(\.thumbnailFileName)))
+                }
+                await LinkMetadataEnricher.enrichPendingLinks(in: context)
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 // Catches links shared while Plutar wasn't running, and
                 // ones the extension left half-done (e.g. app backgrounded

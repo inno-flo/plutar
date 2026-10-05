@@ -361,10 +361,11 @@ struct LinkRowView: View {
         // No real image: render nothing, reserving no space either.
     }
 
-    /// Small in-memory cache so scrolling doesn't re-read the same JPEG off
-    /// disk on every layout pass — thumbnails are a handful of KB each, but
-    /// cells redraw often (theme changes, read-state toggles, swipe).
-    private static let thumbnailCache = NSCache<NSString, PlatformImage>()
+    /// In-memory cache (`SharedStore.thumbnailImageCache`) so scrolling
+    /// doesn't re-read the same JPEG off disk on every layout pass —
+    /// thumbnails are a handful of KB each, but cells redraw often (theme
+    /// changes, read-state toggles, swipe).
+    private static var thumbnailCache: NSCache<NSString, PlatformImage> { SharedStore.thumbnailImageCache }
 
     private static func cachedThumbnail(_ fileName: String) -> PlatformImage? {
         let key = fileName as NSString

@@ -23,7 +23,7 @@ struct SettingsSheet: View {
     /// picks a new theme within the current light/soir family.
     @Binding var shakeToChangeTheme: Bool
     @Binding var layout: LinkLayout
-    let onClearAll: () -> Void
+    let onClearUnread: () -> Void
     let onClearRead: () -> Void
     let onResetRanking: () -> Void
     let onClose: () -> Void
@@ -111,63 +111,89 @@ struct SettingsSheet: View {
                     }
 
                     SettingsSectionView(title: "Avancé") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button(role: .destructive) {
-                                showResetRankingConfirm = true
-                            } label: {
-                                Text("Réinitialiser le classement")
-                            }
-                            .buttonStyle(.glass)
-                            .confirmationDialog(
-                                "Réinitialiser le classement ?",
-                                isPresented: $showResetRankingConfirm,
-                                titleVisibility: .visible
-                            ) {
-                                Button("Réinitialiser", role: .destructive, action: onResetRanking)
-                                Button("Annuler", role: .cancel) {}
-                            } message: {
-                                Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                        VStack(alignment: .leading, spacing: 24) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Button(role: .destructive) {
+                                    showClearFeedConfirm = true
+                                } label: {
+                                    Text("Vider le fil À lire…")
+                                }
+                                .buttonStyle(.glass)
+                                .confirmationDialog(
+                                    "Vider le fil À lire",
+                                    isPresented: $showClearFeedConfirm,
+                                    titleVisibility: .visible
+                                ) {
+                                    Button("Vider", role: .destructive, action: onClearUnread)
+                                    Button("Annuler", role: .cancel) {}
+                                } message: {
+                                    Text("Tous les liens À lire seront supprimés définitivement.")
+                                }
+
+                                Text("Supprime tous les liens encore à lire")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
 
-                            Button(role: .destructive) {
-                                showClearFeedConfirm = true
-                            } label: {
-                                Text("Vider le fil")
-                            }
-                            .buttonStyle(.glass)
-                            .confirmationDialog(
-                                "Vider le fil",
-                                isPresented: $showClearFeedConfirm,
-                                titleVisibility: .visible
-                            ) {
-                                Button("Vider", role: .destructive, action: onClearAll)
-                                Button("Annuler", role: .cancel) {}
-                            } message: {
-                                Text("Tous les liens seront supprimés définitivement.")
+                            VStack(alignment: .leading, spacing: 8) {
+                                Button(role: .destructive) {
+                                    showClearReadConfirm = true
+                                } label: {
+                                    Text("Vider le fil Lus…")
+                                }
+                                .buttonStyle(.glass)
+                                .confirmationDialog(
+                                    "Supprimer tous les liens lus",
+                                    isPresented: $showClearReadConfirm,
+                                    titleVisibility: .visible
+                                ) {
+                                    Button("Supprimer", role: .destructive, action: onClearRead)
+                                    Button("Annuler", role: .cancel) {}
+                                } message: {
+                                    Text("Tous les liens lus seront supprimés définitivement.")
+                                }
+
+                                Text("Supprime tous les liens déjà lus")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
 
-                            Button(role: .destructive) {
-                                showClearReadConfirm = true
-                            } label: {
-                                Text("Vider le fil Lus…")
-                            }
-                            .buttonStyle(.glass)
-                            .confirmationDialog(
-                                "Supprimer tous les liens lus",
-                                isPresented: $showClearReadConfirm,
-                                titleVisibility: .visible
-                            ) {
-                                Button("Supprimer", role: .destructive, action: onClearRead)
-                                Button("Annuler", role: .cancel) {}
-                            } message: {
-                                Text("Tous les liens lus seront supprimés définitivement.")
+                            VStack(alignment: .leading, spacing: 8) {
+                                Button(role: .destructive) {
+                                    showResetRankingConfirm = true
+                                } label: {
+                                    Text("Réinitialiser le classement…")
+                                }
+                                .buttonStyle(.glass)
+                                .confirmationDialog(
+                                    "Réinitialiser le classement",
+                                    isPresented: $showResetRankingConfirm,
+                                    titleVisibility: .visible
+                                ) {
+                                    Button("Réinitialiser", role: .destructive, action: onResetRanking)
+                                    Button("Annuler", role: .cancel) {}
+                                } message: {
+                                    Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                                }
+
+                                Text("Le classement des sources sera remis à zéro")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
 
-                            Text("Florian Innocente\nflorianinnocente.com")
+                            // A rule, then 10pt, then the credit.
+                            VStack(alignment: .leading, spacing: 10) {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text("Florian Innocente")
+                                    // A tap opens the site.
+                                    Link("florianinnocente.com", destination: URL(string: "https://florianinnocente.com")!)
+                                }
                                 .font(.footnote)
                                 .foregroundStyle(Color(white: 0.4))
+                                .tint(Color(white: 0.4))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 12)
+                            }
                         }
                     }
                     .padding(.top, 6)
@@ -179,7 +205,7 @@ struct SettingsSheet: View {
                     }
                 )
             }
-            .navigationTitle("Affichage")
+            .navigationTitle("Réglages")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
