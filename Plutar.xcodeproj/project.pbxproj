@@ -33,6 +33,7 @@
 		41B07B23D507832A25179785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
 		4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D743AACE9F462982DE372A84 /* SettingsSheet.swift */; };
+		45B653D9B6DFF124828DB946 /* WindowFrameKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C51612AD5893F7271457C5E /* WindowFrameKeeper.swift */; };
 		4A52278BA1DF9949ABE61900 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */; };
 		4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
@@ -148,6 +149,7 @@
 		58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRowView.swift; sourceTree = "<group>"; };
 		758D1CEE221F39C1052F8ED8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		78455A8E442E405794252CA7 /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
+		7C51612AD5893F7271457C5E /* WindowFrameKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowFrameKeeper.swift; sourceTree = "<group>"; };
 		83289D1D4214A472A453D921 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		89026185FF840D288774DDD0 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		89CC3F448604493B8E9A7320 /* PlutarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarApp.swift; sourceTree = "<group>"; };
@@ -174,7 +176,7 @@
 		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = PlutarMac.app; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMode.swift; sourceTree = "<group>"; };
 		FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -208,6 +210,7 @@
 				EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */,
 				D998D53AEDAC729D7BBC824E /* MacSourceRankingView.swift */,
 				E6077F838C0BBB951AF5093A /* SystemAppearanceObserver.swift */,
+				7C51612AD5893F7271457C5E /* WindowFrameKeeper.swift */,
 			);
 			path = macOS;
 			sourceTree = "<group>";
@@ -533,6 +536,7 @@
 				5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */,
 				76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */,
 				E6B6E7B4FCCF7DB0A7356E3D /* SystemAppearanceObserver.swift in Sources */,
+				45B653D9B6DFF124828DB946 /* WindowFrameKeeper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
