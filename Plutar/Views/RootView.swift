@@ -344,7 +344,9 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            ForEach(FeedMode.allCases, id: \.self) { m in
+            // No Sources tab for now (its ranking moved into Lus); the Sources
+            // view code stays in place, just unreachable from the tab bar.
+            ForEach(FeedMode.allCases.filter { $0 != .source }, id: \.self) { m in
                 Tab(m.label, systemImage: m.icon, value: RootTab.feed(m)) {
                     feedScreen
                 }
