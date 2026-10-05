@@ -38,6 +38,17 @@ struct MacRootView: View {
         )
     }
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    /// Each feed view's own UI state (collapsed groups/months, expanded
+    /// sources, selected link), kept here — keyed by sidebar selection — so
+    /// it survives switching to another sidebar item and back.
+    @State private var feedStates: [String: MacFeedViewState] = [:]
+    @State private var scrollStore = ScrollOffsetStore()
+    private func feedState(_ key: String, initialExpandedSources: Set<String> = []) -> Binding<MacFeedViewState> {
+        Binding(
+            get: { feedStates[key] ?? MacFeedViewState(expandedSources: initialExpandedSources) },
+            set: { feedStates[key] = $0 }
+        )
+    }
 
     private var selectedTheme: AppTheme { AppTheme(rawValue: themeRaw) ?? .scand }
     private var appearance: AppAppearance { AppAppearance(rawValue: appearanceRaw) ?? .auto }
@@ -123,13 +134,15 @@ struct MacRootView: View {
             MacFeedList(
                 mode: .chrono, title: FeedMode.chrono.label, allItems: allItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
-                effectiveBackground: effectiveBackground
+                effectiveBackground: effectiveBackground, state: feedState("date"),
+                scrollStore: scrollStore, scrollKey: "date"
             )
         case .read:
             MacFeedList(
                 mode: .read, title: FeedMode.read.label, allItems: allItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
-                effectiveBackground: effectiveBackground
+                effectiveBackground: effectiveBackground, state: feedState("read"),
+                scrollStore: scrollStore, scrollKey: "read"
             )
         case .source(let host):
             let sourceItems = allItems.filter { $0.host == host }
@@ -138,7 +151,9 @@ struct MacRootView: View {
                 allItems: sourceItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
                 effectiveBackground: effectiveBackground,
-                isSingleSourceDetail: true, initialExpandedSources: [host]
+                state: feedState("source:\(host)", initialExpandedSources: [host]),
+                scrollStore: scrollStore, scrollKey: "source:\(host)",
+                isSingleSourceDetail: true
             )
         case .ranking:
             MacSourceRankingView(

@@ -34,10 +34,12 @@
 		4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */; };
 		4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D743AACE9F462982DE372A84 /* SettingsSheet.swift */; };
 		45B653D9B6DFF124828DB946 /* WindowFrameKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C51612AD5893F7271457C5E /* WindowFrameKeeper.swift */; };
+		46AF8DC5381754BB43ECBE84 /* RememberScrollOffset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13548B99B308BAA8A26B43C /* RememberScrollOffset.swift */; };
 		4A52278BA1DF9949ABE61900 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */; };
 		4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		52508EC11FEBEDB12AD4FDA7 /* PlutarShareMac.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		52805F6ED94B08E3627DBA25 /* RememberScrollOffset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13548B99B308BAA8A26B43C /* RememberScrollOffset.swift */; };
 		5544D658EB8A18E4464746A7 /* MacSourceRankingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998D53AEDAC729D7BBC824E /* MacSourceRankingView.swift */; };
 		5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		5A95512EAF531DE979634870 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
@@ -159,6 +161,7 @@
 		91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSettingsView.swift; sourceTree = "<group>"; };
 		A0456B4197E9C3E5CC22F158 /* Plutar.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Plutar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1134246047A1EA572CF8858 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A13548B99B308BAA8A26B43C /* RememberScrollOffset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RememberScrollOffset.swift; sourceTree = "<group>"; };
 		A27C53F13F2719F7848AC15E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A4949EBEF6B304848C4BEE06 /* LinkItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkItem.swift; sourceTree = "<group>"; };
 		AE8F832831F7C825B208B963 /* Plutar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Plutar.entitlements; sourceTree = "<group>"; };
@@ -302,6 +305,7 @@
 			children = (
 				07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */,
 				D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */,
+				A13548B99B308BAA8A26B43C /* RememberScrollOffset.swift */,
 				83289D1D4214A472A453D921 /* RootView.swift */,
 				C03931E99C35E0B7D3FC3F92 /* SettingsSections.swift */,
 				D743AACE9F462982DE372A84 /* SettingsSheet.swift */,
@@ -530,6 +534,7 @@
 				4FE52E2F9BF3D58EE2B8714C /* PlatformImage.swift in Sources */,
 				644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */,
 				D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */,
+				46AF8DC5381754BB43ECBE84 /* RememberScrollOffset.swift in Sources */,
 				1A1C1F92DD86D8575D59848B /* SettingsSections.swift in Sources */,
 				51853D673FA70F788E5663C5 /* SharedLinkExtraction.swift in Sources */,
 				26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */,
@@ -577,6 +582,7 @@
 				BC0C6BCD74BE278B854E791C /* PlatformImage.swift in Sources */,
 				ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */,
 				ED5669F536632DCF43747E5D /* PlutarLog.swift in Sources */,
+				52805F6ED94B08E3627DBA25 /* RememberScrollOffset.swift in Sources */,
 				2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */,
 				25ED50D9DD771F175CF58B05 /* SettingsSections.swift in Sources */,
 				4525959AE3E2F4B23987F975 /* SettingsSheet.swift in Sources */,

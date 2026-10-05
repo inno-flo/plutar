@@ -118,6 +118,11 @@ struct RootView: View {
     /// like its Mac counterpart): a per-session view state, not a display
     /// preference.
     @State private var collapsedReadGroups: Set<String> = []
+    /// Lus, day-grouped: calendar months ("yyyy-MM") collapsed through their
+    /// separator's chevron. Not persisted, like `collapsedReadGroups`.
+    @State private var collapsedMonths: Set<String> = []
+    /// Each tab's last scroll offset, restored when switching back to it.
+    @State private var scrollStore = ScrollOffsetStore()
     /// À lire (test): the same source/date grouping and
     /// collapse controls as Lus, kept separate from Lus' own so switching
     /// tabs doesn't carry one view's grouping into the other. Not persisted.
@@ -520,14 +525,20 @@ struct RootView: View {
                             // with everything else, nothing pinned to swap.
                             if monthSeparatorIDs.contains(group.id),
                                let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
-                                monthSeparator(FeedGrouping.monthLabel(for: date))
+                                monthSeparator(
+                                    FeedGrouping.monthLabel(for: date),
+                                    monthKey: FeedGrouping.monthKey(fromDayGroupID: group.id)
+                                )
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                            }
+                            if !isInCollapsedMonth(group) {
+                                groupHeader(group)
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                             }
-                            groupHeader(group)
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                            if (mode != .source || expandedSources.contains(group.id))
+                            if !isInCollapsedMonth(group)
+                                && (mode != .source || expandedSources.contains(group.id))
                                 && !isCollapsed(group) {
                                 ForEach(group.items) { item in
                                     linkRow(item)
@@ -589,6 +600,7 @@ struct RootView: View {
                 // set the gap. Link rows are taller than 44pt anyway.
                 .environment(\.defaultMinListRowHeight, 0)
                 .scrollContentBackground(.hidden)
+                .rememberScrollOffset(in: scrollStore, key: "\(mode)-\(readGroupedBySource)-\(chronoGroupedBySource)")
                 // There's no supported API to force CloudKit to pull sooner
                 // — sync itself stays automatic/background, same as before.
                 // What pull-to-refresh actually does here: re-runs the same
@@ -879,17 +891,39 @@ struct RootView: View {
     /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
     /// shown above the first day group of each calendar month once links
     /// span more than one (see `monthSeparatorGroupIDs`).
-    private func monthSeparator(_ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
+    private func monthSeparator(_ label: String, monthKey: String) -> some View {
+        let isCollapsed = collapsedMonths.contains(monthKey)
+        return VStack(alignment: .leading, spacing: 6) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    collapsedMonths.toggle(monthKey)
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(label)
+                    Spacer(minLength: 0)
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .opacity(0.6)
+                }
                 .font(appFont.font(size: 13, weight: .semibold))
                 .foregroundStyle(theme.ink(0.6))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             Rectangle()
                 .fill(theme.ink(0.15))
                 .frame(height: 1)
         }
         .padding(.horizontal, 18)
         .padding(.top, 10)
+    }
+
+    /// Lus, day-grouped: whether `group` belongs to a month collapsed via its
+    /// separator's chevron — its header and links are hidden then.
+    private func isInCollapsedMonth(_ group: FeedGroup) -> Bool {
+        mode == .read && !readGroupedBySource
+            && collapsedMonths.contains(FeedGrouping.monthKey(fromDayGroupID: group.id))
     }
 
     /// Chip shown as each Section's header. In Sources it also acts as the

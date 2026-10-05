@@ -2,6 +2,21 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+/// The per-view UI state of one `MacFeedList` (Date, Lus, or a single
+/// source), owned by `MacRootView` and keyed by sidebar selection — so
+/// switching to another sidebar item and back finds each view as it was left
+/// instead of rebuilding it from scratch.
+struct MacFeedViewState {
+    /// Hosts expanded in a Sources screen (a single-source detail starts
+    /// with its own host in here).
+    var expandedSources: Set<String> = []
+    /// Lus: collapsed day/source groups — see `MacFeedList`.
+    var collapsedReadGroups: Set<String> = []
+    /// Lus, day-grouped: collapsed calendar months ("yyyy-MM" keys).
+    var collapsedMonths: Set<String> = []
+    var selectedItemID: UUID?
+}
+
 /// The macOS feed list for one detail selection (Date/Lus/a single source) —
 /// one instance per `MacRootView.detailView` case. Mirrors
 /// `RootView.feedScreen`'s grouping and actions (mark read/unread, delete,
@@ -40,7 +55,17 @@ struct MacFeedList: View {
     /// already gets a confirmation dialog instead).
     @Environment(\.undoManager) private var undoManager
 
-    @State private var expandedSources: Set<String>
+    /// Owned by `MacRootView` (see `MacFeedViewState`), so it outlives this
+    /// view when another sidebar item is selected.
+    @Binding var state: MacFeedViewState
+    /// Scroll offsets of every feed view — see `ScrollOffsetStore`; this view's
+    /// own entry is keyed by `scrollKey`.
+    let scrollStore: ScrollOffsetStore
+    let scrollKey: String
+    private var expandedSources: Set<String> {
+        get { state.expandedSources }
+        nonmutating set { state.expandedSources = newValue }
+    }
     /// Lus only: when true, `groups` below buckets by source (ranked by
     /// link count, like Sources) instead of by day. Toggled by the globe
     /// toolbar button, which swaps to "calendar" while this is active.
@@ -55,13 +80,27 @@ struct MacFeedList: View {
     /// Toggled per-group by double-clicking its header, or all at once by
     /// the collapse-all/expand-all toolbar button next to the globe/
     /// calendar one.
-    @State private var collapsedReadGroups: Set<String> = []
+    private var collapsedReadGroups: Set<String> {
+        get { state.collapsedReadGroups }
+        nonmutating set { state.collapsedReadGroups = newValue }
+    }
+    private var collapsedMonths: Set<String> {
+        get { state.collapsedMonths }
+        nonmutating set { state.collapsedMonths = newValue }
+    }
     /// A single click now only selects a row (native macOS List selection,
     /// with its usual highlight color) — it used to open the link directly,
     /// which meant there was no way to select a row first the way iOS lets
     /// you before swiping. Double-click still opens.
-    @State private var selectedItemID: LinkItem.ID?
+    private var selectedItemID: LinkItem.ID? {
+        get { state.selectedItemID }
+        nonmutating set { state.selectedItemID = newValue }
+    }
     @State private var showClearReadConfirm = false
+    /// Bumped once, shortly after the app's very first feed list appears, to
+    /// rebuild its `List` — see the `.id` on it below.
+    @State private var listGeneration = 0
+    private static var didInitialListRebuild = false
     @State private var showMarkAllReadConfirm = false
     /// Set instead of deleting immediately — both the row context menu's
     /// "Supprimer" and a source/day group's trash button used to delete
@@ -76,8 +115,9 @@ struct MacFeedList: View {
 
     init(
         mode: FeedMode, title: String, allItems: [LinkItem], theme: AppTheme, appFont: AppFont,
-        layout: Binding<LinkLayout>, effectiveBackground: Color,
-        isSingleSourceDetail: Bool = false, initialExpandedSources: Set<String> = []
+        layout: Binding<LinkLayout>, effectiveBackground: Color, state: Binding<MacFeedViewState>,
+        scrollStore: ScrollOffsetStore, scrollKey: String,
+        isSingleSourceDetail: Bool = false
     ) {
         self.mode = mode
         self.title = title
@@ -87,7 +127,9 @@ struct MacFeedList: View {
         self._layout = layout
         self.effectiveBackground = effectiveBackground
         self.isSingleSourceDetail = isSingleSourceDetail
-        self._expandedSources = State(initialValue: initialExpandedSources)
+        self._state = state
+        self.scrollStore = scrollStore
+        self.scrollKey = scrollKey
     }
 
     private var groups: [FeedGroup] {
@@ -166,13 +208,19 @@ struct MacFeedList: View {
                     if !isSingleSourceDetail {
                         if monthSeparatorIDs.contains(group.id),
                            let date = FeedGrouping.dayKeyFormatter.date(from: group.id) {
-                            monthSeparator(FeedGrouping.monthLabel(for: date))
+                            monthSeparator(
+                                FeedGrouping.monthLabel(for: date),
+                                monthKey: FeedGrouping.monthKey(fromDayGroupID: group.id)
+                            )
+                            .listRowSeparator(.hidden)
+                        }
+                        if !isInCollapsedMonth(group) {
+                            groupHeader(group)
                                 .listRowSeparator(.hidden)
                         }
-                        groupHeader(group)
-                            .listRowSeparator(.hidden)
                     }
-                    if (mode != .source || isSingleSourceDetail || expandedSources.contains(group.id))
+                    if !isInCollapsedMonth(group)
+                        && (mode != .source || isSingleSourceDetail || expandedSources.contains(group.id))
                         && !(mode == .read && collapsedReadGroups.contains(group.id)) {
                         ForEach(group.items) { item in
                             LinkRowView(
@@ -212,6 +260,20 @@ struct MacFeedList: View {
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
+        // On the app's first launch, the first list's rows can be measured
+        // before the window/column reaches its final width and keep a stale,
+        // too-short height — clipped cells until something forces a rebuild
+        // (switching the presentation did). Rebuilding the `List` once, a
+        // moment after it first appears, does the same. Once per launch:
+        // later lists are created at their final size.
+        .id(listGeneration)
+        .task {
+            guard !Self.didInitialListRebuild else { return }
+            Self.didInitialListRebuild = true
+            try? await Task.sleep(for: .milliseconds(40))
+            listGeneration += 1
+        }
+        .rememberScrollOffset(in: scrollStore, key: scrollKey)
         .background(effectiveBackground)
         .overlay {
             if currentGroups.isEmpty {
@@ -429,15 +491,36 @@ struct MacFeedList: View {
 
     /// Lus, day-grouped only — the month name and year, with no rule,
     /// shown above the first day group of each calendar month once links
-    /// span more than one (see `monthSeparatorGroupIDs`).
-    private func monthSeparator(_ label: String) -> some View {
-        Text(label)
+    /// span more than one (see `monthSeparatorGroupIDs`), with a chevron
+    /// collapsing/expanding that whole month.
+    private func monthSeparator(_ label: String, monthKey: String) -> some View {
+        let isCollapsed = collapsedMonths.contains(monthKey)
+        return Button {
+            collapsedMonths.toggle(monthKey)
+        } label: {
+            HStack(spacing: 6) {
+                Text(label)
+                Spacer(minLength: 0)
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .opacity(0.6)
+            }
             .font(appFont.font(size: 13, weight: .semibold))
             .foregroundStyle(theme.ink(0.6))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            // Same gap above and below the month/year label.
-            .padding(.vertical, 20)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 18)
+        // Same gap above and below the month/year label.
+        .padding(.vertical, 20)
+    }
+
+    /// Lus, day-grouped: whether `group` belongs to a month collapsed via
+    /// its separator's chevron — its header and links are hidden then.
+    private func isInCollapsedMonth(_ group: FeedGroup) -> Bool {
+        mode == .read && !readGroupedBySource
+            && collapsedMonths.contains(FeedGrouping.monthKey(fromDayGroupID: group.id))
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {

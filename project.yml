@@ -121,6 +121,7 @@ targets:
       - path: Plutar/ViewModels
       - path: Plutar/Views/Rows/LinkRowView.swift
       - path: Plutar/Views/FlipCard.swift
+      - path: Plutar/Views/RememberScrollOffset.swift
       - path: Plutar/Views/EmptyStateView.swift
       - path: Plutar/Views/SettingsSections.swift
       - path: Plutar/Views/macOS
