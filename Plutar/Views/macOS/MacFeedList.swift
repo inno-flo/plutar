@@ -427,20 +427,17 @@ struct MacFeedList: View {
         }
     }
 
-    /// Lus, day-grouped only — the month name plus a 1pt rule beneath it,
+    /// Lus, day-grouped only — the month name and year, with no rule,
     /// shown above the first day group of each calendar month once links
     /// span more than one (see `monthSeparatorGroupIDs`).
     private func monthSeparator(_ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(appFont.font(size: 13, weight: .semibold))
-                .foregroundStyle(theme.ink(0.6))
-            Rectangle()
-                .fill(theme.ink(0.15))
-                .frame(height: 1)
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 10)
+        Text(label)
+            .font(appFont.font(size: 13, weight: .semibold))
+            .foregroundStyle(theme.ink(0.6))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            // Same gap above and below the month/year label.
+            .padding(.vertical, 20)
     }
 
     private func groupHeader(_ group: FeedGroup) -> some View {
@@ -465,8 +462,9 @@ struct MacFeedList: View {
                         Text(group.label)
                             .foregroundStyle(dayLabelColor)
                         // Lus only — a link-count pastille, same idea as
-                        // Sources' own count badge above.
-                        if mode == .read {
+                        // Sources' own count badge above. Only while the
+                        // group is collapsed, same as iOS.
+                        if mode == .read && collapsedReadGroups.contains(group.id) {
                             Text("\(group.items.count)")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(theme.ink(0.6))

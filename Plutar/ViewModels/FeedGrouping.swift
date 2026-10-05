@@ -147,15 +147,18 @@ enum FeedGrouping {
 
     /// Ids of the first group in each calendar month within `dayGroups`
     /// (already day-grouped, newest first) — empty unless they actually
-    /// span more than one month. Shared by `RootView` (iOS) and
-    /// `MacFeedList` (macOS) for Lus's own month-separator row.
+    /// span more than one month — and never for the current month, which
+    /// only gets a separator once it has become a past one. Shared by
+    /// `RootView` (iOS) and `MacFeedList` (macOS) for Lus's own
+    /// month-separator row.
     static func monthSeparatorGroupIDs(_ dayGroups: [FeedGroup]) -> Set<String> {
         let monthKeys = dayGroups.map { monthKey(fromDayGroupID: $0.id) }
         guard Set(monthKeys).count > 1 else { return [] }
+        let currentMonthKey = String(dayKeyFormatter.string(from: Date()).prefix(7))
         var ids: Set<String> = []
         var previousMonthKey: String?
         for (group, key) in zip(dayGroups, monthKeys) {
-            if key != previousMonthKey { ids.insert(group.id) }
+            if key != previousMonthKey && key != currentMonthKey { ids.insert(group.id) }
             previousMonthKey = key
         }
         return ids
