@@ -9,7 +9,7 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
 ///   UIKit-only and isn't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   "Réinitialiser le classement", "Vider le fil", and "Actualiser le fil" (moved
+///   "Réinitialiser le classement", "Vider le fil lus…", "Vider le fil à lire…", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -29,6 +29,7 @@ struct MacSettingsView: View {
 
     @State private var showResetRankingConfirm = false
     @State private var showClearFeedConfirm = false
+    @State private var showClearReadConfirm = false
     @State private var isRefreshing = false
     /// Raised by `persist()` when a write to the store fails — mirrors
     /// `RootView.saveFailed`. Matters here specifically because both actions
@@ -138,23 +139,46 @@ struct MacSettingsView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
-                        showClearFeedConfirm = true
+                        showClearReadConfirm = true
                     } label: {
-                        Text("Vider le fil")
+                        Text("Vider le fil lus…")
                     }
                     .buttonStyle(.glass)
                     .confirmationDialog(
-                        "Vider le fil",
+                        "Supprimer tous les liens lus",
+                        isPresented: $showClearReadConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Supprimer", role: .destructive, action: clearRead)
+                        Button("Annuler", role: .cancel) {}
+                    } message: {
+                        Text("Tous les liens lus seront supprimés définitivement.")
+                    }
+
+                    Text("Supprime tous les liens lus")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(role: .destructive) {
+                        showClearFeedConfirm = true
+                    } label: {
+                        Text("Vider le fil à lire…")
+                    }
+                    .buttonStyle(.glass)
+                    .confirmationDialog(
+                        "Vider le fil à lire",
                         isPresented: $showClearFeedConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Vider", role: .destructive, action: clearAll)
+                        Button("Vider", role: .destructive, action: clearUnread)
                         Button("Annuler", role: .cancel) {}
                     } message: {
-                        Text("Tous les liens seront supprimés définitivement.")
+                        Text("Tous les liens À lire seront supprimés définitivement.")
                     }
 
-                    Text("Les liens non-lus et lus seront supprimés")
+                    Text("Supprime tous les liens À lire")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -210,8 +234,15 @@ struct MacSettingsView: View {
         persist()
     }
 
-    private func clearAll() {
-        modelContext.deleteLinks((try? modelContext.fetch(FetchDescriptor<LinkItem>())) ?? [])
+    private func clearUnread() {
+        let items = (try? modelContext.fetch(FetchDescriptor<LinkItem>())) ?? []
+        modelContext.deleteLinks(items.filter { !$0.isRead })
+        persist()
+    }
+
+    private func clearRead() {
+        let items = (try? modelContext.fetch(FetchDescriptor<LinkItem>())) ?? []
+        modelContext.deleteLinks(items.filter(\.isRead))
         persist()
     }
 }

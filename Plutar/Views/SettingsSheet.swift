@@ -24,6 +24,7 @@ struct SettingsSheet: View {
     @Binding var shakeToChangeTheme: Bool
     @Binding var layout: LinkLayout
     let onClearAll: () -> Void
+    let onClearRead: () -> Void
     let onResetRanking: () -> Void
     let onClose: () -> Void
     /// Same color as the day/source pill and counter badge — applied only
@@ -47,6 +48,7 @@ struct SettingsSheet: View {
     @State private var contentHeight: CGFloat = 480
     @State private var showResetRankingConfirm = false
     @State private var showClearFeedConfirm = false
+    @State private var showClearReadConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -85,6 +87,13 @@ struct SettingsSheet: View {
                     .padding(.vertical, 10)
                     .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                    Toggle(isOn: $shakeToChangeTheme) {
+                        Text("Secouer pour changer de thème")
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                     SettingsSectionView(title: "Apparence") {
                         HStack(spacing: 8) {
                             ForEach(AppAppearance.allCases) { a in
@@ -103,13 +112,6 @@ struct SettingsSheet: View {
 
                     SettingsSectionView(title: "Avancé") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Toggle(isOn: $shakeToChangeTheme) {
-                                Text("Secouer pour changer de thème")
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
                             Button(role: .destructive) {
                                 showResetRankingConfirm = true
                             } label: {
@@ -142,6 +144,23 @@ struct SettingsSheet: View {
                                 Button("Annuler", role: .cancel) {}
                             } message: {
                                 Text("Tous les liens seront supprimés définitivement.")
+                            }
+
+                            Button(role: .destructive) {
+                                showClearReadConfirm = true
+                            } label: {
+                                Text("Vider le fil Lus…")
+                            }
+                            .buttonStyle(.glass)
+                            .confirmationDialog(
+                                "Supprimer tous les liens lus",
+                                isPresented: $showClearReadConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Supprimer", role: .destructive, action: onClearRead)
+                                Button("Annuler", role: .cancel) {}
+                            } message: {
+                                Text("Tous les liens lus seront supprimés définitivement.")
                             }
 
                             Text("Florian Innocente\nflorianinnocente.com")

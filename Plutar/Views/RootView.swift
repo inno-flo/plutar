@@ -99,7 +99,6 @@ struct RootView: View {
     @State private var undoSnapshots: [DeletedSnapshot] = []
     @State private var undoTask: Task<Void, Never>?
 
-    @State private var showClearReadConfirm = false
     @State private var showMarkAllReadConfirm = false
     /// Set instead of deleting immediately — same confirmation-gated
     /// pattern as macOS's `MacSourceRankingView.hostPendingDelete`.
@@ -430,17 +429,11 @@ struct RootView: View {
                 shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
                 onClearAll: { clearAll(); showSettings = false },
+                onClearRead: { clearRead(); showSettings = false },
                 onResetRanking: { resetSourceRanking(); showSettings = false },
                 onClose: { showSettings = false },
                 chipColor: theme.chip
             )
-        }
-        .alert(
-            "Supprimer les liens lus",
-            isPresented: $showClearReadConfirm
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) { clearRead() }
         }
         .alert(
             "Marquer tous les liens comme lus",
@@ -710,10 +703,6 @@ struct RootView: View {
         VStack(spacing: 14) {
             switch mode {
             case .read:
-                // Clear-read above, grouping/collapse control below —
-                // same spot and stacking Sources uses for its own
-                // toggle-all + mark-all-read pair.
-                floatingButton(icon: "trash") { showClearReadConfirm = true }
                 readGroupingControl(groups)
             case .source:
                 // Toggle-all above, mark-all-read below — same spot the
@@ -938,8 +927,7 @@ struct RootView: View {
             // 44pt tap target and icon treatment as Sources' per-source button.
             // Lus instead reuses Sources' own tappable chip (count + chevron)
             // once collapse/expand exists there too — tapping it toggles just
-            // this one group, and the trash button only makes sense (and
-            // only shows) while a group is actually expanded.
+            // this one group.
             switch mode {
             case .source:
                 Button {
@@ -973,8 +961,6 @@ struct RootView: View {
             // controls — only the floating mark-all-read one.
             case .chrono where !hasGroupingControls && !isCollapsed(group):
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
-            case .read where !isCollapsed(group):
-                headerIconButton("trash.circle.fill") { requestDelete(group.items) }
             default:
                 EmptyView()
             }

@@ -96,7 +96,6 @@ struct MacFeedList: View {
         get { state.selectedItemID }
         nonmutating set { state.selectedItemID = newValue }
     }
-    @State private var showClearReadConfirm = false
     /// Bumped once, shortly after the app's very first feed list appears, to
     /// rebuild its `List` — see the `.id` on it below.
     @State private var listGeneration = 0
@@ -107,7 +106,6 @@ struct MacFeedList: View {
     /// right away with no confirmation, unlike every other destructive
     /// action here (`showClearReadConfirm`/`showMarkAllReadConfirm` above).
     @State private var itemPendingDelete: LinkItem?
-    @State private var groupItemsPendingDelete: [LinkItem]?
     /// Raised by `persist()` when a write to the store fails — mirrors
     /// `RootView.saveFailed`, so a failed save isn't silently swallowed on
     /// macOS the way a bare log line would leave it.
@@ -342,14 +340,7 @@ struct MacFeedList: View {
                         Label("Développer/réduire tout", systemImage: sourcesAllExpanded ? "chevron.up" : "chevron.down")
                     }
                 }
-                if mode == .read && !currentGroups.isEmpty {
-                    Button(role: .destructive) {
-                        showClearReadConfirm = true
-                    } label: {
-                        Label("Vider les lus", systemImage: "trash")
-                    }
-                    .help("Tout supprimer")
-                } else if !currentGroups.isEmpty {
+                if mode != .read && !currentGroups.isEmpty {
                     Button {
                         showMarkAllReadConfirm = true
                     } label: {
@@ -358,13 +349,6 @@ struct MacFeedList: View {
                     .help("Tout marquer comme lus")
                 }
             }
-        }
-        .confirmationDialog(
-            "Supprimer les liens lus",
-            isPresented: $showClearReadConfirm
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) { clearRead() }
         }
         .confirmationDialog(
             "Marquer tous les liens comme lus",
@@ -385,18 +369,6 @@ struct MacFeedList: View {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) {
                 if let item = itemPendingDelete { delete([item]) }
-            }
-        }
-        .confirmationDialog(
-            "Supprimer ces liens",
-            isPresented: Binding(
-                get: { groupItemsPendingDelete != nil },
-                set: { if !$0 { groupItemsPendingDelete = nil } }
-            )
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                if let items = groupItemsPendingDelete { delete(items) }
             }
         }
         .saveFailureAlert(isPresented: $saveFailed)
@@ -575,13 +547,6 @@ struct MacFeedList: View {
                         Image(systemName: "checkmark.circle")
                     }
                     .buttonStyle(.plain)
-                } else if mode == .read && !collapsedReadGroups.contains(group.id) {
-                    Button {
-                        groupItemsPendingDelete = group.items
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .font(appFont.font(size: 17, weight: .semibold))
@@ -683,10 +648,6 @@ struct MacFeedList: View {
     private func delete(_ items: [LinkItem]) {
         modelContext.deleteLinks(items)
         persist()
-    }
-
-    private func clearRead() {
-        delete(allItems.filter(\.isRead))
     }
 
     private func toggleSource(_ id: String) {
