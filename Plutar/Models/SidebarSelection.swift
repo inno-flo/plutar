@@ -14,3 +14,27 @@ enum SidebarSelection: Hashable {
     /// hosts rather than one of them.
     case ranking
 }
+
+extension SidebarSelection {
+    /// String form persisted in `@AppStorage` so the macOS app reopens on the
+    /// section that was active at quit — see `MacRootView`.
+    var storageKey: String {
+        switch self {
+        case .date: return "date"
+        case .read: return "read"
+        case .ranking: return "ranking"
+        case .source(let host): return "source:\(host)"
+        }
+    }
+
+    init?(storageKey: String) {
+        switch storageKey {
+        case "date": self = .date
+        case "read": self = .read
+        case "ranking": self = .ranking
+        default:
+            guard storageKey.hasPrefix("source:") else { return nil }
+            self = .source(String(storageKey.dropFirst("source:".count)))
+        }
+    }
+}

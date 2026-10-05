@@ -24,7 +24,7 @@ struct MacSettingsView: View {
     @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
     @AppStorage(DisplaySettingsKey.font) private var fontRaw = AppFont.rounded.rawValue
-    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
+    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.card.rawValue
     @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
 
     @State private var showResetRankingConfirm = false
@@ -41,7 +41,7 @@ struct MacSettingsView: View {
         AppTheme.resolved(selected: selectedTheme, appearance: appearance, systemColorScheme: systemColorScheme)
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
-    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
+    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .card }
 
     var body: some View {
         TabView {

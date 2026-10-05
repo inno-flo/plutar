@@ -24,10 +24,19 @@ struct MacRootView: View {
     @AppStorage(DisplaySettingsKey.theme) private var themeRaw = AppTheme.scand.rawValue
     @AppStorage(DisplaySettingsKey.appearance) private var appearanceRaw = AppAppearance.auto.rawValue
     @AppStorage(DisplaySettingsKey.font) private var fontRaw = AppFont.rounded.rawValue
-    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.rail.rawValue
+    // Détaillée par défaut sur Mac (iOS garde Simple) — and remembered across launches.
+    @AppStorage(DisplaySettingsKey.layout) private var layoutRaw = LinkLayout.card.rawValue
+    @AppStorage(DisplaySettingsKey.sidebarSelection) private var selectionRaw = SidebarSelection.date.storageKey
     @AppStorage(DisplaySettingsKey.blackSoirBackground) private var blackSoirBackground = false
 
-    @State private var selection: SidebarSelection? = .date
+    /// Backed by `selectionRaw` so the last active section survives a quit;
+    /// first launch (nothing stored) lands on "À lire".
+    private var selection: Binding<SidebarSelection?> {
+        Binding(
+            get: { SidebarSelection(storageKey: selectionRaw) ?? .date },
+            set: { selectionRaw = ($0 ?? .date).storageKey }
+        )
+    }
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     private var selectedTheme: AppTheme { AppTheme(rawValue: themeRaw) ?? .scand }
@@ -46,7 +55,7 @@ struct MacRootView: View {
         ).rawValue
     }
     private var appFont: AppFont { AppFont(rawValue: fontRaw) ?? .rounded }
-    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .rail }
+    private var layout: LinkLayout { LinkLayout(rawValue: layoutRaw) ?? .card }
     /// `MacFeedList`'s toolbar picker needs to change the layout, not just
     /// read it — a plain `LinkLayout` value can't do that, so this wraps
     /// `layoutRaw` (the actual `@AppStorage` source of truth) as a
@@ -91,7 +100,7 @@ struct MacRootView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             MacSidebarView(
-                selection: $selection, allItems: allItems, theme: theme,
+                selection: selection, allItems: allItems, theme: theme,
                 backgroundColor: sidebarBackground, onPickTheme: pickTheme
             )
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
@@ -109,7 +118,7 @@ struct MacRootView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        switch selection {
+        switch selection.wrappedValue {
         case .date:
             MacFeedList(
                 mode: .chrono, title: FeedMode.chrono.label, allItems: allItems,
