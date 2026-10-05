@@ -425,7 +425,7 @@ struct RootView: View {
         // of centered, unlike every other confirmation in this file (all
         // `.alert`, all reliably centered regardless of what triggered them).
         .alert(
-            "Supprimer \(rankHostPendingDelete.map { SourceRank.displayName(forHost: $0, in: allItems) } ?? "cette source") du classement ?",
+            "Supprimer \(rankHostPendingDelete.map { SourceRank.displayName(forHost: $0, in: allItems) } ?? "cette source") du classement",
             isPresented: Binding(
                 get: { rankHostPendingDelete != nil },
                 set: { if !$0 { rankHostPendingDelete = nil } }

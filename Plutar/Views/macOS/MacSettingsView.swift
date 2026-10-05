@@ -144,7 +144,7 @@ struct MacSettingsView: View {
                     }
                     .buttonStyle(.glass)
                     .confirmationDialog(
-                        "Vider le fil ?",
+                        "Vider le fil",
                         isPresented: $showClearFeedConfirm,
                         titleVisibility: .visible
                     ) {

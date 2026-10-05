@@ -72,7 +72,7 @@ struct MacSourceRankingView: View {
         // renders as its own pill/button rather than plain text.
         .navigationTitle("Classement")
         .confirmationDialog(
-            "Supprimer cette source du classement ?",
+            "Supprimer cette source du classement",
             isPresented: Binding(
                 get: { hostPendingDelete != nil },
                 set: { if !$0 { hostPendingDelete = nil } }

@@ -314,7 +314,7 @@ struct MacFeedList: View {
             }
         }
         .confirmationDialog(
-            "Supprimer ce lien ?",
+            "Supprimer ce lien",
             isPresented: Binding(
                 get: { itemPendingDelete != nil },
                 set: { if !$0 { itemPendingDelete = nil } }
@@ -326,7 +326,7 @@ struct MacFeedList: View {
             }
         }
         .confirmationDialog(
-            "Supprimer ces liens ?",
+            "Supprimer ces liens",
             isPresented: Binding(
                 get: { groupItemsPendingDelete != nil },
                 set: { if !$0 { groupItemsPendingDelete = nil } }
