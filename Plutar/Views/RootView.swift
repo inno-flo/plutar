@@ -118,16 +118,16 @@ struct RootView: View {
     /// like its Mac counterpart): a per-session view state, not a display
     /// preference.
     @State private var collapsedReadGroups: Set<String> = []
-    /// À lire, iPhone only (test): the same source/date grouping and
+    /// À lire (test): the same source/date grouping and
     /// collapse controls as Lus, kept separate from Lus' own so switching
     /// tabs doesn't carry one view's grouping into the other. Not persisted.
     @State private var chronoGroupedBySource = false
     @State private var collapsedChronoGroups: Set<String> = []
 
     /// Whether the current view shows Lus' grouping/collapse controls —
-    /// Lus everywhere, À lire on iPhone only.
+    /// Lus and À lire (iPhone and iPad), not Sources.
     private var hasGroupingControls: Bool {
-        mode == .read || (mode == .chrono && UIDevice.current.userInterfaceIdiom == .phone)
+        mode == .read || mode == .chrono
     }
     /// The current view's source/date grouping flag (Lus or À lire).
     private var groupedBySource: Binding<Bool> {
@@ -314,7 +314,7 @@ struct RootView: View {
         }
     }
 
-    /// Lus (and À lire on iPhone): collapses/expands just this one group —
+    /// Lus and À lire: collapses/expands just this one group —
     /// same membership convention as `MacFeedList.collapsedReadGroups`
     /// (present = collapsed).
     private func toggleGroupCollapse(_ id: String) {
@@ -715,7 +715,7 @@ struct RootView: View {
                 floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
             case .chrono:
                 floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
-                // iPhone only (test): Lus' grouping/collapse control, below
+                // Test: Lus' grouping/collapse control, below
                 // mark-all-read.
                 if hasGroupingControls {
                     readGroupingControl(groups)
@@ -935,8 +935,8 @@ struct RootView: View {
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items) }
             // Pinned links stay in À lire — this button only
             // touches the rest of the day's links.
-            // iPhone (test): no per-day button — only the floating
-            // mark-all-read one.
+            // Test: no per-day button while À lire has Lus' grouping
+            // controls — only the floating mark-all-read one.
             case .chrono where !hasGroupingControls && !isCollapsed(group):
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
             case .read where !isCollapsed(group):
