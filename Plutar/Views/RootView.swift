@@ -118,6 +118,28 @@ struct RootView: View {
     /// like its Mac counterpart): a per-session view state, not a display
     /// preference.
     @State private var collapsedReadGroups: Set<String> = []
+    /// À lire, iPhone only (test): the same source/date grouping and
+    /// collapse controls as Lus, kept separate from Lus' own so switching
+    /// tabs doesn't carry one view's grouping into the other. Not persisted.
+    @State private var chronoGroupedBySource = false
+    @State private var collapsedChronoGroups: Set<String> = []
+
+    /// Whether the current view shows Lus' grouping/collapse controls —
+    /// Lus everywhere, À lire on iPhone only.
+    private var hasGroupingControls: Bool {
+        mode == .read || (mode == .chrono && UIDevice.current.userInterfaceIdiom == .phone)
+    }
+    /// The current view's source/date grouping flag (Lus or À lire).
+    private var groupedBySource: Binding<Bool> {
+        mode == .read ? $readGroupedBySource : $chronoGroupedBySource
+    }
+    /// The current view's collapsed group ids (Lus or À lire).
+    private var collapsedGroups: Binding<Set<String>> {
+        mode == .read ? $collapsedReadGroups : $collapsedChronoGroups
+    }
+    private func isCollapsed(_ group: FeedGroup) -> Bool {
+        hasGroupingControls && collapsedGroups.wrappedValue.contains(group.id)
+    }
 
     /// Which icon the expand-all/collapse-all button shows. Deliberately a
     /// separate stored flag rather than a value derived from `groups` +
@@ -258,7 +280,10 @@ struct RootView: View {
     }
 
     private var groups: [FeedGroup] {
-        FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
+        if mode == .chrono && hasGroupingControls && chronoGroupedBySource {
+            return FeedGrouping.makeSourceGroups(visibleItems)
+        }
+        return FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
     }
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
@@ -289,11 +314,12 @@ struct RootView: View {
         }
     }
 
-    /// Lus only: collapses/expands just this one group — same membership
-    /// convention as `MacFeedList.collapsedReadGroups` (present = collapsed).
-    private func toggleReadGroupCollapse(_ id: String) {
+    /// Lus (and À lire on iPhone): collapses/expands just this one group —
+    /// same membership convention as `MacFeedList.collapsedReadGroups`
+    /// (present = collapsed).
+    private func toggleGroupCollapse(_ id: String) {
         withAnimation(.easeInOut(duration: 0.25)) {
-            collapsedReadGroups.toggle(id)
+            collapsedGroups.wrappedValue.toggle(id)
         }
     }
 
@@ -502,7 +528,7 @@ struct RootView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                             if (mode != .source || expandedSources.contains(group.id))
-                                && !(mode == .read && collapsedReadGroups.contains(group.id)) {
+                                && !isCollapsed(group) {
                                 ForEach(group.items) { item in
                                     linkRow(item)
                                 }
@@ -689,6 +715,11 @@ struct RootView: View {
                 floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
             case .chrono:
                 floatingButton(icon: "checkmark.circle.fill") { showMarkAllReadConfirm = true }
+                // iPhone only (test): Lus' grouping/collapse control, below
+                // mark-all-read.
+                if hasGroupingControls {
+                    readGroupingControl(groups)
+                }
             }
         }
         .padding(.trailing, 18)
@@ -760,7 +791,7 @@ struct RootView: View {
     /// Whether every currently visible group is collapsed — same shape as
     /// `MacFeedList.allReadGroupsCollapsed`, driving the collapse icon below.
     private func allReadGroupsCollapsed(in groups: [FeedGroup]) -> Bool {
-        !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
+        !groups.isEmpty && groups.allSatisfy { collapsedGroups.wrappedValue.contains($0.id) }
     }
 
     /// Lus only: the grouping toggle (globe/calendar) and collapse-all/
@@ -776,7 +807,7 @@ struct RootView: View {
     private func readGroupingControl(_ groups: [FeedGroup]) -> some View {
         let allCollapsed = allReadGroupsCollapsed(in: groups)
         return VStack(spacing: 0) {
-            groupingControlButton(icon: readGroupedBySource ? "calendar" : "globe") {
+            groupingControlButton(icon: groupedBySource.wrappedValue ? "calendar" : "globe.fill") {
                 // Collapsed-group ids belong to whichever grouping was
                 // active when they were collapsed (day keys vs. hosts), so
                 // they can't carry over as-is — but the all-or-nothing
@@ -785,15 +816,15 @@ struct RootView: View {
                 // dropped. A partial (some-but-not-all) collapse has no
                 // equivalent in the other grouping, so only the two
                 // extremes survive the switch.
-                readGroupedBySource.toggle()
-                collapsedReadGroups = allCollapsed ? Set(self.groups.map(\.id)) : []
+                groupedBySource.wrappedValue.toggle()
+                collapsedGroups.wrappedValue = allCollapsed ? Set(self.groups.map(\.id)) : []
             }
             Divider().frame(width: 20).opacity(0.3)
             groupingControlButton(
                 icon: allCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle",
                 flipped: allCollapsed
             ) {
-                collapsedReadGroups = allCollapsed ? [] : Set(groups.map(\.id))
+                collapsedGroups.wrappedValue = allCollapsed ? [] : Set(groups.map(\.id))
             }
         }
         .frame(width: 44)
@@ -883,11 +914,11 @@ struct RootView: View {
                     fadingSourceChipLabel(group, isExpanded: expandedSources.contains(group.id))
                 }
                 .buttonStyle(.plain)
-            case .read:
+            case .read, .chrono where hasGroupingControls:
                 Button {
-                    toggleReadGroupCollapse(group.id)
+                    toggleGroupCollapse(group.id)
                 } label: {
-                    fadingSourceChipLabel(group, isExpanded: !collapsedReadGroups.contains(group.id))
+                    fadingSourceChipLabel(group, isExpanded: !isCollapsed(group))
                 }
                 .buttonStyle(.plain)
             case .chrono:
@@ -904,9 +935,9 @@ struct RootView: View {
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items) }
             // Pinned links stay in À lire — this button only
             // touches the rest of the day's links.
-            case .chrono:
+            case .chrono where !isCollapsed(group):
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
-            case .read where !collapsedReadGroups.contains(group.id):
+            case .read where !isCollapsed(group):
                 headerIconButton("trash.circle.fill") { requestDelete(group.items) }
             default:
                 EmptyView()

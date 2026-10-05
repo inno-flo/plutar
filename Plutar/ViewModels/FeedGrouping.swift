@@ -128,17 +128,13 @@ enum FeedGrouping {
         return f
     }()
 
-    /// "Septembre", or "Septembre 2025" outside the current year — same
-    /// year-suffix rule as `dayLabel`. Used for Lus's month separators
-    /// (`RootView`/`MacFeedList`), shown between day groups when they span
-    /// more than one calendar month.
+    /// "Septembre 2026" — always with the year, unlike `dayLabel`. Used for
+    /// Lus's month separators (`RootView`/`MacFeedList`), shown between day
+    /// groups when they span more than one calendar month.
     static func monthLabel(for day: Date) -> String {
         let raw = monthFormatter.string(from: day)
         let formatted = raw.prefix(1).uppercased() + raw.dropFirst()
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: day)
-        guard year != calendar.component(.year, from: Date()) else { return formatted }
-        return "\(formatted) \(year)"
+        return "\(formatted) \(Calendar.current.component(.year, from: day))"
     }
 
     /// The "yyyy-MM" prefix of a day-group id (`dayKeyFormatter`'s own
