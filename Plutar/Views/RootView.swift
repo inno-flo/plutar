@@ -935,7 +935,9 @@ struct RootView: View {
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items) }
             // Pinned links stay in À lire — this button only
             // touches the rest of the day's links.
-            case .chrono where !isCollapsed(group):
+            // iPhone (test): no per-day button — only the floating
+            // mark-all-read one.
+            case .chrono where !hasGroupingControls && !isCollapsed(group):
                 headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
             case .read where !isCollapsed(group):
                 headerIconButton("trash.circle.fill") { requestDelete(group.items) }
