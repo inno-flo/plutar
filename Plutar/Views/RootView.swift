@@ -978,14 +978,18 @@ struct RootView: View {
         HStack(spacing: 7) {
             Text(group.label)
                 .font(appFont.font(size: 16.5, weight: .bold))
-            Text("\(group.items.count)")
-                .font(appFont.font(size: 16.5, weight: .bold))
-                .foregroundStyle(counterForegroundOverride(for: theme) ?? theme.chipText)
-                .frame(minWidth: 17, minHeight: 17)
-                .padding(.horizontal, 4)
-                // Copenhague: same ochre yellow as the other link counters.
-                .background(counterBackground(for: theme))
-                .clipShape(Capsule())
+            // The count only shows while collapsed — once expanded, the
+            // links themselves are right there below.
+            if !isExpanded {
+                Text("\(group.items.count)")
+                    .font(appFont.font(size: 16.5, weight: .bold))
+                    .foregroundStyle(counterForegroundOverride(for: theme) ?? theme.chipText)
+                    .frame(minWidth: 17, minHeight: 17)
+                    .padding(.horizontal, 4)
+                    // Copenhague: same ochre yellow as the other link counters.
+                    .background(counterBackground(for: theme))
+                    .clipShape(Capsule())
+            }
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                 .font(.system(size: 14, weight: .bold))
                 .opacity(0.7)
