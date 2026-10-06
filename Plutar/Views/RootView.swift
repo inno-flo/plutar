@@ -536,7 +536,11 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                             }
                             if !isInCollapsedMonth(group) {
-                                groupHeader(group)
+                                groupHeader(
+                                    group,
+                                    extraTop: mode != .source && group.id != groups.first?.id
+                                        && !monthSeparatorIDs.contains(group.id)
+                                )
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                             }
@@ -915,7 +919,9 @@ struct RootView: View {
     /// Chip shown as each Section's header. In Sources it also acts as the
     /// collapse/expand toggle for that source and carries a link-count badge;
     /// in Date it's a plain, non-interactive day label.
-    private func groupHeader(_ group: FeedGroup) -> some View {
+    /// `extraTop`: 10pt more room above, for every header but the first of
+    /// the list (and the ones directly under a month separator).
+    private func groupHeader(_ group: FeedGroup, extraTop: Bool = false) -> some View {
         // Centered alignment keeps the mark-all-read icon on the same
         // vertical line as the count badge and chevron inside the chip.
         HStack(alignment: .center, spacing: 10) {
@@ -969,7 +975,8 @@ struct RootView: View {
         // the row edge, 4pt short of a link title's 32pt (14 listRowInset +
         // 18 LinkRowView padding) — nudged to match.
         .padding(.horizontal, 18)
-        .padding(.vertical, 4)
+        .padding(.top, extraTop ? 14 : 4)
+        .padding(.bottom, 4)
     }
 
     /// A group header's trailing action — same 44pt box as the floating
