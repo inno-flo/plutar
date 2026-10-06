@@ -107,7 +107,7 @@ struct MacSidebarView: View {
                 // the innermost interactive control), so it doesn't also
                 // collapse/expand the group.
                 HStack {
-                    Label("Sources", systemImage: "globe.fill")
+                    Label("Sources", systemImage: "newspaper.fill")
                     Spacer()
                     Button {
                         sourcesSortedAlphabetically.toggle()

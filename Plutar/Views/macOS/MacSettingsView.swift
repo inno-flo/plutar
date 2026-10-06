@@ -2,14 +2,15 @@ import SwiftUI
 import SwiftData
 
 /// The macOS Settings window (Cmd+, / menu Plutar > Réglages), opened via
-/// the app's `Settings { }` Scene — see `PlutarMacApp`. Two tabs:
+/// the app's `Settings { }` Scene — see `PlutarMacApp`. Three tabs:
 ///
 /// - "Général": the same display settings as iOS's "Affichage" sheet
 ///   (`SettingsSheet`) minus its "Avancé" section, and minus the shake
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
 ///   UIKit-only and isn't part of this target).
-/// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   the backup controls (`BackupSection`), "Réinitialiser le classement", "Vider le fil À lire…", "Vider le fil Lus…", and "Actualiser le fil" (moved
+/// - "Sauvegarde": the backup controls (`BackupSection`).
+/// - "Avancé": the page behind iOS's "Avancé" row (`AdvancedSettingsView`) —
+///   "Vider le fil À lire…", "Vider le fil Lus…", "Réinitialiser le classement…", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -46,10 +47,13 @@ struct MacSettingsView: View {
 
     var body: some View {
         TabView {
-            Tab("Général", systemImage: "paintbrush") {
+            Tab("Général", systemImage: "gear") {
                 generalTab
             }
-            Tab("Avancé", systemImage: "gearshape.2") {
+            Tab("Sauvegarde", systemImage: "cloud") {
+                backupTab
+            }
+            Tab("Avancé", systemImage: "document.on.trash") {
                 advancedTab
             }
         }
@@ -95,7 +99,7 @@ struct MacSettingsView: View {
                     }
                 }
 
-                SettingsSectionView(title: "Présentation du fil", titleWeight: .regular) {
+                SettingsSectionView(title: "Présentation des liens", titleWeight: .regular) {
                     HStack(spacing: 8) {
                         ForEach(LinkLayout.allCases) { l in
                             SettingsPillButton(l.label, isActive: layout == l, chipColor: theme.chip) { layoutRaw = l.rawValue }
@@ -107,11 +111,17 @@ struct MacSettingsView: View {
         }
     }
 
+    private var backupTab: some View {
+        ScrollView {
+            BackupSection(captionFont: .system(size: 13), showsTitle: false)
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var advancedTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                BackupSection(captionFont: .system(size: 13))
-
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
                         showClearFeedConfirm = true
@@ -130,7 +140,7 @@ struct MacSettingsView: View {
                         Text("Tous les liens À lire seront supprimés définitivement.")
                     }
 
-                    Text("Supprime tous les liens encore à lire")
+                    Text("Supprime tous les liens non-lus.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -154,7 +164,7 @@ struct MacSettingsView: View {
                         Text("Tous les liens lus seront supprimés définitivement.")
                     }
 
-                    Text("Supprime tous les liens déjà lus")
+                    Text("Supprime tous les liens déjà lus.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -177,7 +187,7 @@ struct MacSettingsView: View {
                         Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
                     }
 
-                    Text("Remise à zéro du classement des 15 sources les plus partagées")
+                    Text("Remise à zéro du classement des 15 sources les plus partagées.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -202,7 +212,7 @@ struct MacSettingsView: View {
                     // launch/foreground, so a link enriched or thumbnailed
                     // on iOS doesn't have to wait for this Mac to relaunch
                     // or background-and-foreground before catching up.
-                    Text("Relance la récupération des titres et vignettes en attente")
+                    Text("Relance la récupération des titres et vignettes en attente.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }

@@ -46,9 +46,6 @@ struct SettingsSheet: View {
     /// tall as it needs to instead of always going full-screen. The value
     /// starts at a reasonable guess and is corrected once layout runs.
     @State private var contentHeight: CGFloat = 480
-    @State private var showResetRankingConfirm = false
-    @State private var showClearFeedConfirm = false
-    @State private var showClearReadConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -98,7 +95,7 @@ struct SettingsSheet: View {
                         }
                     }
 
-                    SettingsSectionView(title: "Présentation du fil") {
+                    SettingsSectionView(title: "Présentation des liens") {
                         HStack(spacing: 8) {
                             ForEach(LinkLayout.allCases) { l in
                                 SettingsPillButton(l.label, isActive: layout == l, chipColor: chipColor) { layout = l }
@@ -106,93 +103,41 @@ struct SettingsSheet: View {
                         }
                     }
 
-                    SettingsSectionView(title: "Avancé") {
-                        VStack(alignment: .leading, spacing: 24) {
-                            BackupSection(captionFont: .footnote)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Button(role: .destructive) {
-                                    showClearFeedConfirm = true
-                                } label: {
-                                    Text("Vider le fil À lire…")
-                                }
-                                .buttonStyle(.glass)
-                                .confirmationDialog(
-                                    "Vider le fil À lire",
-                                    isPresented: $showClearFeedConfirm,
-                                    titleVisibility: .visible
-                                ) {
-                                    Button("Vider", role: .destructive, action: onClearUnread)
-                                    Button("Annuler", role: .cancel) {}
-                                } message: {
-                                    Text("Tous les liens À lire seront supprimés définitivement.")
-                                }
-
-                                Text("Supprime tous les liens encore à lire")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Button(role: .destructive) {
-                                    showClearReadConfirm = true
-                                } label: {
-                                    Text("Vider le fil Lus…")
-                                }
-                                .buttonStyle(.glass)
-                                .confirmationDialog(
-                                    "Supprimer tous les liens lus",
-                                    isPresented: $showClearReadConfirm,
-                                    titleVisibility: .visible
-                                ) {
-                                    Button("Supprimer", role: .destructive, action: onClearRead)
-                                    Button("Annuler", role: .cancel) {}
-                                } message: {
-                                    Text("Tous les liens lus seront supprimés définitivement.")
-                                }
-
-                                Text("Supprime tous les liens déjà lus")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Button(role: .destructive) {
-                                    showResetRankingConfirm = true
-                                } label: {
-                                    Text("Réinitialiser le classement…")
-                                }
-                                .buttonStyle(.glass)
-                                .confirmationDialog(
-                                    "Réinitialiser le classement",
-                                    isPresented: $showResetRankingConfirm,
-                                    titleVisibility: .visible
-                                ) {
-                                    Button("Réinitialiser", role: .destructive, action: onResetRanking)
-                                    Button("Annuler", role: .cancel) {}
-                                } message: {
-                                    Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
-                                }
-
-                                Text("Remise à zéro du classement des 15 sources les plus partagées")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            // A rule, then 10pt, then the credit.
-                            VStack(alignment: .leading, spacing: 10) {
-                                Divider()
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text("Florian Innocente")
-                                    // A tap opens the site.
-                                    Link("florianinnocente.com", destination: URL(string: "https://florianinnocente.com")!)
-                                }
-                                .font(.footnote)
-                                .foregroundStyle(Color(white: 0.4))
-                                .tint(Color(white: 0.4))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
+                    // Opens its own page: backups, clearing the feeds, resetting
+                    // the ranking.
+                    NavigationLink {
+                        AdvancedSettingsView(
+                            onClearUnread: onClearUnread,
+                            onClearRead: onClearRead,
+                            onResetRanking: onResetRanking
+                        )
+                    } label: {
+                        HStack {
+                            Text("Avancé")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // A rule, then 10pt, then the credit.
+                    VStack(alignment: .leading, spacing: 10) {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Florian Innocente")
+                            // A tap opens the site.
+                            Link("florianinnocente.com", destination: URL(string: "https://florianinnocente.com")!)
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(Color(white: 0.4))
+                        .tint(Color(white: 0.4))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.top, 6)
                 }
@@ -227,5 +172,108 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
+    }
+}
+
+/// The page behind "Avancé" in the settings: backups, clearing the feeds
+/// and resetting the ranking. The confirmation dialogs live here, so the
+/// callbacks (which also close the settings sheet) are all that crosses over.
+private struct AdvancedSettingsView: View {
+    let onClearUnread: () -> Void
+    let onClearRead: () -> Void
+    let onResetRanking: () -> Void
+
+    @State private var showResetRankingConfirm = false
+    @State private var showClearFeedConfirm = false
+    @State private var showClearReadConfirm = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                BackupSection(captionFont: .footnote, usesCells: true)
+
+                SettingsSectionView(title: "Avancé") {
+                    VStack(alignment: .leading, spacing: 24) {
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(role: .destructive) {
+                            showClearFeedConfirm = true
+                        } label: {
+                            Text("Vider le fil À lire…")
+                        }
+                        .buttonStyle(SettingsCellButtonStyle())
+                        .confirmationDialog(
+                            "Vider le fil À lire",
+                            isPresented: $showClearFeedConfirm,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Vider", role: .destructive, action: onClearUnread)
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text("Tous les liens À lire seront supprimés définitivement.")
+                        }
+
+                        Text("Supprime tous les liens non-lus.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(role: .destructive) {
+                            showClearReadConfirm = true
+                        } label: {
+                            Text("Vider le fil Lus…")
+                        }
+                        .buttonStyle(SettingsCellButtonStyle())
+                        .confirmationDialog(
+                            "Supprimer tous les liens lus",
+                            isPresented: $showClearReadConfirm,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Supprimer", role: .destructive, action: onClearRead)
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text("Tous les liens lus seront supprimés définitivement.")
+                        }
+
+                        Text("Supprime tous les liens déjà lus.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(role: .destructive) {
+                            showResetRankingConfirm = true
+                        } label: {
+                            Text("Réinitialiser le classement…")
+                        }
+                        .buttonStyle(SettingsCellButtonStyle())
+                        .confirmationDialog(
+                            "Réinitialiser le classement",
+                            isPresented: $showResetRankingConfirm,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Réinitialiser", role: .destructive, action: onResetRanking)
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text("Le classement cumulé des sources sera remis à zéro. Cette action est irréversible.")
+                        }
+
+                        Text("Remise à zéro du classement des 15 sources les plus partagées.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
+                    }
+                    }
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle("Avancé")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

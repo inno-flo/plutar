@@ -737,6 +737,16 @@ struct RootView: View {
     /// middle of the `Spacer()`, nowhere near where the badge actually is.
     private var floatingCounterBadge: some View {
         HStack(spacing: 14) {
+            // Lus' ranking: its title takes the counter's place in the top
+            // bar, fading in while the counter fades out.
+            Text("Les 15 sources les plus partagées")
+                .font(appFont.font(size: 20, weight: .bold))
+                .foregroundStyle(theme.title)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.leading, 14)
+                .opacity(rankingShown ? 1 : 0)
+                .accessibilityHidden(!rankingShown)
             Spacer()
             // A fixed 44×44 slot — the same box `floatingButton` uses —
             // positioned by the same Spacer + trailing-padding pattern as
@@ -753,14 +763,15 @@ struct RootView: View {
                         counterBadgeContent(theme: flippedTheme(showsNewFace: showsNewFace))
                     }
                 }
+                // Lus' ranking has no link count: fade out instead of
+                // removing, so the reserved safe-area inset (and the list
+                // under it) stays put.
+                .opacity(rankingShown ? 0 : 1)
+                .allowsHitTesting(!rankingShown)
         }
         .padding(.top, 14)
         .padding(.trailing, 18)
         .padding(.bottom, 10)
-        // Lus' ranking has no link count: fade out instead of removing, so
-        // the reserved safe-area inset (and the list under it) stays put.
-        .opacity(rankingShown ? 0 : 1)
-        .allowsHitTesting(!rankingShown)
         .animation(.easeInOut(duration: 0.25), value: rankingShown)
     }
 
@@ -812,7 +823,7 @@ struct RootView: View {
     private func readGroupingControl(_ groups: [FeedGroup]) -> some View {
         let allCollapsed = allReadGroupsCollapsed(in: groups)
         return VStack(spacing: 0) {
-            groupingControlButton(icon: groupedBySource.wrappedValue ? "calendar" : "globe.fill") {
+            groupingControlButton(icon: groupedBySource.wrappedValue ? "calendar" : "newspaper.fill") {
                 // Collapsed-group ids belong to whichever grouping was
                 // active when they were collapsed (day keys vs. hosts), so
                 // they can't carry over as-is — but the all-or-nothing
@@ -1077,17 +1088,6 @@ struct RootView: View {
                                 .listRowBackground(Color.clear)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                         }
-                    } header: {
-                        Text("Les 15 sources les plus partagées")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundStyle(theme.ink(0.55))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .listRowInsets(EdgeInsets())
-                            .padding(.horizontal, 14)
-                            .padding(.top, 10)
-                            // + the first row's 5pt top inset = 22pt down
-                            // to the first source name.
-                            .padding(.bottom, 17)
                     }
                 }
                 .listStyle(.plain)

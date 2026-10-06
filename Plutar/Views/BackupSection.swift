@@ -16,6 +16,14 @@ struct BackupSection: View {
     /// `.footnote` on iOS, 13 pt on the Mac — each settings screen's own
     /// caption size.
     let captionFont: Font
+    /// The section title's weight — semibold on iOS, regular on the Mac
+    /// (like the other titles of each settings screen).
+    var titleWeight: Font.Weight = .semibold
+    /// iOS: Settings-style cells instead of glass buttons, captions indented
+    /// to line up with the cells' text.
+    var usesCells = false
+    /// The Mac's "Sauvegarde" tab is already named after the section.
+    var showsTitle = true
 
     /// The cached dates first, so the section isn't blank (or wrong, offline)
     /// while CloudKit is asked for the real ones.
@@ -36,37 +44,13 @@ struct BackupSection: View {
     private var isBusy: Bool { isBackingUp || isRestoring || thumbnailProgress != nil }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 8) {
-                Button(action: backUpManually) {
-                    HStack(spacing: 6) {
-                        Text("Sauvegarder")
-                        if isBackingUp {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                    }
+        Group {
+            if showsTitle {
+                SettingsSectionView(title: "Sauvegarde et restauration", titleWeight: titleWeight) {
+                    blocks
                 }
-                .buttonStyle(.glass)
-                .disabled(isBusy)
-
-                dateLine(.manual)
-                restoreButton(.manual)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                dateLine(.automatic)
-                restoreButton(.automatic)
-            }
-
-            if let thumbnailProgress, thumbnailProgress.total > 0 {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Vignettes : \(thumbnailProgress.done)/\(thumbnailProgress.total)")
-                }
-                .font(captionFont)
-                .foregroundStyle(.secondary)
+            } else {
+                blocks
             }
         }
         .task { dates = await BackupService.lastBackupDates() }
@@ -91,19 +75,72 @@ struct BackupSection: View {
         }
     }
 
-    private func dateLine(_ kind: BackupKind) -> some View {
-        Text(dates[kind].map { "Dernière sauvegarde \(kind.label) : \(Self.format($0))" } ?? "Aucune sauvegarde \(kind.label)")
+    private var blocks: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: backUpManually) {
+                    HStack(spacing: 6) {
+                        Text("Sauvegarder")
+                        if isBackingUp {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                .settingsActionStyle(cells: usesCells)
+                .disabled(isBusy)
+
+                caption("Sauvegarde manuelle des liens non-lus, lus et du classement des 15 sources principales.", date: .manual)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                restoreButton(.manual)
+                caption("Restauration de la dernière sauvegarde manuelle.")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                // Intertitle: what follows is about the automatic backup.
+                Text("Sauvegarde automatique")
+                    .font(captionFont.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, usesCells ? 20 : 0)
+                    // Mac: 5pt more room before the button.
+                    .padding(.bottom, usesCells ? 0 : 5)
+                restoreButton(.automatic)
+                caption("Restauration de la sauvegarde automatique.", date: .automatic)
+            }
+
+            if let thumbnailProgress, thumbnailProgress.total > 0 {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Vignettes : \(thumbnailProgress.done)/\(thumbnailProgress.total)")
+                }
+                .font(captionFont)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// A button's caption; with `date`, a line break and then the date and
+    /// time of the last backup of that kind.
+    private func caption(_ text: String, date kind: BackupKind? = nil) -> some View {
+        let dateLine = kind.map { kind in
+            "\n" + (dates[kind].map { "Dernière sauvegarde : \(Self.format($0))." } ?? "Aucune sauvegarde \(kind.label).")
+        } ?? ""
+        return Text(text + dateLine)
             .font(captionFont)
             .foregroundStyle(.secondary)
+            .padding(.horizontal, usesCells ? 20 : 0)
     }
 
     private func restoreButton(_ kind: BackupKind) -> some View {
         Button(role: .destructive) {
             kindToRestore = kind
         } label: {
-            Text("Restaurer")
+            Text("Restaurer…")
         }
-        .buttonStyle(.glass)
+        .settingsActionStyle(cells: usesCells)
         .disabled(dates[kind] == nil || isBusy)
     }
 
@@ -149,7 +186,7 @@ struct BackupSection: View {
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMM yyyy 'à' HH:mm"
+        f.dateFormat = "d MMMM yyyy 'à' HH:mm"
         return f
     }()
 

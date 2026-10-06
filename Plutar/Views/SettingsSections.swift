@@ -90,3 +90,51 @@ struct SettingsThemePillButton: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+/// iOS Settings-style action cell: a full-width rounded cell with the label
+/// in the system accent color, in place of a glass button. Used by the
+/// iOS "Avancé" page and `BackupSection(usesCells:)`.
+struct SettingsCellButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Self.labelColor)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(Self.cellColor, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .contentShape(Rectangle())
+            .opacity(!isEnabled ? 0.4 : (configuration.isPressed ? 0.6 : 1))
+    }
+
+    /// The system accent color (system blue) — deliberately not `.tint`,
+    /// which carries the theme's own accent here.
+    private static var labelColor: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .systemBlue)
+        #else
+        Color(nsColor: .controlAccentColor)
+        #endif
+    }
+
+    private static var cellColor: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .secondarySystemGroupedBackground)
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
+}
+
+extension View {
+    /// The glass button used on the Mac, or the iOS Settings-style cell.
+    @ViewBuilder
+    func settingsActionStyle(cells: Bool) -> some View {
+        if cells {
+            buttonStyle(SettingsCellButtonStyle())
+        } else {
+            buttonStyle(.glass)
+        }
+    }
+}

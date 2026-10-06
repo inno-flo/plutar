@@ -308,7 +308,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         switch self {
         case .light: return "Claire"
         case .dark: return "Sombre"
-        case .auto: return "Automatique"
+        case .auto: return "Système"
         }
     }
 
