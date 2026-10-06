@@ -19,7 +19,12 @@ enum AppContainerBootstrap {
         let storeFailure: String?
     }
 
+    @MainActor
     static func makeContainer() -> Result {
+        // Before the container exists, not after: CloudKit starts importing
+        // the moment it does, and `SyncMonitor` (what the automatic backup
+        // waits on) only sees events posted once it's listening.
+        SyncMonitor.shared.start()
         do {
             let container = try SharedStore.makeContainer()
             return Result(container: container, storeFailure: nil)
@@ -94,6 +99,10 @@ private struct StoreLifecycle: ViewModifier {
                    let items = try? context.fetch(FetchDescriptor<LinkItem>()) {
                     SharedStore.removeOrphanedThumbnails(keeping: Set(items.compactMap(\.thumbnailFileName)))
                 }
+                // Its own task: an upload shouldn't hold up enrichment.
+                // Usually a no-op this early — it waits for a CloudKit import
+                // to have succeeded, see `BackupService.runAutomaticIfDue`.
+                Task { await BackupService.runAutomaticIfDue(in: context) }
                 await LinkMetadataEnricher.enrichPendingLinks(in: context)
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -101,7 +110,13 @@ private struct StoreLifecycle: ViewModifier {
                 // ones the extension left half-done (e.g. app backgrounded
                 // mid-fetch) — not just the cold-start case above.
                 guard newPhase == .active else { return }
+                Task { await BackupService.runAutomaticIfDue(in: context) }
                 Task { await LinkMetadataEnricher.enrichPendingLinks(in: context) }
+            }
+            // The wake-up for an automatic backup that was put off for want
+            // of a finished sync: each successful import re-asks.
+            .onReceive(SyncMonitor.shared.importSucceeded) { _ in
+                Task { await BackupService.runAutomaticIfDue(in: context) }
             }
             // CloudKit merges a remote change straight into the store
             // without the app doing anything, so a link enriched on

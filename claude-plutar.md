@@ -42,11 +42,12 @@ Plutar/
   Persistence/                             — SharedStore (conteneur + vignettes), AppContainerBootstrap
                                              (conteneur de l'app + modificateur de cycle de vie partagé),
                                              LinkMetadataEnricher, LinkItemFactory, SharedLinkExtraction,
-                                             PlatformImage, PlutarLog
+                                             PlatformImage, PlutarLog, BackupService (sauvegardes
+                                             CloudKit), SyncMonitor (importation CloudKit terminée ?)
   ViewModels/FeedGrouping.swift            — regroupement par jour/source, libellés de dates
   Views/RootView.swift                     — écran iOS (onglets, liste groupée, undo, secousse)
   Views/Rows/LinkRowView.swift             — rendu d'un lien (Simple / Détaillée / Éditoriale), partagé iOS/macOS
-  Views/SettingsSheet.swift, SettingsSections.swift, EmptyStateView.swift, FlipCard.swift,
+  Views/SettingsSheet.swift, SettingsSections.swift, BackupSection.swift, EmptyStateView.swift, FlipCard.swift,
         ShakeGesture.swift, ShareView.swift
   Views/macOS/                             — MacRootView, MacSidebarView, MacFeedList, MacSourceRankingView,
                                              MacSettingsView, SystemAppearanceObserver
@@ -452,7 +453,20 @@ Passe de réduction/optimisation sur l'ensemble du code (commit `ac42056`), comm
 - **Corrections :** annuler une suppression (iOS) conserve le nom du site ; « Marquer non lu » s'annule sur macOS.
 - **Laissé en l'état :** `LinkItem.initial`, `colorHex`, `sourceApp` sont stockés mais jamais affichés — les retirer modifierait le schéma CloudKit (synchro cassée tant que tous les appareils n'ont pas été recompilés).
 
+## Sauvegarde / restauration (6 oct. 2026)
+
+Deux sauvegardes du contenu — liens lus et non lus + classement, **sans les vignettes** (≈ 95 % du poids : JPEG à la résolution d'origine, ≈ 100 Ko pièce contre ≈ 5 Ko par lien pour la base) — stockées dans CloudKit.
+
+- **Deux objets distincts** : deux `CKRecord` de type `Backup`, de noms fixes `backup-manual` et `backup-auto`, dans la base privée du conteneur existant (zone par défaut), **hors du miroir SwiftData**. Charge utile : JSON compressé en LZFSE (`CKAsset`). Une nouvelle sauvegarde écrase le record du même nom. Un `@Model` miroité a été écarté : pas d'unicité possible, et un changement de schéma casse la synchro jusqu'à reconstruction de chaque appareil. Stocker les vignettes dans le modèle (`Data?`) a aussi été vérifié et écarté : le poids se déplace au lieu de disparaître (la conversion en `CKAsset` se fait par la taille, au-delà de 1 Mo, pas par la case « Allows External Storage »).
+- **Réglages** (Avancé, iOS et macOS, `BackupSection`) : « Sauvegarder » (manuelle), la date de chaque sauvegarde (date serveur, en cache hors ligne) et un bouton « Restaurer » par type, avec confirmation. Légendes à déterminer.
+- **Restauration destructive** : remplace tout le contenu. Réconciliée par `id` plutôt que « tout effacer puis tout réinsérer » : même état final, mais les liens présents des deux côtés gardent leur ligne et leur vignette, et CloudKit n'exporte que ce qui a changé. Elle se propage aux autres appareils. Les vignettes manquantes sont ensuite récupérées par le réseau (`regenerateMissingThumbnails`, 4 en parallèle, progression affichée).
+- **Sauvegarde automatique** : une fois par jour et par appareil, au plus 2 tentatives, échec journalisé et jamais affiché. Elle ne part que si une **importation CloudKit a réussi aujourd'hui** sur l'appareil (`SyncMonitor`) : sinon elle est repoussée à la prochaine synchro réussie, pour qu'un appareil à moitié synchronisé n'écrase pas une bonne sauvegarde. `SyncMonitor` démarre avant la création du conteneur, sinon il manque les événements du lancement.
+- **Correction au passage** : `redownloadMissingThumbnails` reprenait toujours les 8 mêmes liens ; un lien dont l'image ne revient jamais bloquait ceux d'après. Il traite maintenant d'abord le lien essayé le moins récemment.
+- **À vérifier sur appareil** : que CloudKit émet bien un événement d'importation à chaque lancement, même sans rien à importer (lignes `CloudKit event:` dans la console) — sinon la sauvegarde automatique ne partirait jamais.
+
 ## Prochaines étapes possibles
+
+- Déployer le schéma CloudKit en production (type `Backup` compris) avant TestFlight/App Store
 
 - Résoudre le souci de Simulateur avec Xcode 27 bêta (ou tester sur un appareil physique / une version stable d'Xcode)
 - Profiler le défilement de Lus avec de vrais liens (coût de rendu des cellules lues, laissé en suspens)

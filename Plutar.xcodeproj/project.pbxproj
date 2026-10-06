@@ -22,12 +22,14 @@
 		26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
 		27BDF2BA9CD4145FDF33B68D /* MacFeedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */; };
 		2BA5C1FB212524164BC56EE2 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130BA757B663FC9008041306 /* SharedStore.swift */; };
+		2BDF8CEECEDCA6C550149B03 /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */; };
 		2CB96EB00608A930D891158F /* DisplaySettingsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D607A5B73FB75F061716C5 /* DisplaySettingsKey.swift */; };
 		2CF2232B8E91364361488352 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		2DFD3BBB47477A0B95163BCF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83289D1D4214A472A453D921 /* RootView.swift */; };
 		2FD2310F3F5FF82707A6D331 /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */; };
 		358C6588B1777EF955EE379D /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
+		37ED3155472DAD8E3D31283D /* BackupSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EBF1DC51197ECC3EDAA810 /* BackupSection.swift */; };
 		381D8FED81693360B61FC95A /* FeedGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38123A3EA945E5E2E936182C /* FeedGrouping.swift */; };
 		3F1790D2D307757ED9124A03 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
 		41B07B23D507832A25179785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
@@ -45,6 +47,7 @@
 		5A95512EAF531DE979634870 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */; };
 		5E664AD3C1E4F4B4EBEB82DD /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
+		5FAFD6CC82378884A2F9BB97 /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B77EBBAA0E346D842767FE9 /* BackupService.swift */; };
 		644040C2528DACD6F22FA039 /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		65ED495368EC65787B24EC03 /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		674ED4E4A6BDB2787C4CF500 /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
@@ -52,9 +55,12 @@
 		6DC787D35E9FAE7B31A977CA /* MacSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */; };
 		76E0056F01CA8666E8503CF5 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
 		76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06AAF3499A80C9298DB76F9 /* SourceRank.swift */; };
+		78DD465CB33A19AE73E3D402 /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */; };
 		885DA4A6A813F4F3B9E1196F /* FlipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */; };
 		894CE17352614F9F642533DE /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */; };
 		8AB0AF4BF8FB73C85969A814 /* LinkRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BF7DBB55C5FB557FFA7677 /* LinkRowView.swift */; };
+		8DFFB7D5A67C623F44DAC476 /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B77EBBAA0E346D842767FE9 /* BackupService.swift */; };
+		905E3A7F34DA523CBE6E1787 /* BackupSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EBF1DC51197ECC3EDAA810 /* BackupSection.swift */; };
 		949B4EBF5E299368D005A6FE /* MacRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA348DF969EA5D473CD4C81 /* MacRootView.swift */; };
 		97719FD63D7F144A5D63336B /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
 		9CA1251CC89A30C0FD7EF5B5 /* PlutarShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -65,8 +71,10 @@
 		A55A81BDAFD38C03C9B4FDB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCCCC9A7BB70CD92C5096B47 /* Assets.xcassets */; };
 		A65D2CD109C7825E42E5AEDA /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
 		AFFDA7D7E31A76D35C5FB5F8 /* SharedLinkExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */; };
+		B33610755DDACE0E36631129 /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B77EBBAA0E346D842767FE9 /* BackupService.swift */; };
 		B441C06A97A29BCC9B4E7BB6 /* MacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EE365C6269FC10839CBEA4 /* MacSettingsView.swift */; };
 		B6BD8C0775B2746D172F3A95 /* FeedMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */; };
+		B7A59D8FBADF84CD1C45758B /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */; };
 		BC0C6BCD74BE278B854E791C /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
 		C37D241874185B30F72F6D9C /* LinkMetadataEnricher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */; };
 		C4BB4037C0F3B3EFEC506CB9 /* LinkItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4949EBEF6B304848C4BEE06 /* LinkItem.swift */; };
@@ -77,6 +85,7 @@
 		CFCC6003BF3734F5AE8D5CF9 /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 3DC5744B895D3BA1DCF9C2E1 /* SharePreprocessor.js */; };
 		D2C3CCC1E42975E7952E8F6F /* PlutarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9F45E420A4D58CFA444779 /* PlutarLog.swift */; };
 		D9D6EC34C1C943F40EC2DC04 /* PlutarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DA2787CE6712D24B49C88E /* PlutarMacApp.swift */; };
+		DBBE5350592ACCF3BE82AB8A /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */; };
 		DEEE614B7191655B6D4E5BDA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E38D7E2C98F8507C74160D /* AppDelegate.swift */; };
 		E360489DDA0D19A34174505E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89026185FF840D288774DDD0 /* AppTheme.swift */; };
 		E3EA3EF8BDF7CF785B6A39D1 /* PlatformImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7EB35215D35C3E2317CACC /* PlatformImage.swift */; };
@@ -86,6 +95,7 @@
 		ED96F8FE8F3391B997F63420 /* PlutarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CC3F448604493B8E9A7320 /* PlutarApp.swift */; };
 		EFFC5871E04445A3F60B43C4 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
 		F8FAAF5BC6EF76AC72E3EF53 /* LinkItemFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */; };
+		FB352ED2770A57C00E6AA535 /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B77EBBAA0E346D842767FE9 /* BackupService.swift */; };
 		FDB2DB7B2FB957445552638E /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78455A8E442E405794252CA7 /* ShareView.swift */; };
 /* End PBXBuildFile section */
 
@@ -134,12 +144,14 @@
 /* Begin PBXFileReference section */
 		06157EE9E1DB6A6690AAB148 /* MacFeedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacFeedList.swift; sourceTree = "<group>"; };
 		07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		0B77EBBAA0E346D842767FE9 /* BackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupService.swift; sourceTree = "<group>"; };
 		0B7EB35215D35C3E2317CACC /* PlatformImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformImage.swift; sourceTree = "<group>"; };
 		0D36D03FF9EA7B585975D166 /* ShakeGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeGesture.swift; sourceTree = "<group>"; };
 		0D9F45E420A4D58CFA444779 /* PlutarLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlutarLog.swift; sourceTree = "<group>"; };
 		130BA757B663FC9008041306 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedLinkExtraction.swift; sourceTree = "<group>"; };
 		24E44FAC1DD3FE30D5FE7E88 /* SidebarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSelection.swift; sourceTree = "<group>"; };
+		26EBF1DC51197ECC3EDAA810 /* BackupSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSection.swift; sourceTree = "<group>"; };
 		27E38D7E2C98F8507C74160D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2BA348DF969EA5D473CD4C81 /* MacRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRootView.swift; sourceTree = "<group>"; };
 		3635CD9511E8D47E2D4A9A41 /* PlutarShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PlutarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -179,6 +191,7 @@
 		EED3E2D734BFB1D24F0A1D24 /* MacSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarView.swift; sourceTree = "<group>"; };
 		F19E3217B12521E3D4F7C3DA /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F308C80533D114E4126B9BF3 /* PlutarShareMac.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlutarShareMac.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMonitor.swift; sourceTree = "<group>"; };
 		FA9914A20B8DFB4F185A86E3 /* PlutarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlutarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDF0F518BE5FD3D84E62CA6B /* FeedMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMode.swift; sourceTree = "<group>"; };
 		FF28C2A02C5C9EDAF37DD899 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -271,12 +284,14 @@
 			isa = PBXGroup;
 			children = (
 				3D814379CBF66EDBEC5C172A /* AppContainerBootstrap.swift */,
+				0B77EBBAA0E346D842767FE9 /* BackupService.swift */,
 				8C6E2250E24B63F6A1AE6E0F /* LinkItemFactory.swift */,
 				558EB1A207DBA3375381E6DE /* LinkMetadataEnricher.swift */,
 				0B7EB35215D35C3E2317CACC /* PlatformImage.swift */,
 				0D9F45E420A4D58CFA444779 /* PlutarLog.swift */,
 				21FAE82C72DF0E6635479B3C /* SharedLinkExtraction.swift */,
 				130BA757B663FC9008041306 /* SharedStore.swift */,
+				F4E047C5E6EF4C8A1A7816BF /* SyncMonitor.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -303,6 +318,7 @@
 		E3B8418DC6BFE9DED9CF0888 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				26EBF1DC51197ECC3EDAA810 /* BackupSection.swift */,
 				07A72D799B532C112E7BD9D0 /* EmptyStateView.swift */,
 				D0D432D9C1605D49ECFF69B7 /* FlipCard.swift */,
 				A13548B99B308BAA8A26B43C /* RememberScrollOffset.swift */,
@@ -497,6 +513,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CE1A89C3C241ED2FDE1CD1E /* AppContainerBootstrap.swift in Sources */,
+				FB352ED2770A57C00E6AA535 /* BackupService.swift in Sources */,
 				A4C75E7B66953DC73D07DFB0 /* LinkItem.swift in Sources */,
 				358C6588B1777EF955EE379D /* LinkItemFactory.swift in Sources */,
 				5E664AD3C1E4F4B4EBEB82DD /* LinkMetadataEnricher.swift in Sources */,
@@ -507,6 +524,7 @@
 				AFFDA7D7E31A76D35C5FB5F8 /* SharedLinkExtraction.swift in Sources */,
 				2BA5C1FB212524164BC56EE2 /* SharedStore.swift in Sources */,
 				CA1659E01E8E7AA9188ED92F /* SourceRank.swift in Sources */,
+				2BDF8CEECEDCA6C550149B03 /* SyncMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -517,6 +535,8 @@
 				C5F16A6A1762C5C3A864E72B /* AppContainerBootstrap.swift in Sources */,
 				4A52278BA1DF9949ABE61900 /* AppDelegate.swift in Sources */,
 				2CF2232B8E91364361488352 /* AppTheme.swift in Sources */,
+				905E3A7F34DA523CBE6E1787 /* BackupSection.swift in Sources */,
+				5FAFD6CC82378884A2F9BB97 /* BackupService.swift in Sources */,
 				2CB96EB00608A930D891158F /* DisplaySettingsKey.swift in Sources */,
 				309F7150870B7B284E1E5FCF /* EmptyStateView.swift in Sources */,
 				9E3CBC3C85F4D0FDFC897E72 /* FeedGrouping.swift in Sources */,
@@ -540,6 +560,7 @@
 				26D16567F25F3DB1CC1C8002 /* SharedStore.swift in Sources */,
 				5B9B41BB28C1D8B043E77EE7 /* SidebarSelection.swift in Sources */,
 				76F1D22086F51CCE27003890 /* SourceRank.swift in Sources */,
+				78DD465CB33A19AE73E3D402 /* SyncMonitor.swift in Sources */,
 				E6B6E7B4FCCF7DB0A7356E3D /* SystemAppearanceObserver.swift in Sources */,
 				45B653D9B6DFF124828DB946 /* WindowFrameKeeper.swift in Sources */,
 			);
@@ -550,6 +571,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4391DEB1CB12249FB5BDC6DE /* AppContainerBootstrap.swift in Sources */,
+				8DFFB7D5A67C623F44DAC476 /* BackupService.swift in Sources */,
 				5A95512EAF531DE979634870 /* LinkItem.swift in Sources */,
 				F8FAAF5BC6EF76AC72E3EF53 /* LinkItemFactory.swift in Sources */,
 				C37D241874185B30F72F6D9C /* LinkMetadataEnricher.swift in Sources */,
@@ -560,6 +582,7 @@
 				CDA22110C565F4128C2A91C3 /* SharedLinkExtraction.swift in Sources */,
 				5873BBCB52C91202B65FF841 /* SharedStore.swift in Sources */,
 				15722182ABAEBE6EE38BA7FA /* SourceRank.swift in Sources */,
+				DBBE5350592ACCF3BE82AB8A /* SyncMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,6 +593,8 @@
 				0C87A3C3A14268479E370C70 /* AppContainerBootstrap.swift in Sources */,
 				DEEE614B7191655B6D4E5BDA /* AppDelegate.swift in Sources */,
 				E360489DDA0D19A34174505E /* AppTheme.swift in Sources */,
+				37ED3155472DAD8E3D31283D /* BackupSection.swift in Sources */,
+				B33610755DDACE0E36631129 /* BackupService.swift in Sources */,
 				C4BF5373A6E35F2EA3D7E754 /* DisplaySettingsKey.swift in Sources */,
 				A2C6D30714ECC31B7E48444F /* EmptyStateView.swift in Sources */,
 				381D8FED81693360B61FC95A /* FeedGrouping.swift in Sources */,
@@ -592,6 +617,7 @@
 				2541D23A180CFFD0A9D8E473 /* SharedStore.swift in Sources */,
 				22F6B77A22421AA27C669847 /* SidebarSelection.swift in Sources */,
 				6C5BEFAAC00D570822DAD19C /* SourceRank.swift in Sources */,
+				B7A59D8FBADF84CD1C45758B /* SyncMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

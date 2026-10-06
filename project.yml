@@ -124,6 +124,7 @@ targets:
       - path: Plutar/Views/RememberScrollOffset.swift
       - path: Plutar/Views/EmptyStateView.swift
       - path: Plutar/Views/SettingsSections.swift
+      - path: Plutar/Views/BackupSection.swift
       - path: Plutar/Views/macOS
       # Shared with the iOS target — see the AppIcon.appiconset's Contents.json,
       # which now carries both "ios" and "macos" platform entries for the

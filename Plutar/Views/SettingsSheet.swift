@@ -112,6 +112,8 @@ struct SettingsSheet: View {
 
                     SettingsSectionView(title: "Avancé") {
                         VStack(alignment: .leading, spacing: 24) {
+                            BackupSection(captionFont: .footnote)
+
                             VStack(alignment: .leading, spacing: 8) {
                                 Button(role: .destructive) {
                                     showClearFeedConfirm = true

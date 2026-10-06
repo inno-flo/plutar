@@ -9,7 +9,7 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
 ///   UIKit-only and isn't part of this target).
 /// - "Avancé": `SettingsSheet`'s Avancé section minus the shake toggle —
-///   "Réinitialiser le classement", "Vider le fil À lire…", "Vider le fil Lus…", and "Actualiser le fil" (moved
+///   the backup controls (`BackupSection`), "Réinitialiser le classement", "Vider le fil À lire…", "Vider le fil Lus…", and "Actualiser le fil" (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -114,6 +114,8 @@ struct MacSettingsView: View {
     private var advancedTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                BackupSection(captionFont: .system(size: 13))
+
                 VStack(alignment: .leading, spacing: 8) {
                     Button(role: .destructive) {
                         showClearFeedConfirm = true
