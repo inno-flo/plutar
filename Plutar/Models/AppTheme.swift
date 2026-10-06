@@ -326,15 +326,14 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 /// Typeface choice from the settings drawer, all available on stock iOS.
 /// SF Pro (`.rounded`) is the default.
 enum AppFont: String, CaseIterable, Identifiable {
-    case rounded, sfCompact, helvetica, helveticaCourant
+    case rounded, sfCompact
 
     var id: String { rawValue }
 
-    /// Order of the settings' 2-column "Police" grid (iOS `SettingsSheet`
-    /// and macOS `MacSettingsView`) — left column top-to-bottom: Helvetica
-    /// Neue Courant, Helvetica Neue Bold. Right column: SF Compact, SF Pro.
-    /// Not `allCases`'s declaration order.
-    static let settingsOrder: [AppFont] = [.helveticaCourant, .sfCompact, .helvetica, .rounded]
+    /// Order of the settings' "Police" row (iOS `SettingsSheet` and macOS
+    /// `MacSettingsView`): SF Compact, then SF Pro. Not `allCases`'s
+    /// declaration order.
+    static let settingsOrder: [AppFont] = [.sfCompact, .rounded]
 
     /// The font each option's own pill in that grid is set in — SF Pro bold,
     /// every other option at its regular weight.
@@ -346,8 +345,6 @@ enum AppFont: String, CaseIterable, Identifiable {
         switch self {
         case .rounded: return "SF Pro"
         case .sfCompact: return "SF Compact"
-        case .helvetica: return "Helvetica Neue Bold"
-        case .helveticaCourant: return "Helvetica Neue"
         }
     }
 
@@ -356,10 +353,6 @@ enum AppFont: String, CaseIterable, Identifiable {
         case .rounded: return .system(size: size, weight: weight, design: .rounded)
         // Fixed to its plain (Regular) style, ignoring `weight`.
         case .sfCompact: return .custom("SFCompactDisplay-Regular", size: size)
-        // Helvetica Neue, fixed to its Bold style, ignoring `weight`.
-        case .helvetica: return .custom("HelveticaNeue-Bold", size: size)
-        // Same family, its plain (Regular/"Courant") style instead.
-        case .helveticaCourant: return .custom("HelveticaNeue", size: size)
         }
     }
 }

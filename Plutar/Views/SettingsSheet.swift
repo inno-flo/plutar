@@ -55,11 +55,7 @@ struct SettingsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     SettingsSectionView(title: "Police") {
-                        // A 2-column grid, not a single `HStack` row — four
-                        // options (since "Helvetica Neue Courant" joined
-                        // "Helvetica Neue Bold") no longer fit one row
-                        // without overflowing on iPhone width either.
-                        LazyVGrid(columns: settingsGridColumns, spacing: 8) {
+                        HStack(spacing: 8) {
                             // Not `AppFont.allCases`'s declaration order —
                             // see `AppFont.settingsOrder`.
                             ForEach(AppFont.settingsOrder) { f in
