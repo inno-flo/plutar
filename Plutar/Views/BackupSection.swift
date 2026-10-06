@@ -102,7 +102,7 @@ struct BackupSection: View {
                 // Intertitle: what follows is about the automatic backup.
                 Text("Sauvegarde automatique")
                     .font(captionFont.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, usesCells ? 20 : 0)
                     // Mac: 5pt more room before the button.
                     .padding(.bottom, usesCells ? 0 : 5)

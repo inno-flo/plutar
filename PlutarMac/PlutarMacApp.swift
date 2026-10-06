@@ -15,7 +15,6 @@ struct PlutarMacApp: App {
         WindowGroup {
             MacRootView()
                 .frame(minWidth: 480, minHeight: 1000)
-                .remembersWindowFrame()
                 // Same as `PlutarApp`'s: a remote CloudKit change (e.g. a
                 // link enriched on iOS) merges into the store on its own, so
                 // without this the Mac app never noticed there was now an

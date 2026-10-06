@@ -19,7 +19,7 @@ struct SettingsSectionView<Content: View>: View {
         VStack(alignment: .leading, spacing: 9) {
             Text(title)
                 .fontWeight(titleWeight)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
             content()
         }
     }

@@ -192,7 +192,7 @@ private struct AdvancedSettingsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 BackupSection(captionFont: .footnote, usesCells: true)
 
-                SettingsSectionView(title: "Avancé") {
+                SettingsSectionView(title: "Suppression") {
                     VStack(alignment: .leading, spacing: 24) {
 
                     VStack(alignment: .leading, spacing: 8) {

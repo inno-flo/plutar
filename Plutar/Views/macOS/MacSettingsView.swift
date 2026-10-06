@@ -9,8 +9,10 @@ import SwiftData
 ///   toggle entirely (macOS has no shake gesture — `ShakeGesture` is
 ///   UIKit-only and isn't part of this target).
 /// - "Sauvegarde": the backup controls (`BackupSection`).
-/// - "Avancé": the page behind iOS's "Avancé" row (`AdvancedSettingsView`) —
-///   "Vider le fil À lire…", "Vider le fil Lus…", "Réinitialiser le classement…", and "Actualiser le fil" (moved
+/// - "Suppression": the page behind iOS's "Avancé" row (`AdvancedSettingsView`) —
+///   "Vider le fil À lire…", "Vider le fil Lus…" and "Réinitialiser le classement…".
+///
+/// "Actualiser le fil" lives in "Général", under the layout choice (moved
 ///   here from `MacFeedList`'s toolbar — a manual retry for enrichment, not
 ///   really "sync now" any more now that CloudKit push keeps the app caught
 ///   up on its own; see `PlutarMacApp`/`AppDelegate`).
@@ -47,17 +49,17 @@ struct MacSettingsView: View {
 
     var body: some View {
         TabView {
-            Tab("Général", systemImage: "gear") {
+            Tab("Général", systemImage: "gearshape") {
                 generalTab
             }
             Tab("Sauvegarde", systemImage: "cloud") {
                 backupTab
             }
-            Tab("Avancé", systemImage: "document.on.trash") {
+            Tab("Suppression", systemImage: "document.on.trash") {
                 advancedTab
             }
         }
-        .frame(width: 420, height: 480)
+        .frame(width: 420, height: 530)
         .saveFailureAlert(isPresented: $saveFailed)
     }
 
@@ -105,6 +107,32 @@ struct MacSettingsView: View {
                             SettingsPillButton(l.label, isActive: layout == l, chipColor: theme.chip) { layoutRaw = l.rawValue }
                         }
                     }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        Task { await refresh() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("Actualiser le fil")
+                            if isRefreshing {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(isRefreshing)
+
+                    // No supported API forces CloudKit to pull sooner —
+                    // sync itself stays automatic/background. This re-runs
+                    // the same enrichment pass PlutarMacApp already does on
+                    // launch/foreground, so a link enriched or thumbnailed
+                    // on iOS doesn't have to wait for this Mac to relaunch
+                    // or background-and-foreground before catching up.
+                    Text("Relance la récupération des titres et vignettes en attente.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(20)
@@ -188,31 +216,6 @@ struct MacSettingsView: View {
                     }
 
                     Text("Remise à zéro du classement des 15 sources les plus partagées.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    Button {
-                        Task { await refresh() }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Text("Actualiser le fil")
-                            if isRefreshing {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                    }
-                    .buttonStyle(.glass)
-                    .disabled(isRefreshing)
-
-                    // No supported API forces CloudKit to pull sooner —
-                    // sync itself stays automatic/background. This re-runs
-                    // the same enrichment pass PlutarMacApp already does on
-                    // launch/foreground, so a link enriched or thumbnailed
-                    // on iOS doesn't have to wait for this Mac to relaunch
-                    // or background-and-foreground before catching up.
-                    Text("Relance la récupération des titres et vignettes en attente.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
