@@ -7,9 +7,6 @@ import AppKit
 /// switching to another sidebar item and back finds each view as it was left
 /// instead of rebuilding it from scratch.
 struct MacFeedViewState {
-    /// Hosts expanded in a Sources screen (a single-source detail starts
-    /// with its own host in here).
-    var expandedSources: Set<String> = []
     /// Lus: collapsed day/source groups — see `MacFeedList`.
     var collapsedReadGroups: Set<String> = []
     /// Lus, day-grouped: collapsed calendar months ("yyyy-MM" keys).
@@ -41,11 +38,7 @@ struct MacFeedList: View {
     @Binding var layout: LinkLayout
     let effectiveBackground: Color
     /// True when this instance shows one already-selected source's links
-    /// (from the sidebar), as opposed to the merged, expand-per-source
-    /// "Sources" screen `mode == .source` used to mean on its own. Suppresses
-    /// the per-group expand/collapse chevron and the toolbar's "expand all"
-    /// button, since there's always exactly one group here and it should
-    /// just start open.
+    /// (from the sidebar): there's exactly one group, with no header.
     var isSingleSourceDetail: Bool = false
 
     @Environment(\.modelContext) private var modelContext
@@ -62,10 +55,6 @@ struct MacFeedList: View {
     /// own entry is keyed by `scrollKey`.
     let scrollStore: ScrollOffsetStore
     let scrollKey: String
-    private var expandedSources: Set<String> {
-        get { state.expandedSources }
-        nonmutating set { state.expandedSources = newValue }
-    }
     /// Lus only: when true, `groups` below buckets by source (ranked by
     /// link count, like Sources) instead of by day. Toggled by the globe
     /// toolbar button, which swaps to "calendar" while this is active.
@@ -144,25 +133,10 @@ struct MacFeedList: View {
         return FeedGrouping.monthSeparatorGroupIDs(groups)
     }
 
-    /// Whether every group in `groups` is expanded — a real set check, not
-    /// `expandedSources.count == groups.count` (which used to drive both the
-    /// toolbar icon and `toggleAllSources()`): that count comparison goes
-    /// true by coincidence whenever a stale id lingers in `expandedSources`
-    /// for a source that has since emptied out of `groups`, e.g. after
-    /// marking every link under one expanded source as read individually
-    /// rather than via "mark source as read". Takes `groups` explicitly
-    /// (rather than reading the computed property again) so `body` can pass
-    /// the one copy it already computed instead of triggering another
-    /// `FeedGrouping.makeGroups` pass.
-    private func allSourcesExpanded(in groups: [FeedGroup]) -> Bool {
-        !groups.isEmpty && groups.allSatisfy { expandedSources.contains($0.id) }
-    }
-
-    /// Same shape as `allSourcesExpanded` above, for Lus's own collapse-all/
-    /// expand-all toolbar button — separate state (`collapsedReadGroups`)
-    /// since it applies to day *or* source groups depending on
-    /// `readGroupedBySource`, and membership means the opposite thing
-    /// (collapsed, not expanded).
+    /// Whether every group in `groups` is collapsed — drives Lus's collapse-
+    /// all/expand-all toolbar button. Applies to day *or* source groups
+    /// depending on `readGroupedBySource`. Takes `groups` explicitly so
+    /// `body` can pass the one copy it already computed.
     private func allReadGroupsCollapsed(in groups: [FeedGroup]) -> Bool {
         !groups.isEmpty && groups.allSatisfy { collapsedReadGroups.contains($0.id) }
     }
@@ -172,11 +146,8 @@ struct MacFeedList: View {
         // non-memoized computed property (a full `FeedGrouping.makeGroups`
         // pass), and this view used to call it repeatedly (`ForEach`, the
         // empty-state check, toolbar conditions) which redid that work
-        // several times per body evaluation — the same waste
-        // `RootView.toggleSource` already guards against on iOS with its own
-        // `currentGroups` local.
+        // several times per body evaluation.
         let currentGroups = groups
-        let sourcesAllExpanded = allSourcesExpanded(in: currentGroups)
         let readAllCollapsed = allReadGroupsCollapsed(in: currentGroups)
         // Same for the month-separator ids — this used to be a computed
         // property read once per group inside the `ForEach`, each read
@@ -219,7 +190,6 @@ struct MacFeedList: View {
                         }
                     }
                     if !isInCollapsedMonth(group)
-                        && (mode != .source || isSingleSourceDetail || expandedSources.contains(group.id))
                         && !(mode == .read && collapsedReadGroups.contains(group.id)) {
                         ForEach(group.items) { item in
                             LinkRowView(
@@ -336,13 +306,6 @@ struct MacFeedList: View {
                 layoutSwitcher
             }
             ToolbarItemGroup {
-                if mode == .source && !isSingleSourceDetail && !currentGroups.isEmpty {
-                    Button {
-                        toggleAllSources()
-                    } label: {
-                        Label("Développer/réduire tout", systemImage: sourcesAllExpanded ? "chevron.up" : "chevron.down")
-                    }
-                }
                 if mode != .read && !currentGroups.isEmpty {
                     Button {
                         showMarkAllReadConfirm = true
@@ -456,7 +419,6 @@ struct MacFeedList: View {
     /// ("international orange", `RootView.counterForegroundOverride`); the
     /// muted ink every other theme uses.
     private var dayLabelColor: Color {
-        guard mode != .source else { return theme.ink(0.6) }
         switch theme {
         case .tokyo, .scand: return theme.dotColor
         case .astronaute: return theme.accent
@@ -503,58 +465,31 @@ struct MacFeedList: View {
     private func groupHeader(_ group: FeedGroup) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if mode == .source && !isSingleSourceDetail {
-                    Button {
-                        toggleSource(group.id)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Text(group.label)
-                            Text("\(group.items.count)")
-                                .foregroundStyle(theme.ink(0.5))
-                            Image(systemName: expandedSources.contains(group.id) ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 11, weight: .bold))
-                                .opacity(0.6)
-                        }
+                HStack(spacing: 6) {
+                    Text(group.label)
+                        .foregroundStyle(dayLabelColor)
+                    // Lus only — a link-count pastille, only while the group
+                    // is collapsed, same as iOS.
+                    if mode == .read && collapsedReadGroups.contains(group.id) {
+                        Text("\(group.items.count)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(theme.ink(0.6))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.ink(0.12))
+                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.plain)
-                } else {
-                    HStack(spacing: 6) {
-                        Text(group.label)
-                            .foregroundStyle(dayLabelColor)
-                        // Lus only — a link-count pastille, same idea as
-                        // Sources' own count badge above. Only while the
-                        // group is collapsed, same as iOS.
-                        if mode == .read && collapsedReadGroups.contains(group.id) {
-                            Text("\(group.items.count)")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(theme.ink(0.6))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(theme.ink(0.12))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    // Lus only — Date has no collapse feature. Toggles
-                    // just this one group, independent of the toolbar's
-                    // collapse-all/expand-all button.
-                    .onTapGesture(count: 1) {
-                        guard mode == .read else { return }
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            collapsedReadGroups.toggle(group.id)
-                        }
+                }
+                // Lus only — Date has no collapse feature. Toggles just this
+                // one group, independent of the toolbar's collapse-all/
+                // expand-all button.
+                .onTapGesture(count: 1) {
+                    guard mode == .read else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        collapsedReadGroups.toggle(group.id)
                     }
                 }
                 Spacer()
-                if expandedSourcesButtonVisible(group) {
-                    Button {
-                        // In Date, pinned links stay in À lire — this button
-                        // only touches the rest of the day's links.
-                        markAsRead(mode == .chrono ? group.items.filter { !$0.isPinned } : group.items)
-                    } label: {
-                        Image(systemName: "checkmark.circle")
-                    }
-                    .buttonStyle(.plain)
-                }
             }
             .font(appFont.font(size: 17, weight: .semibold))
             .foregroundStyle(theme.ink(0.6))
@@ -573,12 +508,6 @@ struct MacFeedList: View {
         // so without this padding its text started right at the row edge,
         // out of line with the title below it.
         .padding(.horizontal, 18)
-    }
-
-    private func expandedSourcesButtonVisible(_ group: FeedGroup) -> Bool {
-        // À lire (.chrono) has no per-day button — only the toolbar's
-        // mark-all-read one.
-        isSingleSourceDetail || (mode == .source && expandedSources.contains(group.id))
     }
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.
@@ -657,25 +586,5 @@ struct MacFeedList: View {
     private func delete(_ items: [LinkItem]) {
         modelContext.deleteLinks(items)
         persist()
-    }
-
-    private func toggleSource(_ id: String) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            expandedSources.toggle(id)
-        }
-    }
-
-    private func toggleAllSources() {
-        // Read once, like `RootView.toggleSource`'s own `currentGroups` —
-        // this is an event handler (one tap), not a render, so there's no
-        // waste concern here; kept consistent with `body`'s pattern anyway.
-        let currentGroups = groups
-        withAnimation(.easeInOut(duration: 0.25)) {
-            if allSourcesExpanded(in: currentGroups) {
-                expandedSources = []
-            } else {
-                expandedSources = Set(currentGroups.map(\.id))
-            }
-        }
     }
 }

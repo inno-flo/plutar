@@ -38,14 +38,13 @@ struct MacRootView: View {
         )
     }
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    /// Each feed view's own UI state (collapsed groups/months, expanded
-    /// sources, selected link), kept here — keyed by sidebar selection — so
+    /// Each feed view's own UI state (collapsed groups/months, selected link), kept here — keyed by sidebar selection — so
     /// it survives switching to another sidebar item and back.
     @State private var feedStates: [String: MacFeedViewState] = [:]
     @State private var scrollStore = ScrollOffsetStore()
-    private func feedState(_ key: String, initialExpandedSources: Set<String> = []) -> Binding<MacFeedViewState> {
+    private func feedState(_ key: String) -> Binding<MacFeedViewState> {
         Binding(
-            get: { feedStates[key] ?? MacFeedViewState(expandedSources: initialExpandedSources) },
+            get: { feedStates[key] ?? MacFeedViewState() },
             set: { feedStates[key] = $0 }
         )
     }
@@ -151,7 +150,7 @@ struct MacRootView: View {
                 allItems: sourceItems,
                 theme: theme, appFont: appFont, layout: layoutBinding,
                 effectiveBackground: effectiveBackground,
-                state: feedState("source:\(host)", initialExpandedSources: [host]),
+                state: feedState("source:\(host)"),
                 scrollStore: scrollStore, scrollKey: "source:\(host)",
                 isSingleSourceDetail: true
             )

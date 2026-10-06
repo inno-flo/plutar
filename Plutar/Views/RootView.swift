@@ -75,7 +75,7 @@ struct RootView: View {
     @AppStorage(DisplaySettingsKey.shakeToChangeTheme) private var shakeToChangeTheme = true
     /// 0→180°, animated in one continuous motion while a shake-triggered
     /// theme change plays out — see `triggerShakeThemeFlip`. Every capsule
-    /// affected (link cards, the counter badge, day/source pills) reads
+    /// affected (link cards, the counter badge, group chips) reads
     /// this same angle, so they all turn in lockstep.
     @State private var themeFlipAngle: Double = 0
     /// The theme as it was just before the shake, kept only for the
@@ -106,9 +106,6 @@ struct RootView: View {
     /// Raised by `persist()` when a write to the store fails.
     @State private var saveFailed = false
 
-    /// Hosts currently expanded in the Sources view — empty by default, so
-    /// every source starts collapsed.
-    @State private var expandedSources: Set<String> = []
     /// Lus only: same globe/calendar grouping toggle as `MacFeedList` — see
     /// there and `DisplaySettingsKey.readGroupedBySource`.
     @AppStorage(DisplaySettingsKey.readGroupedBySource) private var readGroupedBySource = false
@@ -136,11 +133,6 @@ struct RootView: View {
     @State private var chronoGroupedBySource = false
     @State private var collapsedChronoGroups: Set<String> = []
 
-    /// Whether the current view shows Lus' grouping/collapse controls —
-    /// Lus and À lire (iPhone and iPad), not Sources.
-    private var hasGroupingControls: Bool {
-        mode == .read || mode == .chrono
-    }
     /// The current view's source/date grouping flag (Lus or À lire).
     private var groupedBySource: Binding<Bool> {
         mode == .read ? $readGroupedBySource : $chronoGroupedBySource
@@ -150,17 +142,8 @@ struct RootView: View {
         mode == .read ? $collapsedReadGroups : $collapsedChronoGroups
     }
     private func isCollapsed(_ group: FeedGroup) -> Bool {
-        hasGroupingControls && collapsedGroups.wrappedValue.contains(group.id)
+        collapsedGroups.wrappedValue.contains(group.id)
     }
-
-    /// Which icon the expand-all/collapse-all button shows. Deliberately a
-    /// separate stored flag rather than a value derived from `groups` +
-    /// `expandedSources`: it should flip only when the user taps that
-    /// button, or when individually expanding/collapsing sources happens to
-    /// land on "every source expanded" or "every source collapsed" — not on
-    /// every unrelated change to `groups` (e.g. a source emptying out after
-    /// its links are marked read).
-    @State private var allSourcesExpandedIcon = false
 
     /// The theme family picked in the "Thème" grid, before the "Apparence"
     /// setting resolves it to an actual light-or-soir variant to display.
@@ -206,8 +189,7 @@ struct RootView: View {
 
     /// `content` drawn for the pre-shake theme, with the post-shake one
     /// fading in on top while `triggerShakeThemeFlip` plays out — shared by
-    /// `animatedBackground` and the day/source pills (`fadingDayPill`/
-    /// `fadingSourceChipLabel`).
+    /// `animatedBackground` and the group chips (`fadingSourceChipLabel`).
     private func themeCrossfade<Content: View>(@ViewBuilder _ content: (AppTheme) -> Content) -> some View {
         ZStack {
             content(themeFlipOldTheme ?? theme)
@@ -219,15 +201,15 @@ struct RootView: View {
         // Explicit rather than relying on the ambient `withAnimation` in
         // `triggerShakeThemeFlip` to propagate down on its own — that left
         // this fade finishing at a different moment than the capsules'
-        // rotation and the day/source pills' own fade, even though all
+        // rotation and the group chips' own fade, even though all
         // three read the same state changed in the same transaction.
         .animation(.easeInOut(duration: Self.themeFlipDuration), value: themeFlipRevealsNewBackground)
     }
 
     /// Shared by every part of a shake's theme change — the capsule
     /// rotation (`FlipCard`, driven by `themeFlipAngle`), the backdrop fade
-    /// (`animatedBackground`) and the day/source pills' own fade
-    /// (`fadingDayPill`/`fadingSourceChipLabel`) — so all three start and
+    /// (`animatedBackground`) and the group chips' own fade
+    /// (`fadingSourceChipLabel`) — so all three start and
     /// finish at the exact same instant instead of merely sharing a
     /// `withAnimation` block that each could still resolve on its own timing.
     private static let themeFlipDuration: Double = 0.6
@@ -292,7 +274,7 @@ struct RootView: View {
     }
 
     private var groups: [FeedGroup] {
-        if mode == .chrono && hasGroupingControls && chronoGroupedBySource {
+        if mode == .chrono && chronoGroupedBySource {
             return FeedGrouping.makeSourceGroups(visibleItems)
         }
         return FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
@@ -306,26 +288,6 @@ struct RootView: View {
         return FeedGrouping.monthSeparatorGroupIDs(groups)
     }
 
-    private func toggleSource(_ id: String) {
-        // Read once, up front: `groups` is a computed property that eagerly
-        // regroups and sorts every visible link, and reading it twice inline
-        // below did all of that twice per tap. It depends on `mode` and the
-        // items, never on `expandedSources`, so its value is the same either
-        // side of the mutation — and computing it outside the transaction
-        // keeps that work out of the animation.
-        let currentGroups = groups
-        withAnimation(.easeInOut(duration: 0.25)) {
-            expandedSources.toggle(id)
-            // Only the two "every source" extremes move the icon; anything
-            // in between leaves it as it was.
-            if !currentGroups.isEmpty && currentGroups.allSatisfy({ expandedSources.contains($0.id) }) {
-                allSourcesExpandedIcon = true
-            } else if expandedSources.isEmpty {
-                allSourcesExpandedIcon = false
-            }
-        }
-    }
-
     /// Lus and À lire: collapses/expands just this one group —
     /// same membership convention as `MacFeedList.collapsedReadGroups`
     /// (present = collapsed).
@@ -335,17 +297,9 @@ struct RootView: View {
         }
     }
 
-    private func toggleAllSources() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            allSourcesExpandedIcon.toggle()
-            expandedSources = allSourcesExpandedIcon ? Set(groups.map(\.id)) : []
-        }
-    }
-
     var body: some View {
         TabView(selection: $selectedTab) {
-            // No Sources tab for now (its ranking moved into Lus); the Sources
-            // view code stays in place, just unreachable from the tab bar.
+            // No Sources tab: its ranking moved into Lus.
             ForEach(FeedMode.allCases.filter { $0 != .source }, id: \.self) { m in
                 Tab(m.label, systemImage: m.icon, value: RootTab.feed(m)) {
                     feedScreen
@@ -538,15 +492,13 @@ struct RootView: View {
                             if !isInCollapsedMonth(group) {
                                 groupHeader(
                                     group,
-                                    extraTop: mode != .source && group.id != groups.first?.id
+                                    extraTop: group.id != groups.first?.id
                                         && !monthSeparatorIDs.contains(group.id)
                                 )
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
                             }
-                            if !isInCollapsedMonth(group)
-                                && (mode != .source || expandedSources.contains(group.id))
-                                && !isCollapsed(group) {
+                            if !isInCollapsedMonth(group) && !isCollapsed(group) {
                                 ForEach(group.items) { item in
                                     linkRow(item)
                                 }
@@ -589,14 +541,6 @@ struct RootView: View {
                             .transition(.opacity.combined(with: .offset(y: 12)))
                     }
                 }
-                // No `.animation(_:value: expandedSources)` here: the only
-                // two places that mutate `expandedSources` (`toggleSource`
-                // and `toggleAllSources`) already wrap it in `withAnimation`,
-                // so this modifier animated the same mutation a second time
-                // — two transactions racing on one batch update. Driving it
-                // from the mutation side alone also covers the floating
-                // expand/collapse button's own icon swap, which lives
-                // outside this List and so was never covered here.
                 .overlay(alignment: .center) {
                     if groups.isEmpty && !rankingShown {
                         // Sources mirrors Date's empty state exactly (icon,
@@ -703,23 +647,10 @@ struct RootView: View {
                         .allowsHitTesting(!lusShowsRanking)
                         .animation(.easeInOut(duration: 0.25), value: lusShowsRanking)
                 }
-            case .source:
-                // Toggle-all above, mark-all-read below — same spot the
-                // Date mark-all-read button sits in.
-                floatingButton(
-                    icon: allSourcesExpandedIcon ? "inset.filled.topthird.middlethird.bottomthird.rectangle" : "text.square.filled",
-                    flipped: !allSourcesExpandedIcon
-                ) {
-                    toggleAllSources()
-                }
+            default:
                 floatingButton(icon: "checkmark.circle") { showMarkAllReadConfirm = true }
-            case .chrono:
-                floatingButton(icon: "checkmark.circle") { showMarkAllReadConfirm = true }
-                // Test: Lus' grouping/collapse control, below
-                // mark-all-read.
-                if hasGroupingControls {
-                    readGroupingControl(groups)
-                }
+                // Lus' grouping/collapse control, below mark-all-read.
+                readGroupingControl(groups)
             }
         }
         .padding(.trailing, 18)
@@ -927,57 +858,21 @@ struct RootView: View {
             && collapsedMonths.contains(FeedGrouping.monthKey(fromDayGroupID: group.id))
     }
 
-    /// Chip shown as each Section's header. In Sources it also acts as the
-    /// collapse/expand toggle for that source and carries a link-count badge;
-    /// in Date it's a plain, non-interactive day label.
+    /// Chip shown as each Section's header (À lire and Lus): the day or source
+    /// label with its link count (while collapsed) and a chevron — tapping it
+    /// collapses/expands just this one group.
     /// `extraTop`: 10pt more room above, for every header but the first of
     /// the list (and the ones directly under a month separator).
     private func groupHeader(_ group: FeedGroup, extraTop: Bool = false) -> some View {
-        // Centered alignment keeps the mark-all-read icon on the same
-        // vertical line as the count badge and chevron inside the chip.
         HStack(alignment: .center, spacing: 10) {
-            // Date mirrors Sources: the day chip stays a plain non-interactive
-            // label, with its own mark-as-read button trailing it — same
-            // 44pt tap target and icon treatment as Sources' per-source button.
-            // Lus instead reuses Sources' own tappable chip (count + chevron)
-            // once collapse/expand exists there too — tapping it toggles just
-            // this one group.
-            switch mode {
-            case .source:
-                Button {
-                    toggleSource(group.id)
-                } label: {
-                    fadingSourceChipLabel(group, isExpanded: expandedSources.contains(group.id))
-                }
-                .buttonStyle(.plain)
-            case .read, .chrono where hasGroupingControls:
-                Button {
-                    toggleGroupCollapse(group.id)
-                } label: {
-                    fadingSourceChipLabel(group, isExpanded: !isCollapsed(group))
-                }
-                .buttonStyle(.plain)
-            case .chrono:
-                fadingDayPill(group)
+            Button {
+                toggleGroupCollapse(group.id)
+            } label: {
+                fadingSourceChipLabel(group, isExpanded: !isCollapsed(group))
             }
+            .buttonStyle(.plain)
 
             Spacer(minLength: 0)
-
-            switch mode {
-            // Only while expanded — marks every link from this source as
-            // read, which empties it out of the (unread-only) Sources
-            // view, so the source disappears from the list.
-            case .source where expandedSources.contains(group.id):
-                headerIconButton("checkmark.circle") { markAsRead(group.items) }
-            // Pinned links stay in À lire — this button only
-            // touches the rest of the day's links.
-            // Test: no per-day button while À lire has Lus' grouping
-            // controls — only the floating mark-all-read one.
-            case .chrono where !hasGroupingControls && !isCollapsed(group):
-                headerIconButton("checkmark.circle.fill") { markAsRead(group.items.filter { !$0.isPinned }) }
-            default:
-                EmptyView()
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(EdgeInsets())
@@ -990,25 +885,9 @@ struct RootView: View {
         .padding(.bottom, 4)
     }
 
-    /// A group header's trailing action — same 44pt box as the floating
-    /// buttons below, so the icon glyph lands on the same vertical line as
-    /// "Tout marquer comme lu" and "Présentation liste/condensé".
-    private func headerIconButton(_ icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(theme.ink(0.55))
-                .frame(width: 44, height: 44)
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Takes `theme` and `isExpanded` explicitly (rather than reading
-    /// `theme`/`expandedSources` directly) so the shake transition can
-    /// cross-fade this chip's pre- and post-shake colors — see
-    /// `fadingSourceChipLabel` — and so Lus can reuse the same chip look for
-    /// its own collapsed groups, keyed on `collapsedReadGroups` instead of
-    /// `expandedSources`.
+    /// Takes `theme` and `isExpanded` explicitly (rather than reading them
+    /// directly) so the shake transition can cross-fade this chip's pre- and
+    /// post-shake colors — see `fadingSourceChipLabel`.
     private func sourceChipLabel(_ group: FeedGroup, theme: AppTheme, isExpanded: Bool) -> some View {
         HStack(spacing: 7) {
             Text(group.label)
@@ -1047,24 +926,6 @@ struct RootView: View {
         // Explicit, and pinned to the exact same duration as
         // `animatedBackground`'s — see `themeCrossfade`.
         themeCrossfade { sourceChipLabel(group, theme: $0, isExpanded: isExpanded) }
-    }
-
-    /// The day pill ("Aujourd'hui", "Hier", a date) shown in Date/Lus —
-    /// takes `theme` explicitly for the same reason as `sourceChipLabel`.
-    private func dayPill(_ group: FeedGroup, theme: AppTheme) -> some View {
-        Text(group.label)
-            .font(appFont.font(size: 16.5, weight: .bold))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(theme.chip)
-            .foregroundStyle(theme.chipText)
-            .clipShape(Capsule())
-    }
-
-    /// `dayPill` cross-fading between its pre- and post-shake colors — see
-    /// `fadingSourceChipLabel`.
-    private func fadingDayPill(_ group: FeedGroup) -> some View {
-        themeCrossfade { dayPill(group, theme: $0) }
     }
 
     /// Lus' alternate content: the 15 most shared sources, from the
@@ -1335,7 +1196,7 @@ struct RootView: View {
     /// link cards and the counter badge from the old to the new in one
     /// continuous horizontal-axis rotation — the same technique
     /// `LinkRowView`'s title/image reveal uses — while `animatedBackground`
-    /// and the day/source pills (`fadingDayPill`/`fadingSourceChipLabel`)
+    /// and the group chips (`fadingSourceChipLabel`)
     /// cross-fade their colors in step instead.
     private func triggerShakeThemeFlip() {
         themeFlipOldTheme = theme
