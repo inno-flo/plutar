@@ -130,7 +130,7 @@ struct SettingsSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Divider()
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("Florian Innocente")
+                            Text("Florian Innocente - 2026")
                             // A tap opens the site.
                             Link("florianinnocente.com", destination: URL(string: "https://florianinnocente.com")!)
                         }
@@ -155,6 +155,9 @@ struct SettingsSheet: View {
                     Button(action: onClose) {
                         Image(systemName: "checkmark")
                     }
+                    // Filled with the system blue, not the theme's accent.
+                    .buttonStyle(.glassProminent)
+                    .tint(Color(uiColor: .systemBlue))
                 }
             }
         }

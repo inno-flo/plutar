@@ -99,7 +99,6 @@ struct RootView: View {
     @State private var undoSnapshots: [DeletedSnapshot] = []
     @State private var undoTask: Task<Void, Never>?
 
-    @State private var showMarkAllReadConfirm = false
     /// Set instead of deleting immediately — same confirmation-gated
     /// pattern as macOS's `MacSourceRankingView.hostPendingDelete`.
     @State private var rankHostPendingDelete: String?
@@ -117,6 +116,9 @@ struct RootView: View {
     /// Lus, day-grouped: calendar months ("yyyy-MM") collapsed through their
     /// separator's chevron. Not persisted, like `collapsedReadGroups`.
     @State private var collapsedMonths: Set<String> = []
+    /// Lus: the links of a day/source group whose header menu asked to delete
+    /// them — set instead of deleting right away, until the alert confirms.
+    @State private var groupItemsPendingDelete: [LinkItem]?
     /// Each tab's last scroll offset, restored when switching back to it.
     @State private var scrollStore = ScrollOffsetStore()
     @State private var scrollPosition = ScrollPosition()
@@ -399,19 +401,25 @@ struct RootView: View {
                 chipColor: theme.chip
             )
         }
-        .alert(
-            "Marquer tous les liens comme lus",
-            isPresented: $showMarkAllReadConfirm
-        ) {
-            Button("Annuler", role: .cancel) {}
-            // Every link currently shown (Date view: all unread links), in
-            // one go.
-            Button("Marquer comme lus") { markAsRead(visibleItems) }
-        }
         // `.alert`, not `.confirmationDialog` — the latter can render as a
         // compact popover anchored near the triggering context menu instead
         // of centered, unlike every other confirmation in this file (all
         // `.alert`, all reliably centered regardless of what triggered them).
+        .alert(
+            (groupItemsPendingDelete?.count ?? 0) == 1 ? "Supprimer ce lien" : "Supprimer ces liens",
+            isPresented: Binding(
+                get: { groupItemsPendingDelete != nil },
+                set: { if !$0 { groupItemsPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let items = groupItemsPendingDelete {
+                    modelContext.deleteLinks(items)
+                    persist()
+                }
+            }
+        }
         .alert(
             "Supprimer \(rankHostPendingDelete.map { SourceRank.displayName(forHost: $0, in: allItems) } ?? "cette source") du classement",
             isPresented: Binding(
@@ -630,6 +638,14 @@ struct RootView: View {
         VStack(spacing: 14) {
             switch mode {
             case .read:
+                // The grouping/collapse container above, the bascule below:
+                // it stays put at the bottom while the container fades out.
+                if !groups.isEmpty {
+                    readGroupingControl(groups)
+                        .opacity(lusShowsRanking ? 0 : 1)
+                        .allowsHitTesting(!lusShowsRanking)
+                        .animation(.easeInOut(duration: 0.25), value: lusShowsRanking)
+                }
                 // Bascule between the links (chart icon offered) and the
                 // 15 most shared sources (newspaper icon offered).
                 floatingButton(icon: lusShowsRanking ? "newspaper" : "chart.line.uptrend.xyaxis") {
@@ -641,15 +657,8 @@ struct RootView: View {
                         lusShowsRanking.toggle()
                     }
                 }
-                if !groups.isEmpty {
-                    readGroupingControl(groups)
-                        .opacity(lusShowsRanking ? 0 : 1)
-                        .allowsHitTesting(!lusShowsRanking)
-                        .animation(.easeInOut(duration: 0.25), value: lusShowsRanking)
-                }
             default:
-                floatingButton(icon: "checkmark.circle") { showMarkAllReadConfirm = true }
-                // Lus' grouping/collapse control, below mark-all-read.
+                // À lire: just the grouping/collapse control.
                 readGroupingControl(groups)
             }
         }
@@ -871,6 +880,21 @@ struct RootView: View {
                 fadingSourceChipLabel(group, isExpanded: !isCollapsed(group))
             }
             .buttonStyle(.plain)
+            // Lus: long press on the day/source name offers to delete the
+            // group's links (confirmed by an alert).
+            .contextMenu {
+                if mode == .read {
+                    Button(role: .destructive) {
+                        groupItemsPendingDelete = group.items
+                    } label: {
+                        // One line: the label can't wrap to a second one in
+                        // the (narrow) menu on iPhone.
+                        Text(group.items.count == 1 ? "Supprimer ce lien…" : "Supprimer ces liens…")
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+            }
 
             Spacer(minLength: 0)
         }
@@ -980,11 +1004,13 @@ struct RootView: View {
                 .foregroundStyle(theme.isSoir ? theme.ink(0.5) : theme.title)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            // Centered in the same 44pt box `floatingCounterBadge` uses, so
-            // the counts share the top counter's vertical axis.
+            // Right-justified, ending on the vertical axis of the floating
+            // buttons: their 44pt boxes sit 18pt from the screen edge, so
+            // that axis is 18 + 22pt in.
             Text("\(count)")
                 .foregroundStyle(theme.ink(0.5))
-                .frame(minWidth: 44)
+                .frame(minWidth: 22, alignment: .trailing)
+                .padding(.trailing, 22)
         }
         .font(.system(size: 16.5, weight: .bold, design: .rounded))
         // 14 listRowInset + 18 = 32pt, the same offset as a source chip's

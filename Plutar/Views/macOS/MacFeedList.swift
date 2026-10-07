@@ -91,6 +91,9 @@ struct MacFeedList: View {
     @State private var scrollPosition = ScrollPosition()
     private static var didInitialListRebuild = false
     @State private var showMarkAllReadConfirm = false
+    /// Lus: the links of a day/source group whose header menu asked to delete
+    /// them — set instead of deleting right away, until the dialog confirms.
+    @State private var groupItemsPendingDelete: [LinkItem]?
     /// Set instead of deleting immediately — both the row context menu's
     /// "Supprimer" and a source/day group's trash button used to delete
     /// right away with no confirmation, unlike every other destructive
@@ -306,7 +309,9 @@ struct MacFeedList: View {
                 layoutSwitcher
             }
             ToolbarItemGroup {
-                if mode != .read && !currentGroups.isEmpty {
+                // Only in a single-source detail: À lire and Lus have no
+                // mark-all-read button.
+                if mode == .source && !currentGroups.isEmpty {
                     Button {
                         showMarkAllReadConfirm = true
                     } label: {
@@ -314,6 +319,18 @@ struct MacFeedList: View {
                     }
                     .help("Tout marquer comme lus")
                 }
+            }
+        }
+        .confirmationDialog(
+            (groupItemsPendingDelete?.count ?? 0) == 1 ? "Supprimer ce lien" : "Supprimer ces liens",
+            isPresented: Binding(
+                get: { groupItemsPendingDelete != nil },
+                set: { if !$0 { groupItemsPendingDelete = nil } }
+            )
+        ) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                if let items = groupItemsPendingDelete { delete(items) }
             }
         }
         .confirmationDialog(
@@ -508,6 +525,17 @@ struct MacFeedList: View {
         // so without this padding its text started right at the row edge,
         // out of line with the title below it.
         .padding(.horizontal, 18)
+        // Lus: ctrl-click on the day/source name offers to delete the
+        // group's links (confirmed by a dialog).
+        .contextMenu {
+            if mode == .read {
+                Button(role: .destructive) {
+                    groupItemsPendingDelete = group.items
+                } label: {
+                    Text(group.items.count == 1 ? "Supprimer ce lien…" : "Supprimer ces liens…")
+                }
+            }
+        }
     }
 
     // MARK: Actions — mirrors RootView's, without the undo/animation chrome.
