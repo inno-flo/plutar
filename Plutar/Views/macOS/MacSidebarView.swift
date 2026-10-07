@@ -10,10 +10,9 @@ import SwiftUI
 /// all-time `SourceRank` tally (see `MacSourceRankingView`), not one of the
 /// individual per-host rows below it.
 ///
-/// No settings button here — `Settings` (Cmd+,) is already reachable from
-/// the app menu on macOS, so a redundant sidebar button was removed. The
-/// one settings-like affordance kept is the row of 4 theme dots pinned to
-/// the bottom, a quick way to switch theme without opening Settings.
+/// The bottom bar is the row of 4 theme dots (a quick theme switch) followed
+/// by a sun/moon button flipping between the active family's light and nuit
+/// variants. Settings (Cmd+,) is reachable from the app menu.
 struct MacSidebarView: View {
     @Binding var selection: SidebarSelection?
     let allItems: [LinkItem]
@@ -33,18 +32,19 @@ struct MacSidebarView: View {
     /// row in the `DisclosureGroup`, not part of `sourceGroups`.
     @State private var sourcesSortedAlphabetically = true
 
-    /// Leading inset that lines the dots' left edge up with the "Sources"
-    /// disclosure chevron above them. An estimate of the sidebar's own
-    /// row-content inset — SwiftUI doesn't expose the chevron's x position.
-    private static let dotsLeadingInset: CGFloat = 10
+    /// Leading inset that lines the dots' left edge up with the window's
+    /// three traffic-light buttons (close/minimize/zoom) at the top of the
+    /// sidebar. An estimate — SwiftUI doesn't expose their position.
+    private static let dotsLeadingInset: CGFloat = 20
 
-    /// SF Symbol for a source's sidebar row — a video icon for YouTube hosts
-    /// and a waveform for Spotify and Apple Music hosts (matched by
-    /// substring, so `www.youtube.com`, `m.youtube.com`, `open.spotify.com`,
-    /// … all count); the generic newspaper everywhere else.
+    /// SF Symbol for a source's sidebar row — a video icon for YouTube and
+    /// Arte hosts and a waveform for Spotify and Apple Music hosts (matched
+    /// by substring, so `www.youtube.com`, `m.youtube.com`, `www.arte.tv`,
+    /// `open.spotify.com`, … all count); the generic newspaper everywhere
+    /// else.
     private static func sourceIcon(forHost host: String) -> String {
         let host = host.lowercased()
-        if host.contains("youtube.com") { return "play.rectangle" }
+        if host.contains("youtube.com") || host.contains("arte.tv") { return "play.rectangle" }
         if host.contains("spotify.com") || host.contains("music.apple.com") { return "waveform" }
         return "newspaper"
     }
@@ -132,11 +132,32 @@ struct MacSidebarView: View {
                 ForEach(quickThemes) { t in
                     themeDot(t)
                 }
+                appearanceToggle
             }
             .padding(.leading, Self.dotsLeadingInset)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Moon while a light theme is active, sun while a nuit one is. It picks
+    /// the same family's other variant through `onPickTheme`, so Apparence
+    /// follows the exact rule used by the dots and the Settings grid
+    /// (`AppTheme.appearanceAfterPicking`): it becomes Claire/Sombre to
+    /// match, except that "Système" is kept when the picked variant already
+    /// agrees with the system's current appearance.
+    private var appearanceToggle: some View {
+        Button {
+            onPickTheme(theme.isSoir ? theme.lightVariant : theme.soirVariant)
+        } label: {
+            Image(systemName: theme.isSoir ? "sun.max" : "moon")
+                // Same 14pt footprint as a theme dot (`themeDot`).
+                .font(.system(size: 14))
+                .frame(width: 14, height: 14)
+        }
+        .buttonStyle(.plain)
+        .help(theme.isSoir ? "Passer au thème clair" : "Passer au thème nuit")
+        .accessibilityLabel(theme.isSoir ? "Passer au thème clair" : "Passer au thème nuit")
     }
 
     /// The active theme family gets a ring around its dot (drawn outside the
