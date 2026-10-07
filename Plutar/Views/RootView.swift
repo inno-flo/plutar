@@ -214,7 +214,7 @@ struct RootView: View {
     /// (`fadingSourceChipLabel`) — so all three start and
     /// finish at the exact same instant instead of merely sharing a
     /// `withAnimation` block that each could still resolve on its own timing.
-    private static let themeFlipDuration: Double = 0.6
+    private static let themeFlipDuration: Double = 0.4
 
     private var visibleItems: [LinkItem] {
         FeedGrouping.visibleItems(allItems, mode: mode)
