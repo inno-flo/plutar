@@ -299,7 +299,8 @@ struct MacFeedList: View {
                         // double-clicking individual headers already did,
                         // not just this button's own last click. Same icon
                         // pair as iOS's own equivalent control.
-                        Image(systemName: readAllCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle")
+                        // `list.number.rtl`: numbers on the right, digits not mirrored.
+                        Image(systemName: readAllCollapsed ? "square.fill.text.grid.1x2" : "list.number.rtl")
                             .scaleEffect(x: readAllCollapsed ? -1 : 1, y: 1)
                     }
                     .help(readAllCollapsed ? "Tout déplier" : "Tout replier")

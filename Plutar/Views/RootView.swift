@@ -751,7 +751,7 @@ struct RootView: View {
     }
 
     /// Lus only: the grouping toggle (globe/calendar) and collapse-all/
-    /// expand-all toggle (inset.filled…rectangle/square.fill.text.grid.1x2,
+    /// expand-all toggle (list.number.rtl/square.fill.text.grid.1x2,
     /// the latter mirrored), joined into one capsule —
     /// same two controls `MacFeedList`'s toolbar exposes as separate
     /// buttons, grouped here the way its 3-way presentation switcher joins
@@ -777,7 +777,7 @@ struct RootView: View {
             }
             Divider().frame(width: 20).opacity(0.3)
             groupingControlButton(
-                icon: allCollapsed ? "square.fill.text.grid.1x2" : "inset.filled.topthird.middlethird.bottomthird.rectangle",
+                icon: allCollapsed ? "square.fill.text.grid.1x2" : "list.number.rtl",
                 flipped: allCollapsed
             ) {
                 collapsedGroups.wrappedValue = allCollapsed ? [] : Set(groups.map(\.id))
