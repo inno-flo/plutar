@@ -172,6 +172,10 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
+        // iPad shows a form sheet that ignores the detent above and is too
+        // short for the whole page (the "Avancé" row and the credit sat
+        // below the fold): use the taller page sizing there.
+        .iPadPageSizing()
     }
 }
 
@@ -275,5 +279,17 @@ private struct AdvancedSettingsView: View {
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Avancé")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private extension View {
+    /// iPad only: the taller page sizing (iPhone keeps its height detent).
+    @ViewBuilder
+    func iPadPageSizing() -> some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            presentationSizing(.page)
+        } else {
+            self
+        }
     }
 }
