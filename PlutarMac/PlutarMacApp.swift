@@ -11,6 +11,13 @@ struct PlutarMacApp: App {
 
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        // App-wide tooltip delay (ms) — AppKit reads this key from the app's
+        // defaults, so setting it once at launch applies to every `.help()`
+        // in the app. The system default is noticeably slower.
+        UserDefaults.standard.set(750, forKey: "NSInitialToolTipDelay")
+    }
+
     var body: some Scene {
         WindowGroup {
             MacRootView()
