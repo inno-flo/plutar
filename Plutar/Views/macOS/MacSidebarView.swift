@@ -153,10 +153,9 @@ struct MacSidebarView: View {
         Button {
             onPickTheme(theme.isSoir ? theme.lightVariant : theme.soirVariant)
         } label: {
-            Image(systemName: theme.isSoir ? "sun.max" : "moon")
-                // Same 14pt footprint as a theme dot (`themeDot`).
-                .font(.system(size: 14))
-                .frame(width: 14, height: 14)
+            Image(systemName: theme.isSoir ? "sun.max.fill" : "moon.circle.fill")
+                .font(.system(size: 20))
+                .frame(width: 20, height: 20)
         }
         .buttonStyle(.plain)
         .help(theme.isSoir ? "Passer au thème clair" : "Passer au thème nuit")
