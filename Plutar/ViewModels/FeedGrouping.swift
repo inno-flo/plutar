@@ -20,9 +20,13 @@ struct FeedGroup: Identifiable {
 /// ranking logic.
 enum FeedGrouping {
     /// Only the links relevant to `mode` — unread ones for Date/Sources, read
-    /// ones for Lus.
+    /// ones for Lus, pinned ones (read or not) for Épinglés.
     static func visibleItems(_ allItems: [LinkItem], mode: FeedMode) -> [LinkItem] {
-        mode == .read ? allItems.filter(\.isRead) : allItems.filter { !$0.isRead }
+        switch mode {
+        case .read: return allItems.filter(\.isRead)
+        case .pinned: return allItems.filter(\.isPinned)
+        case .chrono, .source: return allItems.filter { !$0.isRead }
+        }
     }
 
     /// The groups a feed screen actually shows (`RootView`, `MacFeedList`) —
@@ -30,8 +34,8 @@ enum FeedGrouping {
     /// its globe/calendar toggle (`DisplaySettingsKey.readGroupedBySource`)
     /// is on.
     static func groups(_ allItems: [LinkItem], mode: FeedMode, readGroupedBySource: Bool) -> [FeedGroup] {
-        if mode == .read && readGroupedBySource {
-            return makeSourceGroups(allItems.filter(\.isRead))
+        if (mode == .read || mode == .pinned) && readGroupedBySource {
+            return makeSourceGroups(visibleItems(allItems, mode: mode))
         }
         return makeGroups(allItems, mode: mode)
     }
@@ -43,7 +47,7 @@ enum FeedGrouping {
     static func makeGroups(_ allItems: [LinkItem], mode: FeedMode) -> [FeedGroup] {
         let list = visibleItems(allItems, mode: mode)
         switch mode {
-        case .chrono, .read:
+        case .chrono, .read, .pinned:
             let calendar = Calendar.current
             var order: [Date] = []
             var buckets: [Date: [LinkItem]] = [:]

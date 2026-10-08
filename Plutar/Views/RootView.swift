@@ -134,14 +134,25 @@ struct RootView: View {
     /// tabs doesn't carry one view's grouping into the other. Not persisted.
     @State private var chronoGroupedBySource = false
     @State private var collapsedChronoGroups: Set<String> = []
+    /// Épinglés: same screen as À lire, with its own grouping/collapse state.
+    @State private var pinnedGroupedBySource = false
+    @State private var collapsedPinnedGroups: Set<String> = []
 
-    /// The current view's source/date grouping flag (Lus or À lire).
+    /// The current view's source/date grouping flag (Lus, À lire or Épinglés).
     private var groupedBySource: Binding<Bool> {
-        mode == .read ? $readGroupedBySource : $chronoGroupedBySource
+        switch mode {
+        case .read: return $readGroupedBySource
+        case .pinned: return $pinnedGroupedBySource
+        case .chrono, .source: return $chronoGroupedBySource
+        }
     }
-    /// The current view's collapsed group ids (Lus or À lire).
+    /// The current view's collapsed group ids (Lus, À lire or Épinglés).
     private var collapsedGroups: Binding<Set<String>> {
-        mode == .read ? $collapsedReadGroups : $collapsedChronoGroups
+        switch mode {
+        case .read: return $collapsedReadGroups
+        case .pinned: return $collapsedPinnedGroups
+        case .chrono, .source: return $collapsedChronoGroups
+        }
     }
     private func isCollapsed(_ group: FeedGroup) -> Bool {
         collapsedGroups.wrappedValue.contains(group.id)
@@ -275,11 +286,29 @@ struct RootView: View {
         }
     }
 
+    private var emptyTitle: String {
+        switch mode {
+        case .read: return "Aucun lien lu"
+        case .pinned: return "Aucun lien épinglé"
+        case .chrono, .source: return "Aucun lien partagé"
+        }
+    }
+
+    private var emptyText: String {
+        switch mode {
+        case .read: return "Les liens ouverts ou marqués comme lus apparaîtront ici"
+        case .pinned: return "Les liens épinglés avec « Épingler le lien » apparaîtront ici."
+        case .chrono, .source: return "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage."
+        }
+    }
+
     private var groups: [FeedGroup] {
-        if mode == .chrono && chronoGroupedBySource {
+        // À lire and Épinglés each have their own source/date flag; Lus uses
+        // `readGroupedBySource` through `FeedGrouping.groups`.
+        if (mode == .chrono || mode == .pinned) && groupedBySource.wrappedValue {
             return FeedGrouping.makeSourceGroups(visibleItems)
         }
-        return FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
+        return FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: mode == .read && readGroupedBySource)
     }
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
@@ -557,10 +586,8 @@ struct RootView: View {
                             theme: theme,
                             appFont: appFont,
                             icon: "moon.stars",
-                            title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
-                            text: mode == .read
-                                ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
-                                : "Partagez une page depuis Safari ou n'importe quelle app, puis choisissez Plutar dans la feuille de partage."
+                            title: emptyTitle,
+                            text: emptyText
                         )
                     }
                 }
@@ -617,11 +644,11 @@ struct RootView: View {
             }
             .swipeActions(edge: .leading) {
                 Button {
-                    if mode == .read { markAsUnread(item) } else { markAsRead([item]) }
+                    if item.isRead { markAsUnread(item) } else { markAsRead([item]) }
                 } label: {
-                    Label(mode == .read ? "Marquer non lu" : "Marquer lu", systemImage: "checkmark.circle.fill")
+                    Label(item.isRead ? "Marquer non lu" : "Marquer lu", systemImage: "checkmark.circle.fill")
                 }
-                .tint(mode == .read ? theme.markUnreadSwipeTint : theme.markReadSwipeTint)
+                .tint(item.isRead ? theme.markUnreadSwipeTint : theme.markReadSwipeTint)
             }
             // Plain opacity — without it, a newly-inserted row
             // can pop in at full height as soon as List

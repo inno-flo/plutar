@@ -123,6 +123,26 @@ struct MacFeedList: View {
         self.scrollKey = scrollKey
     }
 
+    /// Lus and Épinglés share the same screen: grouping toggle, collapse-all,
+    /// month separators, per-group collapse and delete menu.
+    private var isReadLike: Bool { mode == .read || mode == .pinned }
+
+    private var emptyTitle: String {
+        switch mode {
+        case .read: return "Aucun lien lu"
+        case .pinned: return "Aucun lien épinglé"
+        default: return "Aucun lien partagé"
+        }
+    }
+
+    private var emptyText: String {
+        switch mode {
+        case .read: return "Les liens ouverts ou marqués comme lus apparaîtront ici"
+        case .pinned: return "Les liens épinglés avec « Épingler le lien » apparaîtront ici."
+        default: return "Les liens partagés depuis iPhone apparaîtront ici une fois synchronisés."
+        }
+    }
+
     private var groups: [FeedGroup] {
         FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
     }
@@ -132,7 +152,7 @@ struct MacFeedList: View {
     /// `FeedGrouping.monthSeparatorGroupIDs`. Empty in every other mode/
     /// grouping, same as the iOS `RootView` counterpart.
     private func monthSeparatorGroupIDs(in groups: [FeedGroup]) -> Set<String> {
-        guard mode == .read, !readGroupedBySource else { return [] }
+        guard isReadLike, !readGroupedBySource else { return [] }
         return FeedGrouping.monthSeparatorGroupIDs(groups)
     }
 
@@ -193,7 +213,7 @@ struct MacFeedList: View {
                         }
                     }
                     if !isInCollapsedMonth(group)
-                        && !(mode == .read && collapsedReadGroups.contains(group.id)) {
+                        && !(isReadLike && collapsedReadGroups.contains(group.id)) {
                         ForEach(group.items) { item in
                             LinkRowView(
                                 item: item, layout: layout, theme: theme, appFont: appFont,
@@ -251,10 +271,8 @@ struct MacFeedList: View {
             if currentGroups.isEmpty {
                 QuietEmptyStateView(
                     theme: theme, appFont: appFont, icon: "moon.stars",
-                    title: mode == .read ? "Aucun lien lu" : "Aucun lien partagé",
-                    text: mode == .read
-                        ? "Les liens ouverts ou marqués comme lus apparaîtront ici"
-                        : "Les liens partagés depuis iPhone apparaîtront ici une fois synchronisés."
+                    title: emptyTitle,
+                    text: emptyText
                 )
             }
         }
@@ -267,7 +285,7 @@ struct MacFeedList: View {
             // placeholder and the mark-as-read/clear button each stay their
             // own single plain toolbar button, apart from that block and
             // from each other rather than sharing a background.
-            if mode == .read && !currentGroups.isEmpty {
+            if isReadLike && !currentGroups.isEmpty {
                 ToolbarItemGroup {
                     Button {
                         // Collapsed-group ids belong to whichever grouping
@@ -476,7 +494,7 @@ struct MacFeedList: View {
     /// Lus, day-grouped: whether `group` belongs to a month collapsed via
     /// its separator's chevron — its header and links are hidden then.
     private func isInCollapsedMonth(_ group: FeedGroup) -> Bool {
-        mode == .read && !readGroupedBySource
+        isReadLike && !readGroupedBySource
             && collapsedMonths.contains(FeedGrouping.monthKey(fromDayGroupID: group.id))
     }
 
@@ -488,7 +506,7 @@ struct MacFeedList: View {
                         .foregroundStyle(dayLabelColor)
                     // Lus only — a link-count pastille, only while the group
                     // is collapsed, same as iOS.
-                    if mode == .read && collapsedReadGroups.contains(group.id) {
+                    if isReadLike && collapsedReadGroups.contains(group.id) {
                         Text("\(group.items.count)")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(theme.ink(0.6))
@@ -502,7 +520,7 @@ struct MacFeedList: View {
                 // one group, independent of the toolbar's collapse-all/
                 // expand-all button.
                 .onTapGesture(count: 1) {
-                    guard mode == .read else { return }
+                    guard isReadLike else { return }
                     withAnimation(.easeInOut(duration: 0.25)) {
                         collapsedReadGroups.toggle(group.id)
                     }
@@ -529,7 +547,7 @@ struct MacFeedList: View {
         // Lus: ctrl-click on the day/source name offers to delete the
         // group's links (confirmed by a dialog).
         .contextMenu {
-            if mode == .read {
+            if isReadLike {
                 Button(role: .destructive) {
                     groupItemsPendingDelete = group.items
                 } label: {

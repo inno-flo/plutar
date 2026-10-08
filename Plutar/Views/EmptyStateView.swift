@@ -10,13 +10,6 @@ struct QuietEmptyStateView: View {
     let icon: String
     let title: String
     let text: String
-    /// True (the default) centers the block in the full available height —
-    /// the ordinary case, an overlay on an otherwise-empty list. Sources
-    /// passes false when the source ranking still has entries: there the
-    /// block is placed as a normal row above the ranking instead of an
-    /// overlay, and sizing it to the full height would push the ranking
-    /// off-screen.
-    var fillHeight: Bool = true
 
     /// 2pt smaller on macOS — the mockup's 18pt reads oversized there next
     /// to the window chrome/sidebar; iOS keeps its original size.
@@ -47,6 +40,6 @@ struct QuietEmptyStateView: View {
                 .padding(.top, 20)
         }
         .padding(.horizontal, 46)
-        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -59,6 +59,7 @@ struct MacSidebarView: View {
 
     private var unreadCount: Int { allItems.lazy.filter { !$0.isRead }.count }
     private var readCount: Int { allItems.lazy.filter { $0.isRead }.count }
+    private var pinnedCount: Int { allItems.lazy.filter { $0.isPinned }.count }
 
     /// Alphabetical by default, unlike `FeedGrouping.makeGroups`'s own
     /// count-first sort (which suits a merged feed screen, not a sidebar
@@ -82,41 +83,43 @@ struct MacSidebarView: View {
             Section("Liens partagés") {
                 sidebarRow(label: "À lire", systemImage: "list.bullet.clipboard.fill", count: unreadCount)
                     .tag(SidebarSelection.date)
+                DisclosureGroup(isExpanded: $sourcesExpanded) {
+                    sidebarRow(label: "Classement", systemImage: "chart.line.uptrend.xyaxis")
+                        .tag(SidebarSelection.ranking)
+                    ForEach(sourceGroups) { group in
+                        sidebarRow(
+                            label: group.label,
+                            // `group.id` — the real host — not `group.label`,
+                            // which is the site's pretty name once fetched
+                            // ("The Verge") and wouldn't match these substrings.
+                            systemImage: Self.sourceIcon(forHost: group.id),
+                            count: group.items.count
+                        )
+                        .tag(SidebarSelection.source(group.id))
+                    }
+                } label: {
+                    // A click anywhere on this label toggles `sourcesExpanded`
+                    // via `DisclosureGroup`'s own built-in behavior — no
+                    // separate button/chevron needed. The sort `Button` below
+                    // still takes its own taps first (SwiftUI routes a tap to
+                    // the innermost interactive control), so it doesn't also
+                    // collapse/expand the group.
+                    HStack {
+                        Label("Sources", systemImage: "newspaper.fill")
+                        Spacer()
+                        Button {
+                            sourcesSortedAlphabetically.toggle()
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .buttonStyle(.plain)
+                        .help("Trier par nom ou par nombre")
+                    }
+                }
                 sidebarRow(label: "Lus", systemImage: "checkmark.circle.fill", count: readCount)
                     .tag(SidebarSelection.read)
-            }
-            DisclosureGroup(isExpanded: $sourcesExpanded) {
-                sidebarRow(label: "Classement", systemImage: "chart.line.uptrend.xyaxis")
-                    .tag(SidebarSelection.ranking)
-                ForEach(sourceGroups) { group in
-                    sidebarRow(
-                        label: group.label,
-                        // `group.id` — the real host — not `group.label`,
-                        // which is the site's pretty name once fetched
-                        // ("The Verge") and wouldn't match these substrings.
-                        systemImage: Self.sourceIcon(forHost: group.id),
-                        count: group.items.count
-                    )
-                    .tag(SidebarSelection.source(group.id))
-                }
-            } label: {
-                // A click anywhere on this label toggles `sourcesExpanded`
-                // via `DisclosureGroup`'s own built-in behavior — no
-                // separate button/chevron needed. The sort `Button` below
-                // still takes its own taps first (SwiftUI routes a tap to
-                // the innermost interactive control), so it doesn't also
-                // collapse/expand the group.
-                HStack {
-                    Label("Sources", systemImage: "newspaper.fill")
-                    Spacer()
-                    Button {
-                        sourcesSortedAlphabetically.toggle()
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                    }
-                    .buttonStyle(.plain)
-                    .help("Trier par nom ou par nombre")
-                }
+                sidebarRow(label: "Épinglés", systemImage: "pin.circle.fill", count: pinnedCount)
+                    .tag(SidebarSelection.pinned)
             }
         }
         .listStyle(.sidebar)

@@ -8,6 +8,7 @@ import Foundation
 enum SidebarSelection: Hashable {
     case date
     case read
+    case pinned
     case source(String)
     /// The standing "most shared sources" ranking (`SourceRank`) — its own
     /// row inside the Sources disclosure group, alongside the individual
@@ -22,6 +23,7 @@ extension SidebarSelection {
         switch self {
         case .date: return "date"
         case .read: return "read"
+        case .pinned: return "pinned"
         case .ranking: return "ranking"
         case .source(let host): return "source:\(host)"
         }
@@ -31,6 +33,7 @@ extension SidebarSelection {
         switch storageKey {
         case "date": self = .date
         case "read": self = .read
+        case "pinned": self = .pinned
         case "ranking": self = .ranking
         default:
             guard storageKey.hasPrefix("source:") else { return nil }

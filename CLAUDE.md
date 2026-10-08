@@ -65,7 +65,7 @@ Theme, appearance (light/dark/auto), font, layout, "show thumbnails", "black soi
 
 ## Feed grouping/modes
 
-`FeedMode` (`.chrono` "À lire", `.source` "Sources", `.read` "Lus") and `FeedGrouping` (pure grouping logic: which items are visible per mode, bucketed into day groups for chrono/read or host groups for source, plus French day-label formatting incl. "1er", the current-year-omitted date suffix) are shared between iOS's `RootView` and macOS's `MacFeedList`/`MacSidebarView` so both group identically without duplicating the logic. `FeedGroup.id` is a formatted day key or host string — deliberately not the displayed `label`, which repeats across years/hosts and would collide as a `ForEach` id.
+`FeedMode` (`.chrono` "À lire", `.source` "Sources", `.read` "Lus", `.pinned` "Épinglés" — every pinned link, read or not; shown like Lus on macOS and like À lire on iOS/iPadOS) and `FeedGrouping` (pure grouping logic: which items are visible per mode, bucketed into day groups for chrono/read or host groups for source, plus French day-label formatting incl. "1er", the current-year-omitted date suffix) are shared between iOS's `RootView` and macOS's `MacFeedList`/`MacSidebarView` so both group identically without duplicating the logic. `FeedGroup.id` is a formatted day key or host string — deliberately not the displayed `label`, which repeats across years/hosts and would collide as a `ForEach` id.
 
 ## Platform UI differences worth knowing before touching either
 

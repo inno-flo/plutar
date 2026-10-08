@@ -143,6 +143,13 @@ struct MacRootView: View {
                 effectiveBackground: effectiveBackground, state: feedState("read"),
                 scrollStore: scrollStore, scrollKey: "read"
             )
+        case .pinned:
+            MacFeedList(
+                mode: .pinned, title: FeedMode.pinned.label, allItems: allItems,
+                theme: theme, appFont: appFont, layout: layoutBinding,
+                effectiveBackground: effectiveBackground, state: feedState("pinned"),
+                scrollStore: scrollStore, scrollKey: "pinned"
+            )
         case .source(let host):
             let sourceItems = allItems.filter { $0.host == host }
             MacFeedList(

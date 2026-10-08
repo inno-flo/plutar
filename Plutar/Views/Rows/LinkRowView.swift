@@ -224,14 +224,14 @@ struct LinkRowView: View {
     private func titleText(_ title: String) -> Text {
         let pinned = item.isPinned
         guard item.host.contains("theverge.com"), let glyph = Self.firefoxGlyph(size: titleFontSize * 1.25) else {
-            return pinned ? Text("\(Image(systemName: "pin.circle")) \(title)") : Text(title)
+            return pinned ? Text("\(Image(systemName: "pin.circle.fill")) \(title)") : Text(title)
         }
         // A bitmap sits on the baseline, while an SF Symbol hangs ~0.28em
         // below it — lowered by the same amount so both glyphs, and the
         // title, share one vertical centre.
         let firefox = Text(glyph).baselineOffset(-titleFontSize * 0.28)
         return pinned
-            ? Text("\(Image(systemName: "pin.circle")) \(firefox) \(title)")
+            ? Text("\(Image(systemName: "pin.circle.fill")) \(firefox) \(title)")
             : Text("\(firefox) \(title)")
     }
 
