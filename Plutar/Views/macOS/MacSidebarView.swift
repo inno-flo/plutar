@@ -38,14 +38,17 @@ struct MacSidebarView: View {
     private static let dotsLeadingInset: CGFloat = 20
 
     /// SF Symbol for a source's sidebar row — a video icon for YouTube and
-    /// Arte hosts and a waveform for Spotify and Apple Music hosts (matched
-    /// by substring, so `www.youtube.com`, `m.youtube.com`, `www.arte.tv`,
-    /// `open.spotify.com`, … all count); the generic newspaper everywhere
-    /// else.
+    /// Arte hosts and a waveform for Spotify, Apple Music and France Inter
+    /// hosts (matched by substring, so `www.youtube.com`, `m.youtube.com`,
+    /// `www.arte.tv`, `open.spotify.com`, … all count); the generic
+    /// newspaper everywhere else. France Inter now lives under
+    /// `radiofrance.fr/franceinter/…`, so its host is the shared Radio France
+    /// one — which also catches the group's other stations (all audio).
     private static func sourceIcon(forHost host: String) -> String {
         let host = host.lowercased()
         if host.contains("youtube.com") || host.contains("arte.tv") { return "play.rectangle" }
-        if host.contains("spotify.com") || host.contains("music.apple.com") { return "waveform" }
+        if host.contains("spotify.com") || host.contains("music.apple.com")
+            || host.contains("franceinter.fr") || host.contains("radiofrance.fr") { return "waveform" }
         return "newspaper"
     }
 
