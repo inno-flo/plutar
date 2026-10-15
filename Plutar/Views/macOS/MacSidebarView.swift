@@ -37,19 +37,10 @@ struct MacSidebarView: View {
     /// sidebar. An estimate — SwiftUI doesn't expose their position.
     private static let dotsLeadingInset: CGFloat = 20
 
-    /// SF Symbol for a source's sidebar row — a video icon for YouTube and
-    /// Arte hosts and a waveform for Spotify, Apple Music and France Inter
-    /// hosts (matched by substring, so `www.youtube.com`, `m.youtube.com`,
-    /// `www.arte.tv`, `open.spotify.com`, … all count); the generic
-    /// newspaper everywhere else. France Inter now lives under
-    /// `radiofrance.fr/franceinter/…`, so its host is the shared Radio France
-    /// one — which also catches the group's other stations (all audio).
+    /// SF Symbol for a source's sidebar row — `LinkItem.mediaIcon(forHost:)`
+    /// (video or audio sources), the generic newspaper everywhere else.
     private static func sourceIcon(forHost host: String) -> String {
-        let host = host.lowercased()
-        if host.contains("youtube.com") || host.contains("arte.tv") { return "play.rectangle" }
-        if host.contains("spotify.com") || host.contains("music.apple.com")
-            || host.contains("franceinter.fr") || host.contains("radiofrance.fr") { return "waveform" }
-        return "newspaper"
+        LinkItem.mediaIcon(forHost: host) ?? "newspaper"
     }
 
     /// One dot per theme family, in the Settings grid's order — the light

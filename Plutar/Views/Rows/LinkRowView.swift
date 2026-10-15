@@ -216,23 +216,30 @@ struct LinkRowView: View {
         return item.isRead ? (theme.readCardOverride ?? theme.card) : theme.card
     }
 
-    /// The title text, prefixed (in order) with a `pin.circle` glyph when the
-    /// link is pinned and the Firefox icon when it comes from theverge.com
-    /// (the site `MacFeedList.open` forces into Firefox), each followed by
-    /// one space. A single `Text` rather than an `Image` + `Text` `HStack`
-    /// so the glyphs flow inline and wrap with the title under `lineLimit`.
+    /// The title text, prefixed (in order) with a `pin.circle.fill` glyph when
+    /// the link is pinned, the Firefox icon when it comes from theverge.com
+    /// (the site `MacFeedList.open` forces into Firefox) and, on iOS/iPadOS,
+    /// a video or audio icon for media sources (`LinkItem.mediaIcon`), each
+    /// followed by one space. A single `Text` rather than an `Image` + `Text`
+    /// `HStack` so the glyphs flow inline and wrap with the title under
+    /// `lineLimit`.
     private func titleText(_ title: String) -> Text {
-        let pinned = item.isPinned
-        guard item.host.contains("theverge.com"), let glyph = Self.firefoxGlyph(size: titleFontSize * 1.25) else {
-            return pinned ? Text("\(Image(systemName: "pin.circle.fill")) \(title)") : Text(title)
+        var prefix = Text("")
+        if item.isPinned {
+            prefix = prefix + Text(Image(systemName: "pin.circle.fill")) + Text(" ")
         }
-        // A bitmap sits on the baseline, while an SF Symbol hangs ~0.28em
-        // below it — lowered by the same amount so both glyphs, and the
-        // title, share one vertical centre.
-        let firefox = Text(glyph).baselineOffset(-titleFontSize * 0.28)
-        return pinned
-            ? Text("\(Image(systemName: "pin.circle.fill")) \(firefox) \(title)")
-            : Text("\(firefox) \(title)")
+        if item.host.contains("theverge.com"), let glyph = Self.firefoxGlyph(size: titleFontSize * 1.25) {
+            // A bitmap sits on the baseline, while an SF Symbol hangs ~0.28em
+            // below it — lowered by the same amount so both glyphs, and the
+            // title, share one vertical centre.
+            prefix = prefix + Text(glyph).baselineOffset(-titleFontSize * 0.28) + Text(" ")
+        }
+        #if os(iOS)
+        if let icon = LinkItem.mediaIcon(forHost: item.host) {
+            prefix = prefix + Text(Image(systemName: icon)) + Text(" ")
+        }
+        #endif
+        return prefix + Text(title)
     }
 
     /// The Firefox app icon, pre-scaled to `size` points so it sits inline
