@@ -227,8 +227,24 @@ struct RootView: View {
     /// `withAnimation` block that each could still resolve on its own timing.
     private static let themeFlipDuration: Double = 0.4
 
+    /// Headphones / sunglasses filter, one per mode so switching tabs
+    /// doesn't carry it over. Not persisted.
+    @State private var mediaFilters: [FeedMode: MediaFilter] = [:]
+    private var mediaFilterAvailable: Bool {
+        mode != .source && MediaFilter.isAvailable(in: allItems, mode: mode)
+    }
+    /// The active filter, dropped once its button has disappeared (nothing
+    /// left to show with it).
+    private var mediaFilter: MediaFilter? {
+        mediaFilterAvailable ? mediaFilters[mode] : nil
+    }
+    /// `allItems` narrowed by the media filter, for À lire, Lus and Épinglés.
+    private var feedItems: [LinkItem] {
+        MediaFilter.apply(mode == .source ? nil : mediaFilter, to: allItems)
+    }
+
     private var visibleItems: [LinkItem] {
-        FeedGrouping.visibleItems(allItems, mode: mode)
+        FeedGrouping.visibleItems(feedItems, mode: mode)
     }
 
     /// Count shown in the header badge — the number of links in the current view
@@ -308,7 +324,7 @@ struct RootView: View {
         if (mode == .chrono || mode == .pinned) && groupedBySource.wrappedValue {
             return FeedGrouping.makeSourceGroups(visibleItems)
         }
-        return FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: mode == .read && readGroupedBySource)
+        return FeedGrouping.groups(feedItems, mode: mode, readGroupedBySource: mode == .read && readGroupedBySource)
     }
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
@@ -626,14 +642,14 @@ struct RootView: View {
             .contentShape(Rectangle())
             .onTapGesture { open(item) }
             .contextMenu {
-                Button("Copier l'URL") {
-                    UIPasteboard.general.string = item.urlString
-                }
                 Button {
                     togglePin(item)
                 } label: {
                     Label(item.isPinned ? "Détacher le lien" : "Épingler le lien",
                           systemImage: item.isPinned ? "pin.slash" : "pin")
+                }
+                Button("Copier l'URL") {
+                    UIPasteboard.general.string = item.urlString
                 }
             }
             .swipeActions(edge: .trailing) {
@@ -715,6 +731,9 @@ struct RootView: View {
                 .opacity(rankingShown ? 1 : 0)
                 .accessibilityHidden(!rankingShown)
             Spacer()
+            mediaFilterButtons
+                .opacity(rankingShown ? 0 : 1)
+                .allowsHitTesting(!rankingShown)
             // A fixed 44×44 slot — the same box `floatingButton` uses —
             // positioned by the same Spacer + trailing-padding pattern as
             // every other floating button below, so its center always lands
@@ -742,6 +761,20 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.25), value: rankingShown)
     }
 
+    /// Waveform button left of the counter (audio/video links only); hidden
+    /// when it would show nothing. Liquid Glass circle, like the other `floatingButton`s.
+    @ViewBuilder
+    private var mediaFilterButtons: some View {
+        if mediaFilterAvailable {
+            let isOn = mediaFilter != nil
+            floatingButton(icon: isOn ? "waveform.circle.fill" : "waveform.circle") {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    mediaFilters[mode] = isOn ? nil : .audioVideo
+                }
+            }
+        }
+    }
+
     /// Takes `theme` explicitly (rather than reading the property directly)
     /// so the shake flip can render this badge's pre- and post-shake faces
     /// side by side while it turns — see `floatingCounterBadge`.
@@ -754,7 +787,7 @@ struct RootView: View {
             // of digit count. Lowered so a single digit's natural width
             // dictates its own size and 2/3-digit counts visibly grow past
             // it instead.
-            .frame(minWidth: 24, minHeight: 36)
+            .frame(minWidth: 28, minHeight: 44)
             // `floatingCounterBadge` hosts this inside an `.overlay` on a
             // fixed 44×44 box, which proposes that same 44pt width back to
             // this `Text` — without `fixedSize()`, a 3-digit count (needing

@@ -117,7 +117,7 @@ final class LinkItem {
     ]
 
     /// SF Symbol for a media source — a video icon for YouTube and Arte
-    /// hosts, a waveform for Spotify, Apple Music and France Inter hosts
+    /// hosts, a waveform.circle for Spotify, Apple Music and France Inter hosts
     /// (matched by substring, so `www.youtube.com`, `m.youtube.com`,
     /// `www.arte.tv`, `open.spotify.com`, … all count); nil for everything
     /// else. France Inter now lives under `radiofrance.fr/franceinter/…`, so
@@ -127,9 +127,13 @@ final class LinkItem {
         let host = host.lowercased()
         if host.contains("youtube.com") || host.contains("arte.tv") { return "play.rectangle" }
         if host.contains("spotify.com") || host.contains("music.apple.com")
-            || host.contains("franceinter.fr") || host.contains("radiofrance.fr") { return "waveform" }
+            || host.contains("franceinter.fr") || host.contains("radiofrance.fr") { return "waveform.circle" }
         return nil
     }
+
+    /// Whether this link points at audio or video content (a host with a
+    /// `mediaIcon`).
+    var isMedia: Bool { Self.mediaIcon(forHost: host) != nil }
 
     /// `knownSourceNames`' entry for `host`, or for its closest parent
     /// domain that has one.

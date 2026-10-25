@@ -12,6 +12,8 @@ struct MacFeedViewState {
     /// Lus, day-grouped: collapsed calendar months ("yyyy-MM" keys).
     var collapsedMonths: Set<String> = []
     var selectedItemID: UUID?
+    /// Headphones / sunglasses filter of this view.
+    var mediaFilter: MediaFilter?
 }
 
 /// The macOS feed list for one detail selection (Date/Lus/a single source) —
@@ -143,9 +145,19 @@ struct MacFeedList: View {
         }
     }
 
-    private var groups: [FeedGroup] {
-        FeedGrouping.groups(allItems, mode: mode, readGroupedBySource: readGroupedBySource)
+    private var mediaFilterAvailable: Bool {
+        mode != .source && MediaFilter.isAvailable(in: allItems, mode: mode)
     }
+
+    /// The active filter, dropped once its button has disappeared.
+    private var mediaFilter: MediaFilter? {
+        mediaFilterAvailable ? state.mediaFilter : nil
+    }
+
+    private var groups: [FeedGroup] {
+        FeedGrouping.groups(MediaFilter.apply(mediaFilter, to: allItems), mode: mode, readGroupedBySource: readGroupedBySource)
+    }
+
 
     /// Lus, day-grouped only: ids of the first day group in each calendar
     /// month, once links actually span more than one — see
@@ -324,6 +336,16 @@ struct MacFeedList: View {
                     .help(readAllCollapsed ? "Tout déplier" : "Tout replier")
                 }
             }
+            if mediaFilterAvailable {
+                ToolbarItemGroup {
+                    Button {
+                        state.mediaFilter = mediaFilter == nil ? .audioVideo : nil
+                    } label: {
+                        Image(systemName: mediaFilter == nil ? "waveform.circle" : "waveform.circle.fill")
+                    }
+                    .help("Audio et vidéo seulement")
+                }
+            }
             ToolbarItemGroup {
                 layoutSwitcher
             }
@@ -430,17 +452,17 @@ struct MacFeedList: View {
 
     @ViewBuilder
     private func rowContextMenu(_ item: LinkItem) -> some View {
-        Button(item.isRead ? "Marquer non lu" : "Marquer lu") { toggleRead(item) }
-        Button("Copier l'URL") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(item.urlString, forType: .string)
-        }
         Button {
             togglePin(item)
         } label: {
             Label(item.isPinned ? "Détacher le lien" : "Épingler le lien",
                   systemImage: item.isPinned ? "pin.slash" : "pin")
                 .labelStyle(.titleAndIcon)
+        }
+        Button(item.isRead ? "Marquer non lu" : "Marquer lu") { toggleRead(item) }
+        Button("Copier l'URL") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.urlString, forType: .string)
         }
         // Ellipsis: this doesn't delete outright — it opens the
         // confirmationDialog below (itemPendingDelete), same convention as

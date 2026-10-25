@@ -15,6 +15,22 @@ struct FeedGroup: Identifiable {
     let items: [LinkItem]
 }
 
+/// The waveform button next to the counter (À lire, Lus, Épinglés): keep
+/// only audio/video links.
+enum MediaFilter: Hashable {
+    case audioVideo
+
+    /// `items` narrowed by `filter` (all of them when nil).
+    static func apply(_ filter: MediaFilter?, to items: [LinkItem]) -> [LinkItem] {
+        filter == nil ? items : items.filter(\.isMedia)
+    }
+
+    /// Whether the button is worth offering for `mode`.
+    static func isAvailable(in allItems: [LinkItem], mode: FeedMode) -> Bool {
+        FeedGrouping.visibleItems(allItems, mode: mode).contains(where: \.isMedia)
+    }
+}
+
 /// Pure grouping/labeling logic factored out of `RootView` so both iOS and
 /// macOS group the same way without duplicating the day-bucketing/host-
 /// ranking logic.
