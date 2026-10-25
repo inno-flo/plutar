@@ -183,9 +183,9 @@ struct RootView: View {
     /// both the pre- and post-shake colors to cross-fade between.
     private func effectiveBackground(for theme: AppTheme) -> Color {
         if blackSoirBackground && theme.isSoir { return Color(hex: "#000000") }
-        // Tokyo clair: pure white everywhere except Lus, which gets a light
-        // gray instead.
-        if theme == .tokyo { return mode == .read ? Color(hex: "#E8E8E8") : Color(hex: "#FFFFFF") }
+        // Tokyo clair: pure white everywhere except À lire, Lus and Épinglés,
+        // which get a light gray instead.
+        if theme == .tokyo { return (mode == .read || mode == .chrono || mode == .pinned) ? Color(hex: "#E8E8E8") : Color(hex: "#FFFFFF") }
         return theme.background
     }
 
@@ -296,8 +296,8 @@ struct RootView: View {
         // was ~2.7:1 on that gray; pale ink matches the light variant's
         // own pattern instead.
         case .blancSoir: return theme.ink(1)
-        // Tokyo soir: same gray as the ranking rows' own count text.
-        case .tokyoSoir: return theme.ink(0.5)
+        // Tokyo soir: white digits on the red counter.
+        case .tokyoSoir: return .white
         default: return nil
         }
     }
