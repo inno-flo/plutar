@@ -42,7 +42,7 @@ struct LinkRowView: View {
     /// iOS never sets this (always `false`).
     var isSelected: Bool = false
     /// macOS only (all of À lire/Lus/Sources): drops the card's white
-    /// background, rounded shape and shadow, leaving just the title, host
+    /// background and rounded shape, leaving just the title, host
     /// and thumbnail sitting directly on the list background. Selection
     /// still fills with `theme.chip` like the normal card does — otherwise
     /// there'd be no way to see which row is selected. iOS never sets this
@@ -158,7 +158,7 @@ struct LinkRowView: View {
         }
     }
 
-    /// The whole visible card — background, shape, shadow and all — for
+    /// The whole visible card — background, shape and all — for
     /// one specific title/thumbnail pairing. Takes them as parameters
     /// rather than reading `item` directly so `FlipCard` can render the
     /// pre- and post-enrichment faces side by side while it turns.
@@ -196,9 +196,6 @@ struct LinkRowView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // No shadow on read cells (all of Lus), and none at all in
-        // `plainStyle` — there's no card underneath for a shadow to sit on.
-        .shadow(color: (item.isRead || plainStyle) ? .clear : .black.opacity(0.08), radius: 9, y: 4)
         // macOS's `List` (NSTableView-backed) sometimes keeps a row at a
         // stale, too-short height when its content changes — e.g. switching
         // between sources in the sidebar reuses rows, and a taller
