@@ -215,7 +215,7 @@ struct LinkRowView: View {
 
     /// The title text, prefixed (in order) with a `pin.circle.fill` glyph when
     /// the link is pinned, the Firefox icon when it comes from theverge.com
-    /// (the site `MacFeedList.open` forces into Firefox) and, on iOS/iPadOS,
+    /// (the site `MacFeedList.open` forces into Firefox) and
     /// a video or audio icon for media sources (`LinkItem.mediaIcon`), each
     /// followed by one space. A single `Text` rather than an `Image` + `Text`
     /// `HStack` so the glyphs flow inline and wrap with the title under
@@ -231,11 +231,9 @@ struct LinkRowView: View {
             // title, share one vertical centre.
             prefix = prefix + Text(glyph).baselineOffset(-titleFontSize * 0.28) + Text(" ")
         }
-        #if os(iOS)
         if let icon = LinkItem.mediaIcon(forHost: item.host) {
             prefix = prefix + Text(Image(systemName: icon)) + Text(" ")
         }
-        #endif
         return prefix + Text(title)
     }
 
