@@ -46,7 +46,7 @@ struct BackupSection: View {
     var body: some View {
         Group {
             if showsTitle {
-                SettingsSectionView(title: "Sauvegarde et restauration", titleWeight: titleWeight) {
+                SettingsSectionView(title: "Sauvegarde manuelle", titleWeight: titleWeight) {
                     blocks
                 }
             } else {
@@ -101,9 +101,9 @@ struct BackupSection: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Intertitle: what follows is about the automatic backup.
                 Text("Sauvegarde automatique")
-                    .font(captionFont.weight(.semibold))
+                    // Same look as `SettingsSectionView`'s title above.
+                    .fontWeight(titleWeight)
                     .foregroundStyle(.primary)
-                    .padding(.horizontal, usesCells ? 20 : 0)
                     // Mac: 5pt more room before the button.
                     .padding(.bottom, usesCells ? 0 : 5)
                 restoreButton(.automatic)
