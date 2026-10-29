@@ -14,7 +14,7 @@ private let shareAccent = Color(red: 1, green: 0.31, blue: 0)
 /// `RootView`/`MacRootView` — it borrows just the accent color.
 struct ShareSavedView: View {
     var body: some View {
-        Image(systemName: "square.and.arrow.up.badge.checkmark")
+        Image(systemName: "icloud.and.arrow.up")
             .font(.system(size: 44, weight: .semibold))
             .foregroundStyle(shareAccent)
             .frame(width: 120, height: 120)

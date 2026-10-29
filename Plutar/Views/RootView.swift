@@ -89,6 +89,12 @@ struct RootView: View {
     @State private var mode: FeedMode = .chrono
     @State private var selectedTab: RootTab = .feed(.chrono)
     @State private var showSettings = false
+    /// The display settings as they were when the settings sheet opened.
+    /// Changes apply live while it's open, but only the ✓ button keeps
+    /// them: any other way of closing it (swipe down included) acts as
+    /// "Annuler" and puts these back — see `.sheet(onDismiss:)`.
+    @State private var settingsSnapshot: DisplaySettingsSnapshot?
+    @State private var settingsConfirmed = false
 
     /// Every link deleted inside the current undo window, oldest first — a
     /// batch, not a single slot. It used to be one `DeletedSnapshot?`, so a
@@ -380,6 +386,12 @@ struct RootView: View {
         .onChange(of: selectedTab) { _, newValue in
             switch newValue {
             case .settings:
+                settingsSnapshot = DisplaySettingsSnapshot(
+                    themeRaw: themeRaw, appearanceRaw: appearanceRaw, fontRaw: fontRaw,
+                    layoutRaw: layoutRaw, blackSoirBackground: blackSoirBackground,
+                    shakeToChangeTheme: shakeToChangeTheme
+                )
+                settingsConfirmed = false
                 showSettings = true
                 // Reverting the selection in the same tick can make the tab
                 // bar's highlight snap to the first tab instead of back to
@@ -405,7 +417,7 @@ struct RootView: View {
         // "Automatique" (nil) hands it back to iOS's own active system
         // appearance instead.
         .preferredColorScheme(appearance.colorScheme)
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: $showSettings, onDismiss: restoreUnconfirmedSettings) {
             SettingsSheet(
                 // The grid highlights whichever pill matches what's actually
                 // on screen right now (`theme`, not the raw `selectedTheme`
@@ -439,10 +451,12 @@ struct RootView: View {
                 blackSoirBackground: $blackSoirBackground,
                 shakeToChangeTheme: $shakeToChangeTheme,
                 layout: Binding(get: { layout }, set: { layoutRaw = $0.rawValue }),
-                onClearUnread: { clearUnread(); showSettings = false },
-                onClearRead: { clearRead(); showSettings = false },
-                onResetRanking: { resetSourceRanking(); showSettings = false },
-                onClose: { showSettings = false },
+                // "Avancé" actions close the sheet too, and count as ✓ for
+                // the display settings changed before them.
+                onClearUnread: { clearUnread(); settingsConfirmed = true; showSettings = false },
+                onClearRead: { clearRead(); settingsConfirmed = true; showSettings = false },
+                onResetRanking: { resetSourceRanking(); settingsConfirmed = true; showSettings = false },
+                onClose: { settingsConfirmed = true; showSettings = false },
                 chipColor: theme.chip
             )
         }
@@ -1239,6 +1253,19 @@ struct RootView: View {
         persist()
     }
 
+    /// The settings sheet closed without its ✓ button: undo whatever it
+    /// changed — see `settingsSnapshot`.
+    private func restoreUnconfirmedSettings() {
+        defer { settingsSnapshot = nil }
+        guard !settingsConfirmed, let snapshot = settingsSnapshot else { return }
+        themeRaw = snapshot.themeRaw
+        appearanceRaw = snapshot.appearanceRaw
+        fontRaw = snapshot.fontRaw
+        layoutRaw = snapshot.layoutRaw
+        blackSoirBackground = snapshot.blackSoirBackground
+        shakeToChangeTheme = snapshot.shakeToChangeTheme
+    }
+
     /// Zeroes out the persistent source-importance tally — see `SourceRank`.
     private func resetSourceRanking() {
         for rank in sourceRanks { modelContext.delete(rank) }
@@ -1313,4 +1340,15 @@ struct RootView: View {
             themeFlipAngle = 0
         }
     }
+}
+
+/// `RootView`'s display settings, captured when the settings sheet opens so
+/// a close without ✓ can put them back.
+private struct DisplaySettingsSnapshot {
+    let themeRaw: String
+    let appearanceRaw: String
+    let fontRaw: String
+    let layoutRaw: String
+    let blackSoirBackground: Bool
+    let shakeToChangeTheme: Bool
 }
