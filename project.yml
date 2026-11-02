@@ -170,6 +170,7 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         SUPPORTED_PLATFORMS: "macosx"
         MACOSX_DEPLOYMENT_TARGET: "15.0"
+        ENABLE_HARDENED_RUNTIME: YES
     dependencies:
       - target: PlutarShareMac
         embed: true
@@ -222,6 +223,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         SUPPORTED_PLATFORMS: "macosx"
         MACOSX_DEPLOYMENT_TARGET: "15.0"
+        ENABLE_HARDENED_RUNTIME: YES
 
   PlutarShare:
     type: app-extension

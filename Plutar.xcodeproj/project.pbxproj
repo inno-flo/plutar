@@ -723,6 +723,7 @@
 				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = PlutarShareMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -745,6 +746,7 @@
 				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = PlutarMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -768,6 +770,7 @@
 				CODE_SIGN_ENTITLEMENTS = PlutarMac/PlutarMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = PlutarMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -908,6 +911,7 @@
 				CODE_SIGN_ENTITLEMENTS = PlutarShareMac/PlutarShareMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AQ24F2W59K;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = PlutarShareMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Plutar;
 				LD_RUNPATH_SEARCH_PATHS = (
