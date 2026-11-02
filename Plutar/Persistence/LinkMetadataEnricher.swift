@@ -1,5 +1,6 @@
 import Foundation
 import LinkPresentation
+import Observation
 import SwiftData
 #if canImport(UIKit)
 import UIKit
@@ -25,6 +26,16 @@ import AppKit
 // resume on a background thread while still mutating `LinkItem`/
 // `ModelContext` — the likely cause of a freeze-then-crash observed in
 // testing, with a handful of links left half-enriched once the app relaunched.
+/// Bumped each time a thumbnail file lands on disk. A row can't notice that on
+/// its own: it reads the file during `body`, and re-assigning an unchanged
+/// `thumbnailFileName` (the name is the same before and after a download) may
+/// not invalidate it — so `LinkRowView` reads `revision` too, and redraws.
+@MainActor @Observable
+final class ThumbnailEvents {
+    static let shared = ThumbnailEvents()
+    var revision = 0
+}
+
 @MainActor
 enum LinkMetadataEnricher {
     /// Processes a handful of not-yet-enriched links per call rather than
@@ -34,7 +45,10 @@ enum LinkMetadataEnricher {
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
         await enrichTitleAndThumbnail(in: context, limit: limit)
         await enrichFromHTML(in: context, limit: limit)
-        await redownloadMissingThumbnails(in: context, limit: limit)
+        // Eight at a time was enough for the odd synced-in link, but a freshly
+        // installed device has *every* image to fetch and would need dozens of
+        // launches: same pass as after a restore, in parallel, capped per call.
+        await regenerateMissingThumbnails(in: context, limit: 40)
     }
 
     /// Up to `limit` links matching `predicate` — `fetchLimit` rather than
@@ -156,47 +170,38 @@ enum LinkMetadataEnricher {
     /// two layouts that actually render a thumbnail) show a blank gap where
     /// it should be. This re-downloads just the image for those — title and
     /// excerpt, already correct from the other device, are left alone.
-    private static func redownloadMissingThumbnails(in context: ModelContext, limit: Int) async {
-        let missing = itemsMissingThumbnailFile(in: context)
-        guard !missing.isEmpty else { return }
-        // Least recently attempted first. Always taking the first `limit` in
-        // fetch order meant a link whose image never comes back (dead page,
-        // bot protection…) stayed "missing" forever and, a few of them in,
-        // starved every link behind it. Still nothing is ever given up on —
-        // a link that failed just goes to the back of the queue.
-        let batch = missing
-            .sorted { (lastThumbnailAttempt[$0.id] ?? .distantPast) < (lastThumbnailAttempt[$1.id] ?? .distantPast) }
-            .prefix(limit)
-        for item in batch {
-            lastThumbnailAttempt[item.id] = Date()
-            guard let url = URL(string: item.urlString),
-                  let fileName = await fetchThumbnail(for: url, id: item.id)
-            else { continue }
-            item.thumbnailFileName = fileName
-        }
-        context.persist()
-    }
-
     /// When each link's image was last attempted *this session* — memory
     /// only, per device like the files themselves.
     private static var lastThumbnailAttempt: [UUID: Date] = [:]
 
     /// How many images `regenerateMissingThumbnails` fetches at once.
     private static let regenerationParallelism = 4
+    private static var isRegenerating = false
 
     /// Re-downloads every missing thumbnail, a few at a time — what runs right
-    /// after a backup is restored, where `redownloadMissingThumbnails`' eight
-    /// per launch would take dozens of launches to refill a whole feed. Same
-    /// candidates as it: links that name a thumbnail whose file isn't here.
+    /// after a backup is restored, and on every enrichment pass (a link synced in from
+    /// another device, or a reinstalled app, has a `thumbnailFileName` but no
+    /// file — the JPEG itself never syncs). Candidates: links that name a thumbnail whose file isn't here.
     ///
     /// `onProgress` gets `(done, total)` after each image, success or not.
     /// Saves every 20 images, so a run cut short by the app being suspended
     /// keeps what it got — and the regular path picks up the rest.
     static func regenerateMissingThumbnails(
         in context: ModelContext,
+        limit: Int? = nil,
         onProgress: ((_ done: Int, _ total: Int) -> Void)? = nil
     ) async {
+        // Triggers overlap (launch, foreground, remote change…): one pass at a time.
+        guard !isRegenerating else { return }
+        isRegenerating = true
+        defer { isRegenerating = false }
+        // Least recently attempted first. Taking them in fetch order meant a
+        // link whose image never comes back (dead page, bot protection…)
+        // stayed "missing" and, a few of them in, starved every link behind
+        // it. Nothing is given up on — a failed link just goes to the back.
         let missing = itemsMissingThumbnailFile(in: context)
+            .sorted { (lastThumbnailAttempt[$0.id] ?? .distantPast) < (lastThumbnailAttempt[$1.id] ?? .distantPast) }
+            .prefix(limit ?? .max)
         // `LinkItem` isn't `Sendable`: only ids and URLs go out to the child
         // tasks, and the results are applied back here on the main actor.
         var itemsByID: [UUID: LinkItem] = [:]
@@ -208,6 +213,7 @@ enum LinkMetadataEnricher {
         guard !jobs.isEmpty else { return }
 
         var done = 0
+        var succeeded = 0
         await withTaskGroup(of: (UUID, String?).self) { group in
             var next = 0
             while next < min(regenerationParallelism, jobs.count) {
@@ -220,7 +226,11 @@ enum LinkMetadataEnricher {
                 lastThumbnailAttempt[id] = Date()
                 // Re-assigned even though the name is the same as before:
                 // that's what makes the row notice the file has appeared.
-                if let fileName, let item = itemsByID[id] { item.thumbnailFileName = fileName }
+                if let fileName, let item = itemsByID[id] {
+                    item.thumbnailFileName = fileName
+                    succeeded += 1
+                    ThumbnailEvents.shared.revision += 1
+                }
                 if done.isMultiple(of: 20) { context.persist() }
                 onProgress?(done, jobs.count)
                 if next < jobs.count {
@@ -231,6 +241,7 @@ enum LinkMetadataEnricher {
             }
         }
         context.persist()
+        PlutarLog.store.notice("Thumbnails: \(succeeded)/\(jobs.count) recovered, \(jobs.count - succeeded) failed")
     }
 
     /// Links that name a thumbnail (`thumbnailFileName` set) whose file isn't
@@ -251,8 +262,15 @@ enum LinkMetadataEnricher {
     /// (title and excerpt are left alone). `nonisolated` for the same reason
     /// as `fetchLinkMetadata`.
     private nonisolated static func fetchThumbnail(for url: URL, id: UUID) async -> String? {
-        guard let meta = await fetchLinkMetadata(for: url) else { return nil }
-        return await saveThumbnail(from: meta, id: id)
+        guard let meta = await fetchLinkMetadata(for: url) else {
+            PlutarLog.store.notice("Thumbnail: no metadata for \(url.host() ?? "?", privacy: .public)")
+            return nil
+        }
+        let name = await saveThumbnail(from: meta, id: id)
+        if name == nil {
+            PlutarLog.store.notice("Thumbnail: page loaded but no image for \(url.host() ?? "?", privacy: .public)")
+        }
+        return name
     }
 
     private nonisolated static func thumbnailFileExists(_ fileName: String) -> Bool {

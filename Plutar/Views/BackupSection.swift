@@ -28,6 +28,7 @@ struct BackupSection: View {
     /// The cached dates first, so the section isn't blank (or wrong, offline)
     /// while CloudKit is asked for the real ones.
     @State private var dates = BackupService.cachedDates()
+    @State private var devices = BackupService.cachedDevices()
     @State private var isBackingUp = false
     @State private var isRestoring = false
     @State private var thumbnailProgress: (done: Int, total: Int)?
@@ -53,7 +54,10 @@ struct BackupSection: View {
                 blocks
             }
         }
-        .task { dates = await BackupService.lastBackupDates() }
+        .task {
+            dates = await BackupService.lastBackupDates()
+            devices = BackupService.cachedDevices()
+        }
         .confirmationDialog(
             kindToRestore.map { "Restaurer la sauvegarde \($0.label)" } ?? "",
             isPresented: Binding(get: { kindToRestore != nil }, set: { if !$0 { kindToRestore = nil } }),
@@ -126,7 +130,7 @@ struct BackupSection: View {
     /// time of the last backup of that kind.
     private func caption(_ text: String, date kind: BackupKind? = nil) -> some View {
         let dateLine = kind.map { kind in
-            "\n" + (dates[kind].map { "Dernière sauvegarde : \(Self.format($0))." } ?? "Aucune sauvegarde \(kind.label).")
+            "\n" + (dates[kind].map { "Dernière sauvegarde : \(Self.format($0))\(kind == .manual ? Self.origin(devices[kind]) : "")." } ?? "Aucune sauvegarde \(kind.label).")
         } ?? ""
         return Text(text + dateLine)
             .font(captionFont)
@@ -150,6 +154,7 @@ struct BackupSection: View {
             defer { isBackingUp = false }
             do {
                 dates[.manual] = try await BackupService.backUp(.manual, from: modelContext)
+                devices = BackupService.cachedDevices()
             } catch {
                 message = Message(title: "Sauvegarde impossible", text: error.localizedDescription)
             }
@@ -186,9 +191,19 @@ struct BackupSection: View {
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMMM yyyy 'à' HH:mm"
+        f.dateFormat = "d MMMM yyyy 'à' HH'h'mm"
         return f
     }()
+
+    /// " depuis l'iPhone" — empty for a backup made before the device was recorded.
+    private static func origin(_ device: String?) -> String {
+        switch device {
+        case "iPhone": " depuis l'iPhone"
+        case "iPad": " depuis l'iPad"
+        case "Mac": " depuis le Mac"
+        default: ""
+        }
+    }
 
     private static func format(_ date: Date) -> String {
         dateFormatter.string(from: date)

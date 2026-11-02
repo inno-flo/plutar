@@ -136,7 +136,7 @@ struct LinkRowView: View {
         }
         .onChange(of: item.thumbnailFileName) { oldFileName, newFileName in
             // Same flip, for the case `LinkMetadataEnricher`'s
-            // `redownloadMissingThumbnails` exists for: a link enriched on
+            // `regenerateMissingThumbnails` exists for: a link enriched on
             // the *other* platform (iOS/macOS) syncs in with its title
             // already real but no image — the JPEG itself never syncs via
             // CloudKit, only this filename — and this device fetches its
@@ -347,6 +347,8 @@ struct LinkRowView: View {
 
     @ViewBuilder
     private func thumbnail(size: CGFloat, fullWidth: Bool = false, thumbnailFileName: String?) -> some View {
+        // Redraws when a file lands on disk — see `ThumbnailEvents`.
+        let _ = ThumbnailEvents.shared.revision
         if let fileName = thumbnailFileName, let image = Self.cachedThumbnail(fileName) {
             Image(platformImage: image)
                 .resizable()

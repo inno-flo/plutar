@@ -122,7 +122,7 @@ private struct StoreLifecycle: ViewModifier {
             // without the app doing anything, so a link enriched on
             // another device (title/thumbnailFileName arriving here) used
             // to just sit there until the next launch/foreground or a
-            // manual refresh — nothing re-ran `redownloadMissingThumbnails`
+            // manual refresh — nothing re-ran `regenerateMissingThumbnails`
             // to fetch this device's own copy of the image. Debounced
             // since CloudKit can deliver a burst of remote-change
             // notifications for a single sync.

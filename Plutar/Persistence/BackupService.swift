@@ -1,6 +1,9 @@
 import CloudKit
 import Foundation
 import SwiftData
+#if os(iOS)
+import UIKit
+#endif
 
 /// The two backups. Each one is a single CloudKit record with a fixed name, so
 /// there are exactly two of them for good — never a third, and a new backup of
@@ -247,6 +250,7 @@ enum BackupService {
         static let payload = "payload"
         static let linkCount = "linkCount"
         static let version = "version"
+        static let device = "device"
     }
 
     private static let defaults = UserDefaults.standard
@@ -277,8 +281,15 @@ enum BackupService {
             for kind in BackupKind.allCases {
                 if let date = fetched.found[kind] {
                     defaults.set(date, forKey: cacheKey(kind))
+                    // A backup made before the device was recorded has none.
+                    if let device = fetched.devices[kind] {
+                        defaults.set(device, forKey: deviceCacheKey(kind))
+                    } else {
+                        defaults.removeObject(forKey: deviceCacheKey(kind))
+                    }
                 } else if fetched.missing.contains(kind) {
                     defaults.removeObject(forKey: cacheKey(kind))
+                    defaults.removeObject(forKey: deviceCacheKey(kind))
                 }
             }
         } catch {
@@ -288,6 +299,24 @@ enum BackupService {
     }
 
     private static func cacheKey(_ kind: BackupKind) -> String { "backup.lastDate.\(kind.rawValue)" }
+    private static func deviceCacheKey(_ kind: BackupKind) -> String { "backup.lastDevice.\(kind.rawValue)" }
+
+    /// Which device each backup was made from ("iPhone", "iPad", "Mac"), as
+    /// last seen — refreshed along with the dates by `lastBackupDates()`.
+    static func cachedDevices() -> [BackupKind: String] {
+        BackupKind.allCases.reduce(into: [:]) { devices, kind in
+            devices[kind] = defaults.string(forKey: deviceCacheKey(kind))
+        }
+    }
+
+    /// This device, as written into a backup.
+    private static var deviceName: String {
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        #else
+        "Mac"
+        #endif
+    }
 
     // MARK: - Back up
 
@@ -298,8 +327,10 @@ enum BackupService {
         try requireRealStore(context)
         let file = try snapshot(of: context)
         do {
-            let date = try await upload(file, as: kind)
+            let device = Self.deviceName
+            let date = try await upload(file, as: kind, from: device)
             defaults.set(date, forKey: cacheKey(kind))
+            defaults.set(device, forKey: deviceCacheKey(kind))
             if kind == .automatic { defaults.set(Date(), forKey: lastAutomaticSuccessKey) }
             return date
         } catch {
@@ -513,7 +544,7 @@ enum BackupService {
         return configuration
     }
 
-    private nonisolated static func upload(_ file: BackupFile, as kind: BackupKind) async throws -> Date {
+    private nonisolated static func upload(_ file: BackupFile, as kind: BackupKind, from device: String) async throws -> Date {
         guard try await container.accountStatus() == .available else { throw BackupError.iCloudUnavailable }
 
         // A `CKAsset` is a file, so the payload takes a trip through a
@@ -529,6 +560,7 @@ enum BackupService {
         record[Field.payload] = CKAsset(fileURL: temporaryURL)
         record[Field.linkCount] = Int64(file.links.count)
         record[Field.version] = Int64(file.version)
+        record[Field.device] = device
 
         // `.allKeys` overwrites whatever is there, whichever device wrote it —
         // that's the "écrase la précédente" of the spec.
@@ -565,27 +597,29 @@ enum BackupService {
         return file
     }
 
-    private nonisolated static func fetchDates() async throws -> (found: [BackupKind: Date], missing: Set<BackupKind>) {
+    private nonisolated static func fetchDates() async throws -> (found: [BackupKind: Date], devices: [BackupKind: String], missing: Set<BackupKind>) {
         let ids = BackupKind.allCases.map { CKRecord.ID(recordName: $0.recordName) }
         // `desiredKeys` without the payload: the dates cost a few bytes, not a
         // download of both backups.
         let results = try await container.privateCloudDatabase.configuredWith(
             configuration: configuration(timeout: 15)
         ) { database in
-            try await database.records(for: ids, desiredKeys: [Field.linkCount])
+            try await database.records(for: ids, desiredKeys: [Field.linkCount, Field.device])
         }
         var found: [BackupKind: Date] = [:]
+        var devices: [BackupKind: String] = [:]
         var missing = Set<BackupKind>()
         for kind in BackupKind.allCases {
             switch results[CKRecord.ID(recordName: kind.recordName)] {
             case .success(let record)?:
                 if let date = record.modificationDate { found[kind] = date }
+                if let device = record[Field.device] as? String { devices[kind] = device }
             case .failure(let error)?:
                 if (error as? CKError)?.code == .unknownItem { missing.insert(kind) }
             case nil:
                 break
             }
         }
-        return (found, missing)
+        return (found, devices, missing)
     }
 }
