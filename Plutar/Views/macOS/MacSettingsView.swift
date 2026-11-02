@@ -121,7 +121,7 @@ struct MacSettingsView: View {
                             }
                         }
                     }
-                    .settingsActionStyle(cells: false)
+                    .buttonStyle(.glass)
                     .disabled(isRefreshing)
 
                     // No supported API forces CloudKit to pull sooner —
@@ -156,7 +156,7 @@ struct MacSettingsView: View {
                     } label: {
                         Text("Vider le fil À lire…")
                     }
-                    .settingsActionStyle(cells: false)
+                    .buttonStyle(.glass)
                     .confirmationDialog(
                         "Vider le fil À lire",
                         isPresented: $showClearFeedConfirm,
@@ -180,7 +180,7 @@ struct MacSettingsView: View {
                     } label: {
                         Text("Vider le fil Lus…")
                     }
-                    .settingsActionStyle(cells: false)
+                    .buttonStyle(.glass)
                     .confirmationDialog(
                         "Supprimer tous les liens lus",
                         isPresented: $showClearReadConfirm,
@@ -203,7 +203,7 @@ struct MacSettingsView: View {
                     } label: {
                         Text("Réinitialiser le classement…")
                     }
-                    .settingsActionStyle(cells: false)
+                    .buttonStyle(.glass)
                     .confirmationDialog(
                         "Réinitialiser le classement",
                         isPresented: $showResetRankingConfirm,

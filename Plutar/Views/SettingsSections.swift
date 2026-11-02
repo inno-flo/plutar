@@ -36,22 +36,13 @@ private struct SettingsPillStyle: ViewModifier {
     let chipColor: Color
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            if isActive {
-                content
-                    .buttonStyle(.glassProminent)
-                    .tint(chipColor)
-            } else {
-                content
-                    .buttonStyle(.glass)
-            }
-        } else if isActive {
+        if isActive {
             content
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .tint(chipColor)
         } else {
             content
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
         }
     }
 }
@@ -142,10 +133,8 @@ extension View {
     func settingsActionStyle(cells: Bool) -> some View {
         if cells {
             buttonStyle(SettingsCellButtonStyle())
-        } else if #available(iOS 26.0, macOS 26.0, *) {
-            buttonStyle(.glass)
         } else {
-            buttonStyle(.bordered)
+            buttonStyle(.glass)
         }
     }
 }
