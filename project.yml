@@ -113,7 +113,7 @@ targets:
   PlutarMac:
     type: application
     platform: macOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "15.0"
     sources:
       - path: PlutarMac
       - path: Plutar/Models
@@ -169,7 +169,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         SUPPORTED_PLATFORMS: "macosx"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
     dependencies:
       - target: PlutarShareMac
         embed: true
@@ -177,7 +177,7 @@ targets:
   PlutarShareMac:
     type: app-extension
     platform: macOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "15.0"
     sources:
       - path: PlutarShareMac
       # Shared with PlutarShare (iOS) — same App Group container and
@@ -221,7 +221,7 @@ targets:
         DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         SUPPORTED_PLATFORMS: "macosx"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
 
   PlutarShare:
     type: app-extension

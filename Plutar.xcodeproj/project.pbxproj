@@ -730,7 +730,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -752,7 +752,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
 				PRODUCT_NAME = Plutar;
 				SDKROOT = macosx;
@@ -775,7 +775,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac;
 				PRODUCT_NAME = Plutar;
 				SDKROOT = macosx;
@@ -915,7 +915,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.innoflo.plutar.mac.PlutarShareMac;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
