@@ -223,18 +223,18 @@ struct LinkRowView: View {
     private func titleText(_ title: String) -> Text {
         var prefix = Text("")
         if item.isPinned {
-            prefix = prefix + Text(Image(systemName: "pin.circle.fill")) + Text(" ")
+            prefix = Text("\(prefix)\(Image(systemName: "pin.circle.fill")) ")
         }
         if item.host.contains("theverge.com"), let glyph = Self.firefoxGlyph(size: titleFontSize * 1.25) {
             // A bitmap sits on the baseline, while an SF Symbol hangs ~0.28em
             // below it — lowered by the same amount so both glyphs, and the
             // title, share one vertical centre.
-            prefix = prefix + Text(glyph).baselineOffset(-titleFontSize * 0.28) + Text(" ")
+            prefix = Text("\(prefix)\(Text(glyph).baselineOffset(-titleFontSize * 0.28)) ")
         }
         if let icon = LinkItem.mediaIcon(forHost: item.host) {
-            prefix = prefix + Text(Image(systemName: icon)) + Text(" ")
+            prefix = Text("\(prefix)\(Image(systemName: icon)) ")
         }
-        return prefix + Text(title)
+        return Text("\(prefix)\(title)")
     }
 
     /// The Firefox app icon, pre-scaled to `size` points so it sits inline
