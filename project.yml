@@ -6,14 +6,21 @@ options:
     macOS: "14.0"
   createIntermediateGroups: true
   developmentLanguage: fr
+  # Becomes LastUpgradeCheck / the schemes' LastUpgradeVersion, so Xcode
+  # doesn't offer its "recommended settings" update again after a regenerate.
+  xcodeVersion: "27.2"
 
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: AQ24F2W59K
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
+    # Xcode 27.2's recommended settings.
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
 
 targets:
   Plutar:
@@ -99,7 +106,6 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         # Added in Xcode and previously only present in the generated
         # project — regenerating used to wipe them.
-        DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
@@ -165,11 +171,12 @@ targets:
         # "PlutarMac".
         PRODUCT_NAME: Plutar
         SWIFT_EMIT_LOC_STRINGS: YES
-        DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         SUPPORTED_PLATFORMS: "macosx"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
+        DEAD_CODE_STRIPPING: YES
+        REGISTER_APP_GROUPS: YES
     dependencies:
       - target: PlutarShareMac
         embed: true
@@ -218,10 +225,11 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.innoflo.plutar.mac.PlutarShareMac
         SWIFT_EMIT_LOC_STRINGS: YES
-        DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         SUPPORTED_PLATFORMS: "macosx"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
+        DEAD_CODE_STRIPPING: YES
+        REGISTER_APP_GROUPS: YES
 
   PlutarShare:
     type: app-extension
@@ -274,7 +282,6 @@ targets:
         # offers Plutar on iPad too.
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_EMIT_LOC_STRINGS: YES
-        DEVELOPMENT_TEAM: AQ24F2W59K
         INFOPLIST_KEY_CFBundleDisplayName: Plutar
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: NO
