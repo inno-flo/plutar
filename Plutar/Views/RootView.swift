@@ -266,26 +266,6 @@ struct RootView: View {
         Array(SourceRank.aggregated(sourceRanks).prefix(15))
     }
 
-    /// The link-count counters' background (the top badge and the
-    /// Sources/Lus pastille alike), per theme — every theme has its own,
-    /// so neither falls back to `chip` any more. Copenhague uses
-    /// an ochre yellow (a darker variant for soir); Kamakura uses its own
-    /// slate blue-gray (a darker variant for soir); Cap Canaveral uses plain
-    /// white, Cap Canaveral soir a light gray. Tokyo's counter swapped hues
-    /// with its pill (`chip`): red here (was black), a dark red in soir
-    /// (was dark gray) — the pill itself now carries the black/gray side of
-    /// the swap, see `AppTheme.chip`. Copenhague's and Tokyo's are exactly
-    /// `AppTheme.dotColor`, which mirrors them.
-    private func counterBackground(for theme: AppTheme) -> Color {
-        switch theme {
-        case .scand, .scandSoir, .tokyo, .tokyoSoir: return theme.dotColor
-        case .blanc: return Color(hex: "#798891")
-        case .blancSoir: return Color(hex: "#546067")
-        case .astronaute: return .white
-        case .astronauteSoir: return Color(hex: "#6D6D6D")
-        }
-    }
-
     /// Cap Canaveral's own "international orange" for counter text, paired
     /// with `counterBackground`'s white; Cap Canaveral soir uses
     /// `chipText` — the same combination the Sources pastille's own count
@@ -781,7 +761,7 @@ struct RootView: View {
     private var mediaFilterButtons: some View {
         if mediaFilterAvailable {
             let isOn = mediaFilter != nil
-            floatingButton(icon: isOn ? "waveform.circle.fill" : "waveform.circle") {
+            floatingButton(icon: "waveform", activeBackground: isOn ? theme.counterBackground : nil) {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     mediaFilters[mode] = isOn ? nil : .audioVideo
                 }
@@ -813,7 +793,7 @@ struct RootView: View {
             // Copenhague: the counter badge alone swaps to an ochre yellow
             // in every view (a darker variant for soir), leaving the
             // day/source pill on its usual `chip`.
-            .background(counterBackground(for: theme))
+            .background(theme.counterBackground)
             .foregroundStyle(counterForegroundOverride(for: theme) ?? theme.chipText)
             .clipShape(Capsule())
     }
@@ -889,12 +869,12 @@ struct RootView: View {
     /// Uses the real Liquid Glass material (`glassEffect`) rather than a
     /// plain `Material` background, so it actually follows the system's
     /// Liquid Glass appearance setting (Settings → Display & Brightness).
-    private func floatingButton(icon: String, flipped: Bool = false, action: @escaping () -> Void) -> some View {
+    private func floatingButton(icon: String, flipped: Bool = false, activeBackground: Color? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 22, weight: .semibold))
                 .scaleEffect(x: flipped ? -1 : 1, y: 1)
-                .foregroundStyle(theme.ink(1))
+                .foregroundStyle(activeBackground == nil ? theme.ink(1) : theme.activeCounterFillIcon)
         }
         // The fixed size belongs on the button itself, not just the icon
         // inside it — sizing only the inner Image left the outer shape
@@ -902,6 +882,11 @@ struct RootView: View {
         // reported size, which wasn't reliably a perfect square.
         .frame(width: 44, height: 44)
         .buttonStyle(.plain)
+        // Opaque, on top of the glass: tinted glass would let the list show
+        // through and no longer match the counter's own color.
+        .background {
+            if let activeBackground { Circle().fill(activeBackground) }
+        }
         .glassEffect(.regular, in: .circle)
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
     }
@@ -999,7 +984,7 @@ struct RootView: View {
                     .frame(minWidth: 17, minHeight: 17)
                     .padding(.horizontal, 4)
                     // Copenhague: same ochre yellow as the other link counters.
-                    .background(counterBackground(for: theme))
+                    .background(theme.counterBackground)
                     .clipShape(Capsule())
             }
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")

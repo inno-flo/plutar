@@ -341,7 +341,15 @@ struct MacFeedList: View {
                     Button {
                         state.mediaFilter = mediaFilter == nil ? .audioVideo : nil
                     } label: {
-                        Image(systemName: mediaFilter == nil ? "waveform.circle" : "waveform.circle.fill")
+                        Image(systemName: "waveform")
+                            .foregroundStyle(mediaFilter == nil ? AnyShapeStyle(.primary) : AnyShapeStyle(theme.activeCounterFillIcon))
+                            // A sized background, so the toolbar item keeps
+                            // its size in both states.
+                            .background {
+                                if mediaFilter != nil {
+                                    Circle().fill(theme.counterBackground).frame(width: 28, height: 28)
+                                }
+                            }
                     }
                     .help("Audio et vidéo seulement")
                 }
@@ -471,7 +479,7 @@ struct MacFeedList: View {
     }
 
     /// Day-label color (Date/Lus) — an accent borrowed from the iPhone
-    /// version for Tokyo clair (red, `RootView.counterBackground`, i.e.
+    /// version for Tokyo clair (red, `AppTheme.counterBackground`, i.e.
     /// `theme.dotColor`; not `theme.chip`, which is black for Tokyo),
     /// Copenhague clair (its ochre yellow, `theme.dotColor`) and Cap Canaveral clair
     /// ("international orange", `RootView.counterForegroundOverride`); the

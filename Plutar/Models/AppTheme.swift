@@ -153,7 +153,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .astronauteSoir: return Color(hex: "#C23D00")
         // Tokyo's pill swapped hues with its counter badge: black here
         // (was red), a near-black gray in soir (was dark red) — see
-        // `RootView.counterBackground` for the other half of the
+        // `counterBackground` for the other half of the
         // swap.
         case .tokyo: return .black
         case .tokyoSoir: return Color(hex: "#2B2B2B")
@@ -163,7 +163,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Color of this theme's dot in the settings' "Thème" grid and in the
     /// Mac sidebar's quick-switch row. Same as `chip` except Tokyo (red) and
     /// Copenhague (ochre yellow), which show the accent the iPhone version
-    /// uses for their counters (`RootView.counterBackground`) —
+    /// uses for their counters (`counterBackground`) —
     /// Tokyo's `chip` is black, and Copenhague's blue-gray doesn't read as
     /// that theme's signature color. Each nuit variant keeps its own darker
     /// tone of the same hue, matching that override.
@@ -177,12 +177,39 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The link-count counters' background (the top badge and the
+    /// Sources/Lus pastille alike), per theme — every theme has its own,
+    /// so neither falls back to `chip` any more. Copenhague uses
+    /// an ochre yellow (a darker variant for soir); Kamakura uses its own
+    /// slate blue-gray (a darker variant for soir); Cap Canaveral uses plain
+    /// white, Cap Canaveral soir a light gray. Tokyo's counter swapped hues
+    /// with its pill (`chip`): red here (was black), a dark red in soir
+    /// (was dark gray) — the pill itself now carries the black/gray side of
+    /// the swap, see `AppTheme.chip`. Copenhague's and Tokyo's are exactly
+    /// `AppTheme.dotColor`, which mirrors them.
+    var counterBackground: Color {
+        switch self {
+        case .scand, .scandSoir, .tokyo, .tokyoSoir: return dotColor
+        case .blanc: return Color(hex: "#798891")
+        case .blancSoir: return Color(hex: "#546067")
+        case .astronaute: return .white
+        case .astronauteSoir: return Color(hex: "#6D6D6D")
+        }
+    }
+
+    /// Icon drawn on a button filled with `counterBackground` while it's on
+    /// (the audio/video filter): white, except Cap Canaveral clair, whose
+    /// counter is itself white — its counter's own orange digits instead.
+    var activeCounterFillIcon: Color {
+        self == .astronaute ? accent : .white
+    }
+
     /// Selected-tab tint for the iOS/iPadOS tab bar. Same as `chip`
     /// everywhere except Tokyo nuit: `chip`'s near-black #2B2B2B reads fine
     /// as a pill fill but is nearly invisible as a selected-label color on
     /// the tab bar's own near-black background, so this uses the same dark
     /// red already assigned to Tokyo nuit's counter badge instead (see
-    /// `counterBackground` in RootView) — visible, and still in the
+    /// `counterBackground`) — visible, and still in the
     /// swapped-red family the theme already uses.
     var tabTint: Color {
         self == .tokyoSoir ? dotColor : chip
