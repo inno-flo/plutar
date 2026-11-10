@@ -144,7 +144,11 @@ private struct StoreLifecycle: ViewModifier {
                 // local changes to lose here — every mutation in this
                 // app calls `persist()` synchronously right after — and
                 // forces exactly that refetch.
-                context.rollback()
+                //
+                // Not while an enrichment pass is running, though: a pass
+                // *does* hold unsaved changes across its awaits — see
+                // `LinkMetadataEnricher.refetchAfterRemoteChange`.
+                LinkMetadataEnricher.refetchAfterRemoteChange(in: context)
                 Task { await LinkMetadataEnricher.enrichPendingLinks(in: context) }
             }
     }

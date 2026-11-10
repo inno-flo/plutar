@@ -1,5 +1,6 @@
 import Foundation
 import LinkPresentation
+import Network
 import Observation
 import SwiftData
 #if canImport(UIKit)
@@ -43,12 +44,126 @@ enum LinkMetadataEnricher {
     /// start with several still pending) doesn't fire a pile of concurrent
     /// network requests the moment the app opens.
     static func enrichPendingLinks(in context: ModelContext, limit: Int = 8) async {
-        await enrichTitleAndThumbnail(in: context, limit: limit)
-        await enrichFromHTML(in: context, limit: limit)
-        // Eight at a time was enough for the odd synced-in link, but a freshly
-        // installed device has *every* image to fetch and would need dozens of
-        // launches: same pass as after a restore, in parallel, capped per call.
-        await regenerateMissingThumbnails(in: context, limit: 40)
+        // One pass at a time: the triggers overlap (launch, foreground, remote
+        // change, manual refresh), and two passes interleaving at their awaits
+        // fetched the same pending links twice. A trigger that arrives
+        // mid-pass asks for one more pass instead of starting its own.
+        guard !isEnriching else {
+            passRequestedWhileBusy = true
+            return
+        }
+        isEnriching = true
+        defer { isEnriching = false }
+        repairLegacyExtractionIfNeeded(in: context)
+        repeat {
+            passRequestedWhileBusy = false
+            // Offline, every fetch below would fail and mark its link as
+            // tried for good — leave everything pending for the next pass.
+            if await isOnline() {
+                await enrichTitleAndThumbnail(in: context, limit: limit)
+                await enrichFromHTML(in: context, limit: limit)
+                // Eight at a time was enough for the odd synced-in link, but a freshly
+                // installed device has *every* image to fetch and would need dozens of
+                // launches: same pass as after a restore, in parallel, capped per call.
+                await regenerateMissingThumbnails(in: context, limit: 40)
+            }
+            // Everything above has been persisted by now: the rollback a
+            // remote change asked for mid-pass can no longer lose anything.
+            if rollbackDeferred {
+                rollbackDeferred = false
+                context.rollback()
+            }
+        } while passRequestedWhileBusy
+    }
+
+    private static var isEnriching = false
+    private static var passRequestedWhileBusy = false
+    private static var rollbackDeferred = false
+
+    /// The forced refetch `StoreLifecycle` wants after a CloudKit remote change
+    /// (see its comment) — `context.rollback()`, except while a pass is
+    /// running: a pass sets titles, thumbnails and its "tried" flags across
+    /// several awaits before saving them, and a rollback landing in between
+    /// threw that work away (to be downloaded again on the next pass). It is
+    /// done at the end of the pass instead.
+    static func refetchAfterRemoteChange(in context: ModelContext) {
+        if isEnriching {
+            rollbackDeferred = true
+        } else {
+            context.rollback()
+        }
+    }
+
+    private static let legacyExtractionRepairedKey = "LinkMetadataEnricher.legacyExtractionRepaired.v1"
+
+    /// One-time repair, per device, of what the old HTML extraction left
+    /// behind: excerpts and site names cut at their first apostrophe
+    /// ("L" for "L'Équipe"), accents decoded as Latin-1 ("Ã©"), entities left
+    /// as written ("&#039;"). Those links are marked as already tried, so
+    /// nothing would ever read their page again; this puts them back in
+    /// `enrichFromHTML`'s queue, which then works through them a few per pass.
+    ///
+    /// - Unread links: excerpt and site name both (a cut excerpt can't be
+    ///   told from a short one, so all of them).
+    /// - Read links: only a site name that looks damaged — their excerpt is
+    ///   never shown, and re-reading every read link's page isn't worth it.
+    ///
+    /// The stored values stay in place until a fetch replaces them, so a page
+    /// that no longer answers loses nothing.
+    private static func repairLegacyExtractionIfNeeded(in context: ModelContext) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: legacyExtractionRepairedKey),
+              // The throwaway fallback store says nothing about the real one.
+              !context.container.configurations.contains(where: \.isStoredInMemoryOnly),
+              let items = try? context.fetch(FetchDescriptor<LinkItem>())
+        else { return }
+
+        var requeued = 0
+        for item in items {
+            var changed = false
+            if !item.isRead {
+                if item.excerptFetchAttempted { item.excerptFetchAttempted = false; changed = true }
+                if item.sourceNameFetchAttempted { item.sourceNameFetchAttempted = false; changed = true }
+            } else if item.sourceNameFetchAttempted, let name = item.sourceName, looksDamaged(name) {
+                item.sourceNameFetchAttempted = false
+                changed = true
+            }
+            if changed { requeued += 1 }
+        }
+        // Flag set only once the reset is safely stored — otherwise it is
+        // simply tried again on the next pass.
+        guard context.persist() else { return }
+        defaults.set(true, forKey: legacyExtractionRepairedKey)
+        PlutarLog.store.notice("Legacy extraction repair: \(requeued) link(s) queued for a new HTML fetch")
+    }
+
+    /// A site name the old extraction most likely got wrong: cut at an
+    /// apostrophe (one or two characters left), UTF-8 read as Latin-1, or an
+    /// entity left undecoded.
+    private nonisolated static func looksDamaged(_ text: String) -> Bool {
+        text.count <= 2 || text.contains("Ã") || text.contains("â€")
+            || decodeHTMLEntities(text) != text
+    }
+
+    /// Whether the device currently has a usable network path.
+    private nonisolated static func isOnline() async -> Bool {
+        for await path in NWPathMonitor() { return path.status == .satisfied }
+        return true
+    }
+
+    /// Whether `error` (or an error it wraps) says the network itself was
+    /// missing — as opposed to the site refusing, timing out or not existing.
+    private nonisolated static func isOfflineError(_ error: Error) -> Bool {
+        let offlineCodes = [
+            NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
+            NSURLErrorDataNotAllowed, NSURLErrorInternationalRoamingOff,
+        ]
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            if nsError.domain == NSURLErrorDomain, offlineCodes.contains(nsError.code) { return true }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
     }
 
     /// Up to `limit` links matching `predicate` — `fetchLimit` rather than
@@ -73,13 +188,23 @@ enum LinkMetadataEnricher {
     }
 
     private static func fetchTitleAndThumbnail(for item: LinkItem) async {
-        // Marked done up front, not after: a link that fails (dead URL, no
-        // network, no metadata) should be left alone afterwards rather than
-        // retried on every single launch.
-        defer { item.metadataFetched = true }
-
-        guard let url = URL(string: item.urlString) else { return }
-        guard let meta = await fetchLinkMetadata(for: url) else {
+        guard let url = URL(string: item.urlString) else {
+            item.metadataFetched = true
+            return
+        }
+        let fetched = await fetchLinkMetadata(for: url)
+        // The network dropped mid-pass: not this link's fault, so it stays
+        // pending — it used to be marked done here and never got its title
+        // or thumbnail.
+        if fetched.offline {
+            PlutarLog.store.notice("LinkMetadataEnricher: offline, \(item.host, privacy: .public) left pending")
+            return
+        }
+        // Marked done whatever the outcome from here on: a link that fails
+        // for its own reasons (dead URL, bot protection, no metadata) should
+        // be left alone afterwards rather than retried on every single launch.
+        item.metadataFetched = true
+        guard let meta = fetched.meta else {
             // Was silent — a site that blocks non-browser fetches (bot
             // protection like DataDome/Cloudflare, a paywall, geo-blocking)
             // left no trace anywhere, and since `metadataFetched` above is
@@ -142,16 +267,21 @@ enum LinkMetadataEnricher {
         let needsName = !item.sourceNameFetchAttempted
             && LinkItem.displaySourceName(forHost: item.host) == item.host
         let needsExcerpt = !item.excerptFetchAttempted && !item.isRead
-        // Each marked done up front, same reasoning as `metadataFetched`.
-        defer {
+        // Each marked done whatever the fetch gives, same reasoning as
+        // `metadataFetched` — except when the network itself was missing.
+        func markAttempted() {
             item.sourceNameFetchAttempted = true
             if needsExcerpt { item.excerptFetchAttempted = true }
         }
 
-        guard needsName || needsExcerpt,
-              let url = URL(string: item.urlString),
-              let html = await fetchHTML(for: url)
-        else { return }
+        guard needsName || needsExcerpt, let url = URL(string: item.urlString) else {
+            markAttempted()
+            return
+        }
+        let fetched = await fetchHTML(for: url)
+        if fetched.offline { return }
+        markAttempted()
+        guard let html = fetched.html else { return }
         if needsName, let name = firstMatch(siteNameRegexes, in: html) {
             item.sourceName = name
         }
@@ -262,7 +392,7 @@ enum LinkMetadataEnricher {
     /// (title and excerpt are left alone). `nonisolated` for the same reason
     /// as `fetchLinkMetadata`.
     private nonisolated static func fetchThumbnail(for url: URL, id: UUID) async -> String? {
-        guard let meta = await fetchLinkMetadata(for: url) else {
+        guard let meta = await fetchLinkMetadata(for: url).meta else {
             PlutarLog.store.notice("Thumbnail: no metadata for \(url.host() ?? "?", privacy: .public)")
             return nil
         }
@@ -283,34 +413,67 @@ enum LinkMetadataEnricher {
     /// pin the wait to the main thread. `.timeout` bounds a hung/slow host
     /// to the same 8 s cap as `fetchHTML` below, rather than
     /// however long `LPMetadataProvider` would otherwise wait on its own.
-    private nonisolated static func fetchLinkMetadata(for url: URL) async -> LPLinkMetadata? {
+    ///
+    /// `offline` tells a missing network apart from a failure of the link's
+    /// own, so the caller can leave the link pending instead of giving up.
+    private nonisolated static func fetchLinkMetadata(for url: URL) async -> (meta: LPLinkMetadata?, offline: Bool) {
         let provider = LPMetadataProvider()
         provider.timeout = 8
-        return try? await provider.startFetchingMetadata(for: url)
+        do {
+            return (try await provider.startFetchingMetadata(for: url), false)
+        } catch {
+            return (nil, isOfflineError(error))
+        }
     }
 
     /// `LPLinkMetadata` doesn't expose the page's meta description (or its
     /// site name), so this pulls a capped prefix of the HTML itself and
     /// reads it out directly — enough to reach whatever's in `<head>`.
     /// `nonisolated` for the same reason as `fetchLinkMetadata` above.
-    private nonisolated static func fetchHTML(for url: URL) async -> String? {
+    /// `offline`: same meaning as `fetchLinkMetadata`'s.
+    private nonisolated static func fetchHTML(for url: URL) async -> (html: String?, offline: Bool) {
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
-        guard let (data, _) = try? await URLSession.shared.data(for: request) else { return nil }
-        let capped = data.prefix(65_536)
-        return String(data: capped, encoding: .utf8)
-            ?? String(data: capped, encoding: .isoLatin1)
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let limit = 65_536
+            return (decodeHTML(data.prefix(limit), wasCut: data.count > limit), false)
+        } catch {
+            return (nil, isOfflineError(error))
+        }
+    }
+
+    /// `data` (a page cut at a fixed byte count) as text: UTF-8, else
+    /// Windows-1252/Latin-1 for the older pages still served that way.
+    ///
+    /// The cut can land in the middle of a multi-byte UTF-8 character, which
+    /// makes strict UTF-8 decoding fail on the *whole* buffer; it then fell
+    /// through to Latin-1 and every accent on the page came out as "Ã©". Up to
+    /// three trailing bytes (the most an incomplete character can leave) are
+    /// dropped before giving up on UTF-8 — only when the page really was cut
+    /// (`wasCut`): on a whole page, a trailing byte that isn't UTF-8 means
+    /// the page is Latin-1, not that a character is incomplete.
+    nonisolated static func decodeHTML(_ data: Data, wasCut: Bool) -> String? {
+        for dropped in 0...(wasCut ? 3 : 0) where dropped <= data.count {
+            if let text = String(data: data.dropLast(dropped), encoding: .utf8) { return text }
+        }
+        return String(data: data, encoding: .windowsCP1252)
+            ?? String(data: data, encoding: .isoLatin1)
     }
 
     /// Both orderings of one `<meta>` tag's attributes (`property=… content=…`
     /// and `content=… property=…`), compiled once per process rather than on
-    /// every match.
+    /// every match. The content is capture group 2.
+    ///
+    /// Group 1 is the quote that opens `content`, and the value runs to that
+    /// same quote (`\1`) — it used to stop at the first quote of *either*
+    /// kind, so `content="L'histoire d'un…"` was read as just "L".
     private nonisolated static func metaTagRegexes(_ tags: [(attribute: String, value: String)]) -> [NSRegularExpression] {
         tags.flatMap { tag in [
-            #"<meta[^>]+\#(tag.attribute)=["']\#(tag.value)["'][^>]+content=["']([^"']*)["']"#,
-            #"<meta[^>]+content=["']([^"']*)["'][^>]+\#(tag.attribute)=["']\#(tag.value)["']"#,
+            #"<meta[^>]+\#(tag.attribute)=["']\#(tag.value)["'][^>]+content=(["'])(.*?)\1"#,
+            #"<meta[^>]+content=(["'])(.*?)\1[^>]+\#(tag.attribute)=["']\#(tag.value)["']"#,
         ] }
-        .compactMap { try? NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
+        .compactMap { try? NSRegularExpression(pattern: $0, options: [.caseInsensitive, .dotMatchesLineSeparators]) }
     }
 
     private nonisolated static let descriptionRegexes = metaTagRegexes([
@@ -331,8 +494,8 @@ enum LinkMetadataEnricher {
     private nonisolated static func firstMatch(_ regexes: [NSRegularExpression], in html: String) -> String? {
         let range = NSRange(html.startIndex..., in: html)
         for regex in regexes {
-            guard let match = regex.firstMatch(in: html, range: range), match.numberOfRanges > 1,
-                  let group = Range(match.range(at: 1), in: html)
+            guard let match = regex.firstMatch(in: html, range: range), match.numberOfRanges > 2,
+                  let group = Range(match.range(at: 2), in: html)
             else {
                 continue
             }
@@ -342,15 +505,55 @@ enum LinkMetadataEnricher {
         return nil
     }
 
+    /// Named entities worth knowing here — the markup ones, typographic
+    /// punctuation, and the accented letters French pages still write out.
+    /// Numeric ones (`&#039;`, `&#x27;`, `&#8217;`) need no table.
     private nonisolated static let htmlEntities: [String: String] = [
-        "&amp;": "&", "&quot;": "\"", "&#39;": "'", "&apos;": "'",
-        "&lt;": "<", "&gt;": ">", "&nbsp;": " ",
+        "amp": "&", "quot": "\"", "apos": "'", "lt": "<", "gt": ">", "nbsp": " ",
+        "rsquo": "’", "lsquo": "‘", "rdquo": "”", "ldquo": "“", "laquo": "«", "raquo": "»",
+        "hellip": "…", "ndash": "–", "mdash": "—", "middot": "·", "bull": "•",
+        "euro": "€", "copy": "©", "reg": "®", "trade": "™", "deg": "°",
+        "eacute": "é", "egrave": "è", "ecirc": "ê", "euml": "ë",
+        "agrave": "à", "acirc": "â", "auml": "ä", "ccedil": "ç",
+        "icirc": "î", "iuml": "ï", "ocirc": "ô", "ouml": "ö",
+        "ugrave": "ù", "ucirc": "û", "uuml": "ü", "oelig": "œ", "aelig": "æ",
+        "Eacute": "É", "Egrave": "È", "Ecirc": "Ê", "Agrave": "À", "Acirc": "Â",
+        "Ccedil": "Ç", "Icirc": "Î", "Ocirc": "Ô", "Ucirc": "Û", "OElig": "Œ",
     ]
 
-    private nonisolated static func decodeHTMLEntities(_ string: String) -> String {
-        htmlEntities.reduce(string) { result, entity in
-            result.replacingOccurrences(of: entity.key, with: entity.value)
+    private nonisolated static let htmlEntityRegex = try? NSRegularExpression(
+        pattern: "&(#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{1,10});"
+    )
+
+    /// Named and numeric entities, in a single left-to-right pass: replacing
+    /// one entity at a time over the whole string, as before, could decode
+    /// twice ("&amp;lt;" ending up as "<"). An entity that isn't recognized
+    /// is left as written.
+    nonisolated static func decodeHTMLEntities(_ string: String) -> String {
+        guard let regex = htmlEntityRegex, string.contains("&") else { return string }
+        var result = ""
+        var cursor = string.startIndex
+        for match in regex.matches(in: string, range: NSRange(string.startIndex..., in: string)) {
+            guard let whole = Range(match.range, in: string),
+                  let body = Range(match.range(at: 1), in: string)
+            else { continue }
+            let name = string[body]
+            let decoded: String?
+            if name.hasPrefix("#") {
+                let digits = name.dropFirst()
+                let code = digits.first == "x" || digits.first == "X"
+                    ? UInt32(digits.dropFirst(), radix: 16)
+                    : UInt32(digits, radix: 10)
+                decoded = code.flatMap(Unicode.Scalar.init).map { String(Character($0)) }
+            } else {
+                decoded = htmlEntities[String(name)]
+            }
+            result += string[cursor..<whole.lowerBound]
+            result += decoded ?? String(string[whole])
+            cursor = whole.upperBound
         }
+        result += string[cursor...]
+        return result
     }
 
     /// `nonisolated`: the image load/encode/write below has nothing to do
