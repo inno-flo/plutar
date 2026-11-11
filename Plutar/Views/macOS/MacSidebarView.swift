@@ -107,7 +107,7 @@ struct MacSidebarView: View {
                             Image(systemName: "arrow.up.arrow.down")
                         }
                         .buttonStyle(.plain)
-                        .help("Trier par nom ou par nombre")
+                        .help("Trier par nom ou par nombre de liens")
                     }
                 }
                 sidebarRow(label: "Lus", systemImage: "checkmark.circle.fill", count: readCount)
