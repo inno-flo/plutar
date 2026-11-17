@@ -175,6 +175,9 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
+        // Same 50% translucency on iPhone and iPad (the iPad sheet was far
+        // more transparent by default), and on the "Avancé" page below.
+        .presentationBackground(settingsBackgroundColor)
         // iPad shows a form sheet that ignores the detent above and is too
         // short for the whole page (the "Avancé" row and the credit sat
         // below the fold): use the taller page sizing there.
@@ -279,11 +282,14 @@ private struct AdvancedSettingsView: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .background(settingsBackgroundColor.ignoresSafeArea())
         .navigationTitle("Avancé")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+/// Shared 50% translucent background of the settings panel and its "Avancé" page.
+private let settingsBackgroundColor = Color(uiColor: .systemGroupedBackground).opacity(0.5)
 
 private extension View {
     /// iPad only: the taller page sizing (iPhone keeps its height detent).
