@@ -438,6 +438,9 @@ struct RootView: View {
                 onClose: { settingsConfirmed = true; showSettings = false },
                 chipColor: theme.chip
             )
+            // Explicit, not inherited: with "Système" (nil) the sheet's own
+            // presentation controller didn't reliably follow iOS's dark mode.
+            .preferredColorScheme(appearance.colorScheme ?? systemColorScheme)
         }
         // `.alert`, not `.confirmationDialog` — the latter can render as a
         // compact popover anchored near the triggering context menu instead
