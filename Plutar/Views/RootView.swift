@@ -275,7 +275,6 @@ struct RootView: View {
     /// their own default foreground.
     private func counterForegroundOverride(for theme: AppTheme) -> Color? {
         switch theme {
-        case .astronaute: return theme.accent
         case .astronauteSoir: return theme.chipText
         case .scand: return theme.ink(1)
         // Kamakura soir: its counter's dark fallback text (`background`)
@@ -993,8 +992,8 @@ struct RootView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .background(theme.chip)
-        .foregroundStyle(theme.chipText)
+        .background(theme.pillBackground)
+        .foregroundStyle(theme.pillText)
         .clipShape(Capsule())
     }
 

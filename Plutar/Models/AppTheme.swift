@@ -192,17 +192,32 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .scand, .scandSoir, .tokyo, .tokyoSoir: return dotColor
         case .blanc: return Color(hex: "#798891")
         case .blancSoir: return Color(hex: "#546067")
-        case .astronaute: return .white
-        case .astronauteSoir: return Color(hex: "#6D6D6D")
+        // Cap Canaveral clair: orange counter with white digits (the day/source
+        // pill carries the white side, see `pillBackground`).
+        case .astronaute: return accent
+        // Cap Canaveral soir: its own dark orange (`chip`) with white digits;
+        // the day/source pill takes the old gray, see `pillBackground`.
+        case .astronauteSoir: return chip
         }
     }
 
-    /// Icon drawn on a button filled with `counterBackground` while it's on
-    /// (the audio/video filter): white, except Cap Canaveral clair, whose
-    /// counter is itself white — its counter's own orange digits instead.
-    var activeCounterFillIcon: Color {
-        self == .astronaute ? accent : .white
+    /// Day/source pill fill — `chip` everywhere except Cap Canaveral clair
+    /// (white pill, orange text; its counter is orange/white) and soir (gray
+    /// pill, white text; its counter is dark orange/white).
+    var pillBackground: Color {
+        switch self {
+        case .astronaute: return .white
+        case .astronauteSoir: return Color(hex: "#6D6D6D")
+        default: return chip
+        }
     }
+
+    /// Text on `pillBackground`.
+    var pillText: Color { self == .astronaute ? accent : chipText }
+
+    /// Icon drawn on a button filled with `counterBackground` while it's on
+    /// (the audio/video filter): white.
+    var activeCounterFillIcon: Color { .white }
 
     /// Selected-tab tint for the iOS/iPadOS tab bar. Same as `chip`
     /// everywhere except Tokyo nuit: `chip`'s near-black #2B2B2B reads fine
